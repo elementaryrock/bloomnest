@@ -1,0 +1,22 @@
+# Environment variables
+.env
+
+# Dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Build outputs
+dist/
+
+# Temporary files
+tmp/
+temp/
+
+# Generated PDFs
+reports/*.pdf
+
+# Uploads
+uploads/
