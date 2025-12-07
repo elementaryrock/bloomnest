@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
@@ -9,12 +9,29 @@ const SessionNotes = () => {
     const { sessionId } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [sessionLoading, setSessionLoading] = useState(true);
+    const [session, setSession] = useState(null);
 
-    // Mock session data
-    const session = {
-        patient: { childName: 'Demo Patient', specialId: 'JYCS2025000001', diagnosis: ['ASD'] },
-        therapyType: 'Speech Therapy',
-        timeSlot: '10:00 AM - 11:00 AM'
+    useEffect(() => {
+        fetchSessionData();
+    }, [sessionId]);
+
+    const fetchSessionData = async () => {
+        try {
+            const res = await api.get(`/sessions/${sessionId}`);
+            if (res.data.success) {
+                setSession({
+                    ...res.data.data.session,
+                    patient: res.data.data.patient
+                });
+            }
+        } catch (error) {
+            console.error('Fetch session error:', error);
+            toast.error('Failed to load session data');
+            navigate('/therapist/dashboard');
+        } finally {
+            setSessionLoading(false);
+        }
     };
 
     const {
@@ -32,12 +49,28 @@ const SessionNotes = () => {
                 navigate('/therapist/dashboard');
             }
         } catch (error) {
-            toast.success('Session notes saved! (Demo)');
-            navigate('/therapist/dashboard');
+            console.error('Complete session error:', error);
+            toast.error(error.response?.data?.error?.message || 'Failed to complete session');
         } finally {
             setLoading(false);
         }
     };
+
+    if (sessionLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+            </div>
+        );
+    }
+
+    if (!session) {
+        return (
+            <div className="text-center py-12">
+                <p className="text-gray-500">Session not found</p>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-3xl mx-auto space-y-6">
@@ -54,16 +87,16 @@ const SessionNotes = () => {
                         <FiUser className="text-gray-400" size={28} />
                     </div>
                     <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800">{session.patient.childName}</h3>
-                        <p className="text-sm text-purple-600">{session.patient.specialId}</p>
+                        <h3 className="font-semibold text-gray-800">{session.patient?.childName || 'Patient'}</h3>
+                        <p className="text-sm text-purple-600">{session.patient?.specialId || session.specialId}</p>
                     </div>
                     <div className="text-right">
                         <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                            {session.therapyType}
+                            {session.bookingId?.therapyType || session.therapyType || 'Therapy'}
                         </span>
                         <p className="text-sm text-gray-500 mt-1 flex items-center gap-1 justify-end">
                             <FiClock size={14} />
-                            {session.timeSlot}
+                            {session.bookingId?.timeSlot || session.timeSlot || 'N/A'}
                         </p>
                     </div>
                 </div>

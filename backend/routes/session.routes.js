@@ -5,6 +5,14 @@ const authenticate = require('../middleware/auth');
 const checkRole = require('../middleware/roleCheck');
 const { body, param } = require('express-validator');
 
+// Get today's sessions for therapist
+router.get(
+  '/today',
+  authenticate,
+  checkRole('therapist', 'admin'),
+  sessionController.getTodaySessions
+);
+
 // Start session (therapist only)
 router.post(
   '/:sessionId/start',

@@ -312,6 +312,92 @@ class SessionController {
       });
     }
   }
+
+  // Get today's sessions for therapist
+  async getTodaySessions(req, res) {
+    console.log('[DEBUG] getTodaySessions called - userId:', req.user?.userId);
+    try {
+      const { Staff } = require('../models');
+
+      // Find staff record first
+      const staff = await Staff.findOne({ staffId: req.user.userId });
+
+      if (!staff) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'STAFF_NOT_FOUND',
+            message: 'Staff profile not found'
+          }
+        });
+      }
+
+      // Find therapist by staff ObjectId
+      const therapist = await Therapist.findOne({ staffId: staff._id });
+
+      if (!therapist) {
+        // Return empty sessions for staff without therapist profile
+        return res.status(200).json({
+          success: true,
+          data: []
+        });
+      }
+
+      // Get today's date range
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Query bookings - either assigned to this therapist OR matching their specialization (for unassigned bookings)
+      const bookings = await Booking.find({
+        $or: [
+          { therapistId: therapist._id },
+          { therapistId: { $exists: false }, therapyType: { $in: therapist.specialization } },
+          { therapistId: null, therapyType: { $in: therapist.specialization } }
+        ],
+        date: { $gte: today, $lt: tomorrow },
+        status: { $in: ['confirmed', 'completed'] }
+      }).sort({ timeSlot: 1 });
+
+      // Get sessions and patient details
+      const sessionsWithDetails = await Promise.all(
+        bookings.map(async (booking) => {
+          const patient = await Patient.findOne({ specialId: booking.specialId });
+          const session = await Session.findOne({ bookingId: booking._id });
+
+          return {
+            id: session?._id || booking._id,
+            sessionId: session?.sessionId,
+            bookingId: booking.bookingId,
+            therapyType: booking.therapyType,
+            timeSlot: booking.timeSlot,
+            status: session?.completedAt ? 'completed' : session?.startTime ? 'in-progress' : 'pending',
+            patient: {
+              specialId: patient?.specialId,
+              childName: patient?.childName,
+              photoUrl: patient?.photoUrl,
+              diagnosis: patient?.diagnosis
+            }
+          };
+        })
+      );
+
+      res.status(200).json({
+        success: true,
+        data: sessionsWithDetails
+      });
+    } catch (error) {
+      console.error('Get today sessions error:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'FETCH_TODAY_SESSIONS_FAILED',
+          message: error.message
+        }
+      });
+    }
+  }
 }
 
 module.exports = new SessionController();

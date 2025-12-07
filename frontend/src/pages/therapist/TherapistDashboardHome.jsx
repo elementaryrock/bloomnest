@@ -47,8 +47,8 @@ const SessionCard = ({ session, onStartSession }) => {
                             <p className="text-sm text-purple-600">{session.patient?.specialId}</p>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${isCompleted ? 'bg-green-100 text-green-600' :
-                                isInProgress ? 'bg-amber-100 text-amber-600' :
-                                    'bg-blue-100 text-blue-600'
+                            isInProgress ? 'bg-amber-100 text-amber-600' :
+                                'bg-blue-100 text-blue-600'
                             }`}>
                             {isCompleted ? 'Completed' : isInProgress ? 'In Progress' : 'Upcoming'}
                         </span>
@@ -75,8 +75,8 @@ const SessionCard = ({ session, onStartSession }) => {
                     <button
                         onClick={() => onStartSession(session)}
                         className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium transition ${isInProgress
-                                ? 'bg-amber-500 text-white hover:bg-amber-600'
-                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                            ? 'bg-amber-500 text-white hover:bg-amber-600'
+                            : 'bg-purple-600 text-white hover:bg-purple-700'
                             }`}
                     >
                         {isInProgress ? <FiFileText /> : <FiPlay />}
@@ -115,43 +115,10 @@ const TherapistDashboardHome = () => {
                 });
             }
         } catch (error) {
-            console.log('Using mock data');
-            const mockSessions = [
-                {
-                    id: 1,
-                    patient: { childName: 'Rahul Kumar', specialId: 'JYCS2025000001', diagnosis: ['ASD'] },
-                    therapyType: 'Speech Therapy',
-                    timeSlot: '9:00 AM - 10:00 AM',
-                    status: 'completed'
-                },
-                {
-                    id: 2,
-                    patient: { childName: 'Priya Sharma', specialId: 'JYCS2025000002', diagnosis: ['SLD'] },
-                    therapyType: 'Occupational Therapy',
-                    timeSlot: '10:00 AM - 11:00 AM',
-                    status: 'in-progress'
-                },
-                {
-                    id: 3,
-                    patient: { childName: 'Arjun Nair', specialId: 'JYCS2025000003', diagnosis: ['CP'] },
-                    therapyType: 'Physical Therapy',
-                    timeSlot: '11:00 AM - 12:00 PM',
-                    status: 'pending'
-                },
-                {
-                    id: 4,
-                    patient: { childName: 'Maya Pillai', specialId: 'JYCS2025000004', diagnosis: ['ASD', 'ID'] },
-                    therapyType: 'Psychology',
-                    timeSlot: '2:00 PM - 3:00 PM',
-                    status: 'pending'
-                },
-            ];
-            setSessions(mockSessions);
-            setStats({
-                totalToday: 4,
-                completed: 1,
-                pending: 3
-            });
+            console.error('Fetch sessions error:', error);
+            toast.error("Failed to load today's sessions");
+            setSessions([]);
+            setStats({ totalToday: 0, completed: 0, pending: 0 });
         } finally {
             setLoading(false);
         }
