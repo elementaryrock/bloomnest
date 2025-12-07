@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiSearch, FiUser, FiCalendar, FiClock, FiX, FiPlus, FiTrash2, FiChevronRight } from 'react-icons/fi';
+import { FiSearch, FiUser, FiCalendar, FiClock, FiX, FiPlus, FiTrash2, FiChevronRight, FiEdit } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import api from '../../services/api';
 
@@ -11,15 +11,21 @@ const BookingManagement = () => {
     const [loading, setLoading] = useState(false);
     const [bookingsLoading, setBookingsLoading] = useState(false);
     const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [editingBooking, setEditingBooking] = useState(null);
 
     // Schedule form state
     const [scheduleForm, setScheduleForm] = useState({
         therapyType: '',
         date: '',
-        timeSlot: ''
+        timeSlot: '',
+        therapistId: ''
     });
     const [availableSlots, setAvailableSlots] = useState([]);
     const [slotsLoading, setSlotsLoading] = useState(false);
+    const [therapists, setTherapists] = useState([]);
+    const [therapistsLoading, setTherapistsLoading] = useState(false);
+    const [sessionLimits, setSessionLimits] = useState({});
+    const [sessionLimitInfo, setSessionLimitInfo] = useState(null);
 
     const therapyTypes = [
         { value: 'Speech', label: 'Speech Therapy' },
@@ -59,7 +65,14 @@ const BookingManagement = () => {
         try {
             const res = await api.get(`/bookings/patient/${specialId}`);
             if (res.data.success) {
-                setPatientBookings(res.data.data || []);
+                // Sort: confirmed first, then completed, then cancelled
+                const sortedBookings = (res.data.data || []).sort((a, b) => {
+                    const statusOrder = { cancelled: 2, completed: 1, confirmed: 0 };
+                    const orderA = statusOrder[a.status] !== undefined ? statusOrder[a.status] : 3;
+                    const orderB = statusOrder[b.status] !== undefined ? statusOrder[b.status] : 3;
+                    return orderA - orderB;
+                });
+                setPatientBookings(sortedBookings);
             }
         } catch (error) {
             console.error('Fetch bookings error:', error);
@@ -69,10 +82,61 @@ const BookingManagement = () => {
         }
     };
 
+    // Fetch session limits for all therapy types
+    const fetchSessionLimits = async (specialId) => {
+        const limits = {};
+        const currentDate = new Date().toISOString().split('T')[0];
+
+        for (const type of therapyTypes) {
+            try {
+                const res = await api.get('/bookings/monthly-count', {
+                    params: {
+                        specialId,
+                        therapyType: type.value,
+                        date: currentDate
+                    }
+                });
+                if (res.data.success) {
+                    limits[type.value] = res.data.data;
+                }
+            } catch (error) {
+                limits[type.value] = { count: 0, limit: 2, remaining: 2 };
+            }
+        }
+        setSessionLimits(limits);
+    };
+
     // Select patient
     const handleSelectPatient = (patient) => {
         setSelectedPatient(patient);
         fetchPatientBookings(patient.specialId);
+        fetchSessionLimits(patient.specialId);
+    };
+
+    // Fetch therapists when therapy type changes
+    useEffect(() => {
+        if (scheduleForm.therapyType) {
+            fetchTherapists();
+        } else {
+            setTherapists([]);
+        }
+    }, [scheduleForm.therapyType]);
+
+    const fetchTherapists = async () => {
+        setTherapistsLoading(true);
+        try {
+            const res = await api.get('/therapists', {
+                params: { specialization: scheduleForm.therapyType }
+            });
+            if (res.data.success) {
+                setTherapists(res.data.data || []);
+            }
+        } catch (error) {
+            console.error('Fetch therapists error:', error);
+            setTherapists([]);
+        } finally {
+            setTherapistsLoading(false);
+        }
     };
 
     // Fetch available slots when date and therapy type change
@@ -114,13 +178,15 @@ const BookingManagement = () => {
                 specialId: selectedPatient.specialId,
                 therapyType: scheduleForm.therapyType,
                 date: scheduleForm.date,
-                timeSlot: scheduleForm.timeSlot
+                timeSlot: scheduleForm.timeSlot,
+                therapistId: scheduleForm.therapistId || undefined
             });
             if (res.data.success) {
                 toast.success('Session scheduled successfully!');
                 setShowScheduleModal(false);
-                setScheduleForm({ therapyType: '', date: '', timeSlot: '' });
+                setScheduleForm({ therapyType: '', date: '', timeSlot: '', therapistId: '' });
                 fetchPatientBookings(selectedPatient.specialId);
+                fetchSessionLimits(selectedPatient.specialId);
             }
         } catch (error) {
             toast.error(error.response?.data?.error?.message || 'Failed to schedule session');
@@ -141,6 +207,53 @@ const BookingManagement = () => {
             }
         } catch (error) {
             toast.error(error.response?.data?.error?.message || 'Failed to cancel session');
+        }
+    };
+
+    // Edit booking - open modal with existing data
+    const handleEditBooking = (booking) => {
+        const bookingDate = new Date(booking.date);
+        setEditingBooking(booking);
+        setScheduleForm({
+            therapyType: booking.therapyType,
+            date: bookingDate.toISOString().split('T')[0],
+            timeSlot: '',
+            therapistId: booking.therapistId || ''
+        });
+        setShowScheduleModal(true);
+    };
+
+    // Reschedule booking (cancel old, create new)
+    const handleRescheduleBooking = async () => {
+        if (!scheduleForm.therapyType || !scheduleForm.date || !scheduleForm.timeSlot) {
+            toast.error('Please fill all fields');
+            return;
+        }
+
+        try {
+            // Cancel the old booking first
+            await api.put(`/bookings/${editingBooking.bookingId || editingBooking._id}/cancel`, {
+                reason: 'Rescheduled by receptionist'
+            });
+
+            // Create new booking
+            const res = await api.post('/bookings/receptionist', {
+                specialId: selectedPatient.specialId,
+                therapyType: scheduleForm.therapyType,
+                date: scheduleForm.date,
+                timeSlot: scheduleForm.timeSlot,
+                therapistId: scheduleForm.therapistId || undefined
+            });
+
+            if (res.data.success) {
+                toast.success('Session rescheduled successfully!');
+                setShowScheduleModal(false);
+                setEditingBooking(null);
+                setScheduleForm({ therapyType: '', date: '', timeSlot: '', therapistId: '' });
+                fetchPatientBookings(selectedPatient.specialId);
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.error?.message || 'Failed to reschedule session');
         }
     };
 
@@ -198,8 +311,8 @@ const BookingManagement = () => {
                                     key={patient.specialId}
                                     onClick={() => handleSelectPatient(patient)}
                                     className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition ${selectedPatient?.specialId === patient.specialId
-                                            ? 'bg-green-100 border-2 border-green-500'
-                                            : 'bg-gray-50 hover:bg-gray-100'
+                                        ? 'bg-green-100 border-2 border-green-500'
+                                        : 'bg-gray-50 hover:bg-gray-100'
                                         }`}
                                 >
                                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -238,6 +351,32 @@ const BookingManagement = () => {
                                 </button>
                             </div>
 
+                            {/* Session Limits Display */}
+                            {Object.keys(sessionLimits).length > 0 && (
+                                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                                    <p className="text-xs font-medium text-blue-800 mb-2">Monthly Sessions Remaining (2 per therapy):</p>
+                                    <div className="grid grid-cols-5 gap-2 text-xs">
+                                        {therapyTypes.map((type) => {
+                                            const limit = sessionLimits[type.value] || { remaining: 2 };
+                                            return (
+                                                <div
+                                                    key={type.value}
+                                                    className={`text-center p-1 rounded ${limit.remaining === 0
+                                                        ? 'bg-red-100 text-red-700'
+                                                        : limit.remaining === 1
+                                                            ? 'bg-yellow-100 text-yellow-700'
+                                                            : 'bg-green-100 text-green-700'
+                                                        }`}
+                                                >
+                                                    <div className="font-bold">{limit.remaining}/2</div>
+                                                    <div className="truncate">{type.value}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Bookings List */}
                             {bookingsLoading ? (
                                 <div className="flex justify-center py-8">
@@ -266,13 +405,22 @@ const BookingManagement = () => {
                                                 {booking.status}
                                             </span>
                                             {booking.status === 'confirmed' && (
-                                                <button
-                                                    onClick={() => handleCancelBooking(booking.bookingId || booking._id)}
-                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                                                    title="Cancel Session"
-                                                >
-                                                    <FiTrash2 />
-                                                </button>
+                                                <>
+                                                    <button
+                                                        onClick={() => handleEditBooking(booking)}
+                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                        title="Reschedule Session"
+                                                    >
+                                                        <FiEdit />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleCancelBooking(booking.bookingId || booking._id)}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                        title="Cancel Session"
+                                                    >
+                                                        <FiTrash2 />
+                                                    </button>
+                                                </>
                                             )}
                                         </div>
                                     ))}
@@ -305,11 +453,15 @@ const BookingManagement = () => {
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
                         <div className="flex items-center justify-between p-6 border-b">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-800">Schedule Session</h3>
+                                <h3 className="text-lg font-semibold text-gray-800">{editingBooking ? 'Reschedule Session' : 'Schedule Session'}</h3>
                                 <p className="text-sm text-gray-500">{selectedPatient.childName} - {selectedPatient.specialId}</p>
                             </div>
                             <button
-                                onClick={() => setShowScheduleModal(false)}
+                                onClick={() => {
+                                    setShowScheduleModal(false);
+                                    setEditingBooking(null);
+                                    setScheduleForm({ therapyType: '', date: '', timeSlot: '', therapistId: '' });
+                                }}
                                 className="text-gray-400 hover:text-gray-600"
                             >
                                 <FiX size={24} />
@@ -322,15 +474,55 @@ const BookingManagement = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Therapy Type *</label>
                                 <select
                                     value={scheduleForm.therapyType}
-                                    onChange={(e) => setScheduleForm({ ...scheduleForm, therapyType: e.target.value, timeSlot: '' })}
+                                    onChange={(e) => setScheduleForm({ ...scheduleForm, therapyType: e.target.value, timeSlot: '', therapistId: '' })}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                                 >
                                     <option value="">Select therapy type</option>
-                                    {therapyTypes.map((type) => (
-                                        <option key={type.value} value={type.value}>{type.label}</option>
-                                    ))}
+                                    {therapyTypes.map((type) => {
+                                        const limit = sessionLimits[type.value] || { remaining: 2 };
+                                        return (
+                                            <option key={type.value} value={type.value} disabled={limit.remaining === 0}>
+                                                {type.label} ({limit.remaining}/2 remaining)
+                                            </option>
+                                        );
+                                    })}
                                 </select>
+                                {scheduleForm.therapyType && sessionLimits[scheduleForm.therapyType] && (
+                                    <p className={`mt-1 text-sm ${sessionLimits[scheduleForm.therapyType].remaining === 0
+                                        ? 'text-red-600'
+                                        : sessionLimits[scheduleForm.therapyType].remaining === 1
+                                            ? 'text-yellow-600'
+                                            : 'text-green-600'
+                                        }`}>
+                                        {sessionLimits[scheduleForm.therapyType].remaining} session(s) remaining this month
+                                    </p>
+                                )}
                             </div>
+
+                            {/* Therapist */}
+                            {scheduleForm.therapyType && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Therapist (Optional)</label>
+                                    {therapistsLoading ? (
+                                        <div className="flex justify-center py-3">
+                                            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-green-600"></div>
+                                        </div>
+                                    ) : (
+                                        <select
+                                            value={scheduleForm.therapistId}
+                                            onChange={(e) => setScheduleForm({ ...scheduleForm, therapistId: e.target.value })}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        >
+                                            <option value="">Auto-assign therapist</option>
+                                            {therapists.map((therapist) => (
+                                                <option key={therapist._id} value={therapist._id}>
+                                                    {therapist.staffId?.name || therapist.name || 'Unknown'}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Date */}
                             <div>
@@ -361,10 +553,10 @@ const BookingManagement = () => {
                                                     disabled={!slot.available}
                                                     onClick={() => setScheduleForm({ ...scheduleForm, timeSlot: slot.time })}
                                                     className={`py-2 px-3 rounded-lg text-sm font-medium transition ${!slot.available
-                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                            : scheduleForm.timeSlot === slot.time
-                                                                ? 'bg-green-600 text-white'
-                                                                : 'bg-gray-100 hover:bg-green-100 text-gray-700'
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        : scheduleForm.timeSlot === slot.time
+                                                            ? 'bg-green-600 text-white'
+                                                            : 'bg-gray-100 hover:bg-green-100 text-gray-700'
                                                         }`}
                                                 >
                                                     {slot.time}
@@ -382,17 +574,21 @@ const BookingManagement = () => {
 
                         <div className="flex gap-3 p-6 border-t">
                             <button
-                                onClick={() => setShowScheduleModal(false)}
+                                onClick={() => {
+                                    setShowScheduleModal(false);
+                                    setEditingBooking(null);
+                                    setScheduleForm({ therapyType: '', date: '', timeSlot: '', therapistId: '' });
+                                }}
                                 className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={handleScheduleBooking}
+                                onClick={editingBooking ? handleRescheduleBooking : handleScheduleBooking}
                                 disabled={!scheduleForm.therapyType || !scheduleForm.date || !scheduleForm.timeSlot}
                                 className="flex-1 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Schedule Session
+                                {editingBooking ? 'Reschedule Session' : 'Schedule Session'}
                             </button>
                         </div>
                     </div>

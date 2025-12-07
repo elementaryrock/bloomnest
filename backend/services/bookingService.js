@@ -164,9 +164,11 @@ class BookingService {
     const availableSlots = timeSlots.map(slot => {
       const isBooked = bookings.some(b => b.timeSlot === slot);
       return {
+        time: slot,
         timeSlot: slot,
-        availableCount: isBooked ? 0 : 1,
-        isAvailable: !isBooked
+        available: !isBooked,
+        isAvailable: !isBooked,
+        availableCount: isBooked ? 0 : 1
       };
     });
 

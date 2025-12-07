@@ -180,19 +180,19 @@ class BookingController {
       const { specialId, therapyType, date, timeSlot, therapistId } = req.body;
 
       // Validate booking
-      const validation = await bookingService.validateBooking(
+      const validation = await bookingService.validateBooking({
         specialId,
         therapyType,
         date,
         timeSlot
-      );
+      });
 
       if (!validation.valid) {
         return res.status(400).json({
           success: false,
           error: {
-            code: validation.code,
-            message: validation.message
+            code: 'BOOKING_VALIDATION_FAILED',
+            message: validation.error
           }
         });
       }
@@ -362,8 +362,8 @@ class BookingController {
         });
       }
 
-      // Check if cancellation is allowed (24 hours before)
-      if (!bookingService.canCancelBooking(booking.date)) {
+      // Check if cancellation is allowed (24 hours before) - only for parents
+      if (req.user.role === 'parent' && !bookingService.canCancelBooking(booking.date)) {
         return res.status(400).json({
           success: false,
           error: {
