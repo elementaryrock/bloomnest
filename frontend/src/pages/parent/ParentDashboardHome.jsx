@@ -125,51 +125,54 @@ const ParentDashboardHome = () => {
         try {
             // Fetch patient info
             if (user?.specialId) {
-                const patientRes = await api.get(`/patients/${user.specialId}`);
-                if (patientRes.data.success) {
-                    setPatient(patientRes.data.data);
+                try {
+                    const patientRes = await api.get(`/patients/${user.specialId}`);
+                    if (patientRes.data.success) {
+                        setPatient(patientRes.data.data);
+                    }
+                } catch (e) {
+                    // Use user data as fallback
+                    setPatient({
+                        childName: user?.childName || 'Demo Child',
+                        specialId: user?.specialId,
+                        age: 5,
+                        gender: 'Male',
+                        diagnosis: ['ASD'],
+                        severity: 'Mild'
+                    });
                 }
             }
 
-            // Fetch upcoming bookings
-            const bookingsRes = await api.get('/bookings/upcoming');
-            if (bookingsRes.data.success) {
-                setUpcomingAppointments(bookingsRes.data.data || []);
-                setStats(prev => ({
-                    ...prev,
-                    upcomingSessions: bookingsRes.data.data?.length || 0
-                }));
-            }
+            // Fetch all bookings using my-bookings endpoint
+            try {
+                const bookingsRes = await api.get('/bookings/my-bookings');
+                if (bookingsRes.data.success) {
+                    const allBookings = bookingsRes.data.data || [];
 
-            // Fetch stats (sessions completed)
-            const statsRes = await api.get('/sessions/stats');
-            if (statsRes.data.success) {
-                setStats(prev => ({
-                    ...prev,
-                    completedSessions: statsRes.data.data?.completedCount || 0,
-                    lastAssessment: statsRes.data.data?.lastAssessmentDate
-                }));
+                    // Filter for upcoming appointments (date >= today and status = confirmed)
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    const upcoming = allBookings.filter(b => {
+                        const bookingDate = new Date(b.date);
+                        return bookingDate >= today && b.status === 'confirmed';
+                    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                    // Filter for completed sessions
+                    const completed = allBookings.filter(b => b.status === 'completed');
+
+                    setUpcomingAppointments(upcoming);
+                    setStats(prev => ({
+                        ...prev,
+                        upcomingSessions: upcoming.length,
+                        completedSessions: completed.length
+                    }));
+                }
+            } catch (e) {
+                console.log('No bookings found');
             }
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
-            // Use mock data for demo
-            setPatient({
-                childName: user?.childName || 'Demo Child',
-                specialId: user?.specialId || 'JYCS2025000001',
-                age: 8,
-                gender: 'Male',
-                diagnosis: ['ASD'],
-                severity: 'Moderate'
-            });
-            setStats({
-                completedSessions: 12,
-                upcomingSessions: 2,
-                lastAssessment: '2024-11-15'
-            });
-            setUpcomingAppointments([
-                { id: 1, therapyType: 'Speech Therapy', date: new Date(), timeSlot: '10:00 AM - 11:00 AM' },
-                { id: 2, therapyType: 'Occupational Therapy', date: new Date(Date.now() + 86400000), timeSlot: '2:00 PM - 3:00 PM' }
-            ]);
         } finally {
             setLoading(false);
         }
@@ -249,7 +252,7 @@ const ParentDashboardHome = () => {
                 {upcomingAppointments.length > 0 ? (
                     <div className="space-y-3">
                         {upcomingAppointments.map((appointment) => (
-                            <AppointmentCard key={appointment.id} appointment={appointment} />
+                            <AppointmentCard key={appointment.bookingId || appointment._id} appointment={appointment} />
                         ))}
                     </div>
                 ) : (

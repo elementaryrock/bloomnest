@@ -79,8 +79,6 @@ const PatientRegistration = () => {
             }
         } catch (error) {
             toast.error(error.response?.data?.error?.message || 'Registration failed');
-            // For demo, show success anyway
-            setGeneratedId('JYCS2025000' + Math.floor(Math.random() * 1000).toString().padStart(3, '0'));
         } finally {
             setLoading(false);
         }
@@ -142,8 +140,8 @@ const PatientRegistration = () => {
                             <div className="flex items-center gap-3">
                                 <div
                                     className={`w-10 h-10 rounded-full flex items-center justify-center ${currentStep >= step.id
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-gray-200 text-gray-500'
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-gray-200 text-gray-500'
                                         }`}
                                 >
                                     {currentStep > step.id ? <FiCheck /> : <step.icon />}
@@ -336,8 +334,8 @@ const PatientRegistration = () => {
                                         <label
                                             key={diagnosis.value}
                                             className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition ${selectedDiagnosis.includes(diagnosis.value)
-                                                    ? 'border-green-600 bg-green-50'
-                                                    : 'border-gray-200 hover:border-green-300'
+                                                ? 'border-green-600 bg-green-50'
+                                                : 'border-gray-200 hover:border-green-300'
                                                 }`}
                                         >
                                             <input
@@ -405,8 +403,8 @@ const PatientRegistration = () => {
                             onClick={prevStep}
                             disabled={currentStep === 1}
                             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${currentStep === 1
-                                    ? 'text-gray-400 cursor-not-allowed'
-                                    : 'text-gray-700 hover:bg-gray-100'
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : 'text-gray-700 hover:bg-gray-100'
                                 }`}
                         >
                             <FiChevronLeft />

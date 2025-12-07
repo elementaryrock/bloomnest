@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FiHome, FiUserPlus, FiSearch, FiUsers, FiLogOut, FiMenu, FiX, FiUser } from 'react-icons/fi';
+import { FiHome, FiUserPlus, FiSearch, FiCalendar, FiLogOut, FiMenu, FiX, FiUser } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
 
@@ -18,7 +18,7 @@ const ReceptionistLayout = ({ children }) => {
         { path: '/receptionist/dashboard', icon: FiHome, label: 'Dashboard' },
         { path: '/receptionist/register', icon: FiUserPlus, label: 'Register Patient' },
         { path: '/receptionist/search', icon: FiSearch, label: 'Search Patients' },
-        { path: '/receptionist/patients', icon: FiUsers, label: 'All Patients' },
+        { path: '/receptionist/bookings', icon: FiCalendar, label: 'Manage Bookings' },
     ];
 
     return (

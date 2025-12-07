@@ -28,13 +28,9 @@ const StaffManagement = () => {
                 setStaff(res.data.data || []);
             }
         } catch (error) {
-            console.log('Using mock data');
-            setStaff([
-                { id: 1, name: 'Dr. Anil Kumar', email: 'anil@example.com', phone: '9876543210', role: 'therapist', specialization: 'Speech Therapy', isActive: true },
-                { id: 2, name: 'Dr. Priya Menon', email: 'priya@example.com', phone: '9876543211', role: 'therapist', specialization: 'Occupational Therapy', isActive: true },
-                { id: 3, name: 'Sarah Johnson', email: 'sarah@example.com', phone: '9876543212', role: 'receptionist', specialization: null, isActive: true },
-                { id: 4, name: 'Rahul Nair', email: 'rahul@example.com', phone: '9876543213', role: 'receptionist', specialization: null, isActive: false },
-            ]);
+            console.error('Failed to fetch staff:', error);
+            toast.error('Failed to load staff data');
+            setStaff([]);
         } finally {
             setLoading(false);
         }
@@ -42,7 +38,7 @@ const StaffManagement = () => {
 
     const handleAddStaff = () => {
         setSelectedStaff(null);
-        reset({});
+        reset({ password: 'password123' }); // Default password for new staff
         setShowModal(true);
     };
 
@@ -55,36 +51,34 @@ const StaffManagement = () => {
     const onSubmit = async (data) => {
         try {
             if (selectedStaff) {
-                await api.put(`/admin/staff/${selectedStaff.id}`, data);
-                toast.success('Staff updated successfully');
+                const res = await api.put(`/admin/staff/${selectedStaff.id}`, data);
+                if (res.data.success) {
+                    toast.success('Staff updated successfully');
+                }
             } else {
-                await api.post('/admin/staff', data);
-                toast.success('Staff added successfully');
+                const res = await api.post('/admin/staff', data);
+                if (res.data.success) {
+                    toast.success('Staff added successfully');
+                }
             }
             setShowModal(false);
             fetchStaff();
         } catch (error) {
-            toast.success(selectedStaff ? 'Staff updated (Demo)' : 'Staff added (Demo)');
-            setShowModal(false);
-            // Add to local state for demo
-            if (!selectedStaff) {
-                setStaff([...staff, { ...data, id: Date.now(), isActive: true }]);
-            } else {
-                setStaff(staff.map(s => s.id === selectedStaff.id ? { ...s, ...data } : s));
-            }
+            toast.error(error.response?.data?.error?.message || 'Operation failed');
         }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to deactivate this staff member?')) return;
+        if (!window.confirm('Are you sure you want to permanently delete this staff member? This action cannot be undone.')) return;
 
         try {
-            await api.delete(`/admin/staff/${id}`);
-            toast.success('Staff deactivated');
-            fetchStaff();
+            const res = await api.delete(`/admin/staff/${id}`);
+            if (res.data.success) {
+                toast.success(res.data.message);
+                fetchStaff();
+            }
         } catch (error) {
-            setStaff(staff.map(s => s.id === id ? { ...s, isActive: false } : s));
-            toast.success('Staff deactivated (Demo)');
+            toast.error(error.response?.data?.error?.message || 'Failed to delete staff');
         }
     };
 
@@ -136,16 +130,20 @@ const StaffManagement = () => {
                                             </div>
                                             <div>
                                                 <p className="font-medium text-gray-800">{member.name}</p>
-                                                {member.specialization && (
-                                                    <p className="text-sm text-gray-500">{member.specialization}</p>
+                                                {member.specialization && member.specialization.length > 0 && (
+                                                    <p className="text-sm text-gray-500">
+                                                        {Array.isArray(member.specialization)
+                                                            ? member.specialization.join(', ')
+                                                            : member.specialization}
+                                                    </p>
                                                 )}
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${member.role === 'therapist' ? 'bg-purple-100 text-purple-700' :
-                                                member.role === 'receptionist' ? 'bg-green-100 text-green-700' :
-                                                    'bg-red-100 text-red-700'
+                                            member.role === 'receptionist' ? 'bg-green-100 text-green-700' :
+                                                'bg-red-100 text-red-700'
                                             }`}>
                                             {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
                                         </span>
@@ -176,8 +174,7 @@ const StaffManagement = () => {
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(member.id)}
-                                                disabled={!member.isActive}
-                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                                             >
                                                 <FiTrash2 />
                                             </button>
@@ -223,6 +220,18 @@ const StaffManagement = () => {
                                 />
                             </div>
 
+                            {!selectedStaff && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                                    <input
+                                        type="password"
+                                        className={`w-full px-4 py-2 border rounded-lg ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
+                                        placeholder="Default: password123"
+                                        {...register('password', { required: !selectedStaff ? 'Password is required' : false })}
+                                    />
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
                                 <input
@@ -246,15 +255,26 @@ const StaffManagement = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
-                                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg" {...register('specialization')}>
-                                    <option value="">Select specialization</option>
-                                    <option value="Speech Therapy">Speech Therapy</option>
-                                    <option value="Occupational Therapy">Occupational Therapy</option>
-                                    <option value="Physical Therapy">Physical Therapy</option>
-                                    <option value="Psychology">Psychology</option>
-                                    <option value="Early Intervention">Early Intervention</option>
-                                </select>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Specializations (for therapists)</label>
+                                <div className="space-y-2">
+                                    {[
+                                        { value: 'Speech', label: 'Speech Therapy' },
+                                        { value: 'OT', label: 'Occupational Therapy' },
+                                        { value: 'PT', label: 'Physical Therapy' },
+                                        { value: 'Psychology', label: 'Psychology' },
+                                        { value: 'EI', label: 'Early Intervention' }
+                                    ].map((type) => (
+                                        <label key={type.value} className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                value={type.value}
+                                                className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                                {...register('specialization')}
+                                            />
+                                            <span className="text-sm text-gray-700">{type.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
 
                             <div className="flex gap-3 pt-4">

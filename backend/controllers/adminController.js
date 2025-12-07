@@ -84,7 +84,7 @@ class AdminController {
         therapists.map(async (therapist) => {
           // Count working days in the period
           const workingDays = this.countWorkingDays(start, end, therapist.workingDays);
-          
+
           // Total available slots
           const totalAvailableSlots = workingDays * therapist.sessionsPerDay;
 
@@ -103,8 +103,8 @@ class AdminController {
           });
 
           const totalBooked = completedSessions + confirmedBookings;
-          const utilizationPercentage = totalAvailableSlots > 0 
-            ? Math.round((totalBooked / totalAvailableSlots) * 100) 
+          const utilizationPercentage = totalAvailableSlots > 0
+            ? Math.round((totalBooked / totalAvailableSlots) * 100)
             : 0;
 
           return {
@@ -221,7 +221,7 @@ class AdminController {
   async getTherapyTypeDistribution(req, res) {
     try {
       const therapyTypes = ['Psychology', 'OT', 'PT', 'Speech', 'EI'];
-      
+
       const distribution = await Promise.all(
         therapyTypes.map(async (type) => {
           const count = await Booking.countDocuments({
@@ -319,6 +319,229 @@ class AdminController {
           code: 'FETCH_ACTIVITIES_FAILED',
           message: error.message
         }
+      });
+    }
+  }
+
+  // Get all staff members
+  async getAllStaff(req, res) {
+    try {
+      const staffMembers = await Staff.find({}).sort({ createdAt: -1 });
+
+      // Get therapist info for staff who are therapists
+      const staffWithDetails = await Promise.all(
+        staffMembers.map(async (s) => {
+          let specialization = null;
+          if (s.role === 'therapist') {
+            const therapist = await Therapist.findOne({ staffId: s._id });
+            specialization = therapist?.specialization || null;
+          }
+          return {
+            id: s._id,
+            staffId: s.staffId,
+            name: s.name,
+            email: s.email,
+            phone: s.phone,
+            role: s.role,
+            specialization,
+            isActive: s.isActive,
+            createdAt: s.createdAt
+          };
+        })
+      );
+
+      res.status(200).json({
+        success: true,
+        data: staffWithDetails
+      });
+    } catch (error) {
+      console.error('Get all staff error:', error);
+      res.status(500).json({
+        success: false,
+        error: { code: 'FETCH_STAFF_FAILED', message: error.message }
+      });
+    }
+  }
+
+  // Create new staff member
+  async createStaff(req, res) {
+    try {
+      const { name, email, phone, role, specialization, password } = req.body;
+
+      // Check if email exists
+      const existing = await Staff.findOne({ email });
+      if (existing) {
+        return res.status(409).json({
+          success: false,
+          error: { code: 'EMAIL_EXISTS', message: 'Email already registered' }
+        });
+      }
+
+      // Generate staff ID
+      const count = await Staff.countDocuments();
+      const staffId = `STF${String(count + 1).padStart(5, '0')}`;
+
+      // Hash password
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(password || 'password123', 10);
+
+      // Create staff
+      const newStaff = await Staff.create({
+        staffId,
+        name,
+        email,
+        phone,
+        role,
+        password: hashedPassword,
+        isActive: true
+      });
+
+      // If therapist, create therapist record
+      if (role === 'therapist' && specialization && specialization.length > 0) {
+        const therapistCount = await Therapist.countDocuments();
+        // Ensure specialization is an array
+        const specs = Array.isArray(specialization) ? specialization : [specialization];
+        await Therapist.create({
+          therapistId: `THR${String(therapistCount + 1).padStart(5, '0')}`,
+          staffId: newStaff._id,
+          specialization: specs,
+          qualification: 'Not specified',
+          workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+          sessionsPerDay: 6,
+          isAvailable: true
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'Staff created successfully',
+        data: {
+          id: newStaff._id,
+          staffId: newStaff.staffId,
+          name: newStaff.name,
+          email: newStaff.email,
+          role: newStaff.role
+        }
+      });
+    } catch (error) {
+      console.error('Create staff error:', error);
+      res.status(500).json({
+        success: false,
+        error: { code: 'CREATE_STAFF_FAILED', message: error.message }
+      });
+    }
+  }
+
+  // Update staff member
+  async updateStaff(req, res) {
+    try {
+      const { id } = req.params;
+      const { name, email, phone, role, specialization } = req.body;
+
+      const staff = await Staff.findById(id);
+      if (!staff) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'STAFF_NOT_FOUND', message: 'Staff member not found' }
+        });
+      }
+
+      // Update fields
+      if (name) staff.name = name;
+      if (email) staff.email = email;
+      if (phone) staff.phone = phone;
+      if (role) staff.role = role;
+      await staff.save();
+
+      // Update therapist specialization if applicable
+      if (role === 'therapist' && specialization) {
+        await Therapist.findOneAndUpdate(
+          { staffId: staff._id },
+          { specialization },
+          { upsert: false }
+        );
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Staff updated successfully'
+      });
+    } catch (error) {
+      console.error('Update staff error:', error);
+      res.status(500).json({
+        success: false,
+        error: { code: 'UPDATE_STAFF_FAILED', message: error.message }
+      });
+    }
+  }
+
+  // Delete staff member permanently
+  async deleteStaff(req, res) {
+    try {
+      const { id } = req.params;
+
+      const staff = await Staff.findById(id);
+      if (!staff) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'STAFF_NOT_FOUND', message: 'Staff member not found' }
+        });
+      }
+
+      // If therapist, delete therapist record too
+      if (staff.role === 'therapist') {
+        await Therapist.findOneAndDelete({ staffId: staff._id });
+      }
+
+      // Delete the staff member
+      await Staff.findByIdAndDelete(id);
+
+      res.status(200).json({
+        success: true,
+        message: 'Staff deleted successfully'
+      });
+    } catch (error) {
+      console.error('Delete staff error:', error);
+      res.status(500).json({
+        success: false,
+        error: { code: 'DELETE_STAFF_FAILED', message: error.message }
+      });
+    }
+  }
+
+  // Toggle staff status (activate/deactivate)
+  async toggleStaffStatus(req, res) {
+    try {
+      const { id } = req.params;
+
+      const staff = await Staff.findById(id);
+      if (!staff) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'STAFF_NOT_FOUND', message: 'Staff member not found' }
+        });
+      }
+
+      staff.isActive = !staff.isActive;
+      await staff.save();
+
+      // Also update therapist availability
+      if (staff.role === 'therapist') {
+        await Therapist.findOneAndUpdate(
+          { staffId: staff._id },
+          { isAvailable: staff.isActive }
+        );
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `Staff ${staff.isActive ? 'activated' : 'deactivated'} successfully`
+      });
+    } catch (error) {
+      console.error('Toggle staff status error:', error);
+      res.status(500).json({
+        success: false,
+        error: { code: 'TOGGLE_STATUS_FAILED', message: error.message }
       });
     }
   }

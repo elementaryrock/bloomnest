@@ -11,11 +11,10 @@ const therapistSchema = new mongoose.Schema({
     ref: 'Staff',
     required: true
   },
-  specialization: {
+  specialization: [{
     type: String,
-    enum: ['Psychology', 'OT', 'PT', 'Speech', 'EI'],
-    required: true
-  },
+    enum: ['Psychology', 'OT', 'PT', 'Speech', 'EI']
+  }],
   qualification: {
     type: String,
     required: true
@@ -32,7 +31,7 @@ const therapistSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  
+
   createdAt: {
     type: Date,
     default: Date.now
@@ -43,7 +42,7 @@ const therapistSchema = new mongoose.Schema({
   }
 });
 
-therapistSchema.pre('save', function(next) {
+therapistSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });

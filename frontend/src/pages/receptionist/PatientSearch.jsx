@@ -32,16 +32,9 @@ const PatientSearch = () => {
                 setPatients(res.data.data || []);
             }
         } catch (error) {
-            console.log('Search error, using mock data');
-            // Mock data for demo
-            setPatients([
-                { specialId: 'JYCS2025000001', childName: 'Rahul Kumar', parentName: 'Sanjay Kumar', parentPhone: '9876543210', diagnosis: ['ASD'], age: 8 },
-                { specialId: 'JYCS2025000002', childName: 'Priya Sharma', parentName: 'Meera Sharma', parentPhone: '9876543211', diagnosis: ['SLD'], age: 6 },
-            ].filter(p =>
-                p.childName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.specialId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.parentName.toLowerCase().includes(searchQuery.toLowerCase())
-            ));
+            console.error('Search error:', error);
+            toast.error('Failed to search patients');
+            setPatients([]);
         } finally {
             setLoading(false);
         }
@@ -109,8 +102,8 @@ const PatientSearch = () => {
                                     key={patient.specialId}
                                     onClick={() => setSelectedPatient(patient)}
                                     className={`w-full flex items-center gap-4 p-4 rounded-lg transition text-left ${selectedPatient?.specialId === patient.specialId
-                                            ? 'bg-green-100 border-2 border-green-500'
-                                            : 'bg-gray-50 hover:bg-gray-100'
+                                        ? 'bg-green-100 border-2 border-green-500'
+                                        : 'bg-gray-50 hover:bg-gray-100'
                                         }`}
                                 >
                                     <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">

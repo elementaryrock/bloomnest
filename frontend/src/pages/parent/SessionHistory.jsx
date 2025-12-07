@@ -32,8 +32,8 @@ const SessionHistoryItem = ({ session, isExpanded, onToggle }) => {
                 </div>
                 <div className="flex items-center gap-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${session.status === 'completed' ? 'bg-green-100 text-green-700' :
-                            session.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                                'bg-amber-100 text-amber-700'
+                        session.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                            'bg-amber-100 text-amber-700'
                         }`}>
                         {session.status.charAt(0).toUpperCase() + session.status.slice(1)}
                     </span>
@@ -56,9 +56,9 @@ const SessionHistoryItem = ({ session, isExpanded, onToggle }) => {
                             <div>
                                 <p className="text-xs font-medium text-gray-500 uppercase mb-1">Progress</p>
                                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${session.notes.progressLevel === 'Excellent' ? 'bg-green-100 text-green-700' :
-                                        session.notes.progressLevel === 'Good' ? 'bg-blue-100 text-blue-700' :
-                                            session.notes.progressLevel === 'Satisfactory' ? 'bg-amber-100 text-amber-700' :
-                                                'bg-red-100 text-red-700'
+                                    session.notes.progressLevel === 'Good' ? 'bg-blue-100 text-blue-700' :
+                                        session.notes.progressLevel === 'Satisfactory' ? 'bg-amber-100 text-amber-700' :
+                                            'bg-red-100 text-red-700'
                                     }`}>
                                     {session.notes.progressLevel}
                                 </span>
@@ -98,50 +98,25 @@ const SessionHistory = () => {
 
     const fetchSessionHistory = async () => {
         try {
-            const res = await api.get('/sessions/history', {
-                params: { specialId: user?.specialId }
-            });
+            // Fetch bookings from my-bookings endpoint
+            const res = await api.get('/bookings/my-bookings');
             if (res.data.success) {
-                setSessions(res.data.data || []);
+                const bookings = res.data.data || [];
+                // Transform bookings to session format with id for key
+                const formattedSessions = bookings.map(b => ({
+                    id: b.bookingId || b._id,
+                    bookingId: b.bookingId,
+                    therapyType: b.therapyType,
+                    date: b.date,
+                    timeSlot: b.timeSlot,
+                    status: b.status,
+                    notes: null // Will be populated when session notes are available
+                }));
+                setSessions(formattedSessions);
             }
         } catch (error) {
-            console.log('Using mock data');
-            setSessions([
-                {
-                    id: 1,
-                    therapyType: 'Speech Therapy',
-                    date: new Date(Date.now() - 86400000 * 7),
-                    timeSlot: '10:00 AM - 11:00 AM',
-                    status: 'completed',
-                    notes: {
-                        activitiesConducted: 'Articulation exercises, vocabulary building with picture cards',
-                        progressLevel: 'Good',
-                        recommendationsForParents: 'Practice naming objects at home, read bedtime stories',
-                        behavioralObservations: 'Good attention span, showed enthusiasm'
-                    }
-                },
-                {
-                    id: 2,
-                    therapyType: 'Occupational Therapy',
-                    date: new Date(Date.now() - 86400000 * 14),
-                    timeSlot: '2:00 PM - 3:00 PM',
-                    status: 'completed',
-                    notes: {
-                        activitiesConducted: 'Fine motor skills training, sensory integration activities',
-                        progressLevel: 'Excellent',
-                        recommendationsForParents: 'Continue with playdough activities',
-                        behavioralObservations: 'Improved grip strength'
-                    }
-                },
-                {
-                    id: 3,
-                    therapyType: 'Physical Therapy',
-                    date: new Date(Date.now() - 86400000 * 21),
-                    timeSlot: '11:00 AM - 12:00 PM',
-                    status: 'cancelled',
-                    notes: null
-                },
-            ]);
+            console.log('No booking history found');
+            setSessions([]);
         } finally {
             setLoading(false);
         }
@@ -171,13 +146,13 @@ const SessionHistory = () => {
 
                 {/* Filter Tabs */}
                 <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
-                    {['all', 'completed', 'cancelled'].map((f) => (
+                    {['all', 'confirmed', 'completed', 'cancelled'].map((f) => (
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === f
-                                    ? 'bg-white text-primary-600 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-800'
+                                ? 'bg-white text-primary-600 shadow-sm'
+                                : 'text-gray-600 hover:text-gray-800'
                                 }`}
                         >
                             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -206,7 +181,13 @@ const SessionHistory = () => {
             )}
 
             {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl shadow-md p-6">
+                    <p className="text-3xl font-bold text-primary-600">
+                        {sessions.filter(s => s.status === 'confirmed').length}
+                    </p>
+                    <p className="text-sm text-gray-500">Upcoming Sessions</p>
+                </div>
                 <div className="bg-white rounded-xl shadow-md p-6">
                     <p className="text-3xl font-bold text-green-600">
                         {sessions.filter(s => s.status === 'completed').length}
@@ -220,7 +201,7 @@ const SessionHistory = () => {
                     <p className="text-sm text-gray-500">Cancelled Sessions</p>
                 </div>
                 <div className="bg-white rounded-xl shadow-md p-6">
-                    <p className="text-3xl font-bold text-primary-600">
+                    <p className="text-3xl font-bold text-gray-600">
                         {sessions.length}
                     </p>
                     <p className="text-sm text-gray-500">Total Sessions</p>

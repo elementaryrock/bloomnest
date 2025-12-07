@@ -42,6 +42,20 @@ router.post(
   bookingController.createBooking
 );
 
+// Create booking by receptionist/admin
+router.post(
+  '/receptionist',
+  authenticate,
+  checkRole('receptionist', 'admin'),
+  [
+    body('specialId').notEmpty().withMessage('Special ID is required'),
+    body('therapyType').isIn(['Psychology', 'OT', 'PT', 'Speech', 'EI']).withMessage('Valid therapy type is required'),
+    body('date').notEmpty().isISO8601().withMessage('Valid date is required'),
+    body('timeSlot').notEmpty().withMessage('Time slot is required')
+  ],
+  bookingController.createBookingByReceptionist
+);
+
 // Get current user's bookings (for parents)
 router.get(
   '/my-bookings',
@@ -66,6 +80,15 @@ router.put(
     body('reason').optional().isString().withMessage('Reason must be a string')
   ],
   bookingController.cancelBooking
+);
+
+// Get bookings by date (admin/receptionist)
+router.get(
+  '/date/:date',
+  authenticate,
+  checkRole('admin', 'receptionist'),
+  param('date').isISO8601().withMessage('Valid date is required'),
+  bookingController.getBookingsByDate
 );
 
 // Get all bookings (admin/receptionist)

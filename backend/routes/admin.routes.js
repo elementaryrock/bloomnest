@@ -44,4 +44,36 @@ router.get(
   adminController.getRecentActivities
 );
 
+// Get all staff members (admin only)
+router.get(
+  '/staff',
+  authenticate,
+  checkRole('admin'),
+  adminController.getAllStaff
+);
+
+// Create new staff (admin only)
+router.post(
+  '/staff',
+  authenticate,
+  checkRole('admin'),
+  adminController.createStaff
+);
+
+// Update staff member (admin only)
+router.put(
+  '/staff/:id',
+  authenticate,
+  checkRole('admin'),
+  adminController.updateStaff
+);
+
+// Delete staff member (admin only)
+router.delete(
+  '/staff/:id',
+  authenticate,
+  checkRole('admin'),
+  adminController.deleteStaff
+);
+
 module.exports = router;

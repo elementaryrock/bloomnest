@@ -174,6 +174,90 @@ class BookingController {
     }
   }
 
+  // Create booking by receptionist/admin
+  async createBookingByReceptionist(req, res) {
+    try {
+      const { specialId, therapyType, date, timeSlot, therapistId } = req.body;
+
+      // Validate booking
+      const validation = await bookingService.validateBooking(
+        specialId,
+        therapyType,
+        date,
+        timeSlot
+      );
+
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: validation.code,
+            message: validation.message
+          }
+        });
+      }
+
+      // Generate booking ID
+      const bookingCount = await Booking.countDocuments();
+      const bookingId = `BK${String(bookingCount + 1).padStart(8, '0')}`;
+
+      // Create booking
+      const booking = await Booking.create({
+        bookingId,
+        specialId,
+        therapyType,
+        date: new Date(date),
+        timeSlot,
+        therapistId: therapistId || validation.therapistId,
+        status: 'confirmed',
+        bookedAt: new Date(),
+        bookedBy: req.user.userId
+      });
+
+      // Create corresponding session record
+      const sessionId = `SES${bookingId.substring(2)}`;
+      await Session.create({
+        sessionId,
+        bookingId: booking._id,
+        specialId,
+        therapistId: therapistId || validation.therapistId,
+        sessionDate: new Date(date)
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Booking created successfully',
+        data: {
+          bookingId: booking.bookingId,
+          therapyType: booking.therapyType,
+          date: booking.date,
+          timeSlot: booking.timeSlot,
+          status: booking.status
+        }
+      });
+    } catch (error) {
+      console.error('Create booking by receptionist error:', error);
+
+      if (error.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          error: {
+            code: 'BOOKING_CONFLICT',
+            message: 'This slot is already booked. Please select another time.'
+          }
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'BOOKING_CREATION_FAILED',
+          message: error.message
+        }
+      });
+    }
+  }
+
   // Get current user's bookings (for parents)
   async getMyBookings(req, res) {
     try {
@@ -352,6 +436,38 @@ class BookingController {
       });
     } catch (error) {
       console.error('Get all bookings error:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'FETCH_BOOKINGS_FAILED',
+          message: error.message
+        }
+      });
+    }
+  }
+
+  // Get bookings by date (admin/receptionist)
+  async getBookingsByDate(req, res) {
+    try {
+      const { date } = req.params;
+
+      const searchDate = new Date(date);
+      searchDate.setHours(0, 0, 0, 0);
+      const nextDay = new Date(searchDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      const bookings = await Booking.find({
+        date: { $gte: searchDate, $lt: nextDay }
+      })
+        .populate('therapistId', 'specialization')
+        .sort({ timeSlot: 1 });
+
+      res.status(200).json({
+        success: true,
+        data: bookings
+      });
+    } catch (error) {
+      console.error('Get bookings by date error:', error);
       res.status(500).json({
         success: false,
         error: {

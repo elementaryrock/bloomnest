@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiUserPlus, FiCalendar, FiClock, FiArrowRight } from 'react-icons/fi';
+import { FiUsers, FiUserPlus, FiCalendar, FiClock, FiArrowRight, FiSearch } from 'react-icons/fi';
 import api from '../../services/api';
 
 const StatCard = ({ icon: Icon, label, value, color, onClick }) => {
@@ -68,37 +68,46 @@ const ReceptionistDashboardHome = () => {
 
     const fetchDashboardData = async () => {
         try {
-            // Fetch patients
+            // Fetch recent patients
             const patientsRes = await api.get('/patients?limit=5');
             if (patientsRes.data.success) {
                 setRecentPatients(patientsRes.data.data || []);
                 setStats(prev => ({
                     ...prev,
-                    totalPatients: patientsRes.data.pagination?.total || 0
+                    totalPatients: patientsRes.data.pagination?.total || patientsRes.data.data?.length || 0
                 }));
             }
 
-            // Fetch today's stats
-            const statsRes = await api.get('/admin/stats');
-            if (statsRes.data.success) {
-                setStats(prev => ({
-                    ...prev,
-                    todayAppointments: statsRes.data.data?.todayBookings || 0
-                }));
+            // Fetch bookings for today's appointments
+            const today = new Date().toISOString().split('T')[0];
+            try {
+                const bookingsRes = await api.get(`/bookings/date/${today}`);
+                if (bookingsRes.data.success) {
+                    const todayBookings = bookingsRes.data.data || [];
+                    const pendingCheckIns = todayBookings.filter(b => b.status === 'confirmed').length;
+                    setStats(prev => ({
+                        ...prev,
+                        todayAppointments: todayBookings.length,
+                        pendingCheckIns
+                    }));
+                }
+            } catch (err) {
+                // Bookings endpoint may require different role
+                console.log('Could not fetch bookings stats');
             }
-        } catch (error) {
-            console.log('Using mock data');
-            setStats({
-                totalPatients: 156,
-                todayRegistrations: 3,
-                todayAppointments: 12,
-                pendingCheckIns: 4
+
+            // Count today's registrations
+            const patientsToday = recentPatients.filter(p => {
+                const regDate = new Date(p.registrationDate).toISOString().split('T')[0];
+                return regDate === today;
             });
-            setRecentPatients([
-                { childName: 'Rahul Kumar', specialId: 'JYCS2025000001', diagnosis: ['ASD'], registrationDate: new Date() },
-                { childName: 'Priya Sharma', specialId: 'JYCS2025000002', diagnosis: ['SLD'], registrationDate: new Date() },
-                { childName: 'Arjun Nair', specialId: 'JYCS2025000003', diagnosis: ['CP'], registrationDate: new Date() },
-            ]);
+            setStats(prev => ({
+                ...prev,
+                todayRegistrations: patientsToday.length
+            }));
+
+        } catch (error) {
+            console.error('Failed to fetch dashboard data:', error);
         } finally {
             setLoading(false);
         }
