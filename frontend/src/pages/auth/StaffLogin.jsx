@@ -48,34 +48,31 @@ const StaffLogin = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-blue-100 p-4">
+        <div className="login-gradient-bg min-h-screen flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 {/* Logo/Header */}
-                <div className="text-center mb-8">
-                    <div className="w-20 h-20 bg-primary-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <div className="text-center mb-8 animate-fadeIn">
+                    <div className="logo-circle">
                         <span className="text-white text-2xl font-bold">MEC</span>
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-800">Staff Login</h1>
+                    <h1 className="text-2xl font-bold text-gray-800 mt-4">Staff Login</h1>
                     <p className="text-gray-600 mt-2">Sign in to access the management portal</p>
                 </div>
 
                 {/* Login Card */}
-                <div className="bg-white rounded-2xl shadow-xl p-8">
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="login-card p-8 animate-fadeIn animate-delay-1">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                         {/* Email Input */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Email Address
                             </label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FiMail className="text-gray-400" />
-                                </div>
+                            <div className="input-group relative">
+                                <FiMail className="input-icon text-lg" />
                                 <input
                                     type="email"
                                     placeholder="staff@example.com"
-                                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition ${errors.email ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                    className={`login-input ${errors.email ? 'error' : ''}`}
                                     {...register('email', {
                                         required: 'Email is required',
                                         pattern: {
@@ -86,24 +83,21 @@ const StaffLogin = () => {
                                 />
                             </div>
                             {errors.email && (
-                                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                                <p className="mt-1.5 text-sm text-red-600">{errors.email.message}</p>
                             )}
                         </div>
 
                         {/* Password Input */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Password
                             </label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FiLock className="text-gray-400" />
-                                </div>
+                            <div className="input-group relative">
+                                <FiLock className="input-icon text-lg" />
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     placeholder="Enter your password"
-                                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                    className={`login-input pr-12 ${errors.password ? 'error' : ''}`}
                                     {...register('password', {
                                         required: 'Password is required',
                                         minLength: {
@@ -115,13 +109,13 @@ const StaffLogin = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                                 >
-                                    {showPassword ? <FiEyeOff /> : <FiEye />}
+                                    {showPassword ? <FiEyeOff className="text-lg" /> : <FiEye className="text-lg" />}
                                 </button>
                             </div>
                             {errors.password && (
-                                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                                <p className="mt-1.5 text-sm text-red-600">{errors.password.message}</p>
                             )}
                         </div>
 
@@ -129,7 +123,7 @@ const StaffLogin = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="login-btn-primary mt-6"
                         >
                             {loading ? (
                                 <>
@@ -149,7 +143,7 @@ const StaffLogin = () => {
                     <div className="mt-6 text-center">
                         <p className="text-gray-600">
                             Parent?{' '}
-                            <Link to="/login" className="text-primary-600 font-medium hover:text-primary-700">
+                            <Link to="/login" className="login-link">
                                 Login with OTP
                             </Link>
                         </p>
@@ -157,7 +151,7 @@ const StaffLogin = () => {
                 </div>
 
                 {/* Role Info */}
-                <div className="mt-6 bg-blue-50 rounded-lg p-4">
+                <div className="info-box mt-6 animate-fadeIn animate-delay-2">
                     <p className="text-sm text-blue-800">
                         <strong>Staff roles:</strong><br />
                         • Receptionists: Patient registration & management<br />
@@ -167,7 +161,7 @@ const StaffLogin = () => {
                 </div>
 
                 {/* Footer */}
-                <p className="text-center mt-6 text-sm text-gray-500">
+                <p className="text-center mt-6 text-sm text-gray-500 animate-fadeIn animate-delay-3">
                     Therapy Unit Booking System • Marian Engineering College
                 </p>
             </div>

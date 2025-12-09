@@ -118,25 +118,25 @@ const OTPVerification = ({ specialId, phoneNumber, onSuccess, onBack }) => {
         : '';
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-blue-100 p-4">
+        <div className="login-gradient-bg min-h-screen flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <div className="w-20 h-20 bg-primary-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <div className="text-center mb-8 animate-fadeIn">
+                    <div className="logo-circle">
                         <span className="text-white text-2xl font-bold">MEC</span>
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-800">Verify OTP</h1>
+                    <h1 className="text-2xl font-bold text-gray-800 mt-4">Verify OTP</h1>
                     <p className="text-gray-600 mt-2">
                         Enter the 6-digit code sent to {maskedPhone}
                     </p>
                 </div>
 
                 {/* OTP Card */}
-                <div className="bg-white rounded-2xl shadow-xl p-8">
+                <div className="login-card p-8 animate-fadeIn animate-delay-1">
                     {/* Back Button */}
                     <button
                         onClick={onBack}
-                        className="flex items-center text-gray-600 hover:text-primary-600 mb-6 transition"
+                        className="flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors font-medium"
                     >
                         <FiArrowLeft className="mr-2" />
                         Back to login
@@ -155,8 +155,7 @@ const OTPVerification = ({ specialId, phoneNumber, onSuccess, onBack }) => {
                                 onChange={e => handleChange(index, e.target.value)}
                                 onKeyDown={e => handleKeyDown(index, e)}
                                 onPaste={handlePaste}
-                                className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition ${loading ? 'bg-gray-100' : 'bg-white'
-                                    } ${digit ? 'border-primary-500' : 'border-gray-300'}`}
+                                className={`otp-input ${digit ? 'filled' : ''} ${loading ? 'opacity-50' : ''}`}
                                 disabled={loading}
                             />
                         ))}
@@ -182,21 +181,21 @@ const OTPVerification = ({ specialId, phoneNumber, onSuccess, onBack }) => {
                         {canResend ? (
                             <button
                                 onClick={handleResend}
-                                className="flex items-center justify-center mx-auto text-primary-600 hover:text-primary-700 font-medium transition"
+                                className="flex items-center justify-center mx-auto text-primary-600 hover:text-primary-700 font-medium transition-colors"
                             >
                                 <FiRefreshCw className="mr-2" />
                                 Resend OTP
                             </button>
                         ) : (
                             <p className="text-gray-500">
-                                Resend OTP in <span className="font-medium text-primary-600">{resendTimer}s</span>
+                                Resend OTP in <span className="font-semibold text-primary-600">{resendTimer}s</span>
                             </p>
                         )}
                     </div>
                 </div>
 
                 {/* Instructions */}
-                <div className="mt-6 bg-blue-50 rounded-lg p-4">
+                <div className="info-box mt-6 animate-fadeIn animate-delay-2">
                     <p className="text-sm text-blue-800">
                         <strong>Didn't receive the code?</strong><br />
                         Make sure your phone number is correct and check your SMS inbox.

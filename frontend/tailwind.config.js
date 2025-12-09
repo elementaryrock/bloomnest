@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        'sans': ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+      },
       colors: {
         primary: {
           50: '#eff6ff',
@@ -19,6 +22,10 @@ export default {
           800: '#1e40af',
           900: '#1e3a8a',
         }
+      },
+      boxShadow: {
+        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 20px -5px rgba(59, 130, 246, 0.08)',
+        'soft-lg': '0 8px 12px -2px rgba(0, 0, 0, 0.06), 0 20px 40px -10px rgba(59, 130, 246, 0.12)',
       }
     },
   },
