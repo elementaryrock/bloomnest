@@ -44,9 +44,20 @@ class AssessmentController {
         });
       }
 
-      // Generate assessment ID
-      const assessmentCount = await Assessment.countDocuments();
-      const assessmentId = `ASM${new Date().getFullYear()}${String(assessmentCount + 1).padStart(6, '0')}`;
+      // Generate assessment ID based on highest existing ID
+      const currentYear = new Date().getFullYear();
+      const lastAssessment = await Assessment.findOne({})
+        .sort({ assessmentId: -1 })
+        .select('assessmentId');
+      let nextAssessmentNum = 1;
+      if (lastAssessment && lastAssessment.assessmentId) {
+        // Extract the 6-digit number from the end (after ASM + year)
+        const lastNum = parseInt(lastAssessment.assessmentId.slice(-6), 10);
+        if (!isNaN(lastNum)) {
+          nextAssessmentNum = lastNum + 1;
+        }
+      }
+      const assessmentId = `ASM${currentYear}${String(nextAssessmentNum).padStart(6, '0')}`;
 
       // Create assessment
       const assessment = await Assessment.create({

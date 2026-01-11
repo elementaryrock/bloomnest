@@ -13,8 +13,8 @@ router.post(
     body('specialId')
       .notEmpty()
       .withMessage('Special ID is required')
-      .matches(/^JYCS\d{10}$/)
-      .withMessage('Invalid Special ID format (should be JYCS followed by 10 digits)'),
+      .matches(/^MEC\d{10}$/)
+      .withMessage('Invalid Special ID format (should be MEC followed by 10 digits)'),
     body('phoneNumber')
       .notEmpty()
       .withMessage('Phone number is required')

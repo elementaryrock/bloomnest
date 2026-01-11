@@ -197,9 +197,18 @@ class BookingController {
         });
       }
 
-      // Generate booking ID
-      const bookingCount = await Booking.countDocuments();
-      const bookingId = `BK${String(bookingCount + 1).padStart(8, '0')}`;
+      // Generate booking ID based on highest existing ID
+      const lastBooking = await Booking.findOne({})
+        .sort({ bookingId: -1 })
+        .select('bookingId');
+      let nextBookingNum = 1;
+      if (lastBooking && lastBooking.bookingId) {
+        const lastNum = parseInt(lastBooking.bookingId.replace('BK', ''), 10);
+        if (!isNaN(lastNum)) {
+          nextBookingNum = lastNum + 1;
+        }
+      }
+      const bookingId = `BK${String(nextBookingNum).padStart(8, '0')}`;
 
       // Create booking
       const booking = await Booking.create({

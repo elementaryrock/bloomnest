@@ -279,9 +279,18 @@ class TherapistController {
       // Hash password
       const hashedPassword = await authService.hashPassword(password);
 
-      // Generate staff ID
-      const staffCount = await Staff.countDocuments();
-      const staffId = `STF${String(staffCount + 1).padStart(5, '0')}`;
+      // Generate staff ID based on highest existing ID
+      const lastStaff = await Staff.findOne({})
+        .sort({ staffId: -1 })
+        .select('staffId');
+      let nextStaffNum = 1;
+      if (lastStaff && lastStaff.staffId) {
+        const lastNum = parseInt(lastStaff.staffId.replace('STF', ''), 10);
+        if (!isNaN(lastNum)) {
+          nextStaffNum = lastNum + 1;
+        }
+      }
+      const staffId = `STF${String(nextStaffNum).padStart(5, '0')}`;
 
       // Create staff record
       const staff = await Staff.create({
@@ -294,9 +303,18 @@ class TherapistController {
         isActive: true
       });
 
-      // Generate therapist ID
-      const therapistCount = await Therapist.countDocuments();
-      const therapistId = `THR${String(therapistCount + 1).padStart(5, '0')}`;
+      // Generate therapist ID based on highest existing ID
+      const lastTherapist = await Therapist.findOne({})
+        .sort({ therapistId: -1 })
+        .select('therapistId');
+      let nextTherapistNum = 1;
+      if (lastTherapist && lastTherapist.therapistId) {
+        const lastNum = parseInt(lastTherapist.therapistId.replace('THR', ''), 10);
+        if (!isNaN(lastNum)) {
+          nextTherapistNum = lastNum + 1;
+        }
+      }
+      const therapistId = `THR${String(nextTherapistNum).padStart(5, '0')}`;
 
       // Create therapist record
       const therapist = await Therapist.create({

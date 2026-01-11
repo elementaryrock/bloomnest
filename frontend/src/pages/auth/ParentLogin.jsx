@@ -82,13 +82,13 @@ const ParentLogin = () => {
                                 <FiHash className="input-icon text-lg" />
                                 <input
                                     type="text"
-                                    placeholder="e.g., JYCS2025000001"
+                                    placeholder="e.g., MEC2025000001"
                                     className={`login-input ${errors.specialId ? 'error' : ''}`}
                                     {...register('specialId', {
                                         required: 'Special ID is required',
                                         pattern: {
-                                            value: /^JYCS\d{10}$/,
-                                            message: 'Invalid Special ID format (e.g., JYCS2025000001)'
+                                            value: /^MEC\d{10}$/,
+                                            message: 'Invalid Special ID format (e.g., MEC2025000001)'
                                         }
                                     })}
                                 />

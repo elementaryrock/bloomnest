@@ -67,7 +67,7 @@ router.get(
 router.get(
   '/patient/:specialId',
   authenticate,
-  param('specialId').matches(/^JYCS\d{10}$/).withMessage('Invalid Special ID format'),
+  param('specialId').matches(/^MEC\d{10}$/).withMessage('Invalid Special ID format'),
   bookingController.getPatientBookings
 );
 

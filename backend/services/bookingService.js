@@ -183,18 +183,27 @@ class BookingService {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
+    const datePrefix = `BK${year}${month}${day}`;
 
-    // Count bookings today
-    const startOfDay = new Date(date.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+    // Find highest booking ID for today based on highest existing sequence
+    const lastBookingToday = await Booking.findOne({
+      bookingId: new RegExp(`^${datePrefix}`)
+    })
+      .sort({ bookingId: -1 })
+      .select('bookingId');
 
-    const todayCount = await Booking.countDocuments({
-      bookedAt: { $gte: startOfDay, $lte: endOfDay }
-    });
+    let nextSequence = 1;
+    if (lastBookingToday && lastBookingToday.bookingId) {
+      // Extract the 4-digit sequence from the end
+      const lastSeq = parseInt(lastBookingToday.bookingId.slice(-4), 10);
+      if (!isNaN(lastSeq)) {
+        nextSequence = lastSeq + 1;
+      }
+    }
 
-    const sequence = String(todayCount + 1).padStart(4, '0');
+    const sequence = String(nextSequence).padStart(4, '0');
 
-    return `BK${year}${month}${day}${sequence}`;
+    return `${datePrefix}${sequence}`;
   }
 }
 

@@ -377,9 +377,18 @@ class AdminController {
         });
       }
 
-      // Generate staff ID
-      const count = await Staff.countDocuments();
-      const staffId = `STF${String(count + 1).padStart(5, '0')}`;
+      // Generate staff ID based on highest existing ID
+      const lastStaff = await Staff.findOne({})
+        .sort({ staffId: -1 })
+        .select('staffId');
+      let nextStaffNum = 1;
+      if (lastStaff && lastStaff.staffId) {
+        const lastNum = parseInt(lastStaff.staffId.replace('STF', ''), 10);
+        if (!isNaN(lastNum)) {
+          nextStaffNum = lastNum + 1;
+        }
+      }
+      const staffId = `STF${String(nextStaffNum).padStart(5, '0')}`;
 
       // Hash password
       const bcrypt = require('bcryptjs');
@@ -398,11 +407,21 @@ class AdminController {
 
       // If therapist, create therapist record
       if (role === 'therapist' && specialization && specialization.length > 0) {
-        const therapistCount = await Therapist.countDocuments();
+        // Generate therapist ID based on highest existing ID
+        const lastTherapist = await Therapist.findOne({})
+          .sort({ therapistId: -1 })
+          .select('therapistId');
+        let nextTherapistNum = 1;
+        if (lastTherapist && lastTherapist.therapistId) {
+          const lastNum = parseInt(lastTherapist.therapistId.replace('THR', ''), 10);
+          if (!isNaN(lastNum)) {
+            nextTherapistNum = lastNum + 1;
+          }
+        }
         // Ensure specialization is an array
         const specs = Array.isArray(specialization) ? specialization : [specialization];
         await Therapist.create({
-          therapistId: `THR${String(therapistCount + 1).padStart(5, '0')}`,
+          therapistId: `THR${String(nextTherapistNum).padStart(5, '0')}`,
           staffId: newStaff._id,
           specialization: specs,
           qualification: 'Not specified',

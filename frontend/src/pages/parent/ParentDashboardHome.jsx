@@ -87,7 +87,7 @@ const ChildInfoCard = ({ patient }) => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                     <h2 className="text-xl font-bold text-gray-900">{patient?.childName || 'Child Name'}</h2>
                     <span className="inline-flex items-center px-3 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm font-semibold border border-primary-100">
-                        {patient?.specialId || 'JYCS2025000000'}
+                        {patient?.specialId || 'MEC2025000000'}
                     </span>
                 </div>
 

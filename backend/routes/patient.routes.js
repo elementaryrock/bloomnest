@@ -5,8 +5,8 @@ const authenticate = require('../middleware/auth');
 const checkRole = require('../middleware/roleCheck');
 const { body, param, query } = require('express-validator');
 
-// Special ID pattern: JYCS + YEAR(4 digits) + 6-digit sequence (e.g., JYCS2025000001)
-const SPECIAL_ID_PATTERN = /^JYCS\d{10}$/;
+// Special ID pattern: MEC + YEAR(4 digits) + 6-digit sequence (e.g., MEC2025000001)
+const SPECIAL_ID_PATTERN = /^MEC\d{10}$/;
 
 // Get all patients (receptionist/admin only) - must be before /:specialId
 router.get(
@@ -46,7 +46,7 @@ router.post(
 router.get(
   '/:specialId',
   authenticate,
-  param('specialId').matches(SPECIAL_ID_PATTERN).withMessage('Invalid Special ID format (expected: JYCS + 10 digits)'),
+  param('specialId').matches(SPECIAL_ID_PATTERN).withMessage('Invalid Special ID format (expected: MEC + 10 digits)'),
   patientController.getPatient
 );
 
@@ -56,7 +56,7 @@ router.put(
   authenticate,
   checkRole('receptionist', 'admin'),
   [
-    param('specialId').matches(SPECIAL_ID_PATTERN).withMessage('Invalid Special ID format (expected: JYCS + 10 digits)'),
+    param('specialId').matches(SPECIAL_ID_PATTERN).withMessage('Invalid Special ID format (expected: MEC + 10 digits)'),
     body('parentPhone').optional().matches(/^\d{10}$/).withMessage('Valid 10-digit phone number is required'),
     body('parentEmail').optional().isEmail().withMessage('Valid email is required'),
     body('diagnosis').optional().isArray().withMessage('Diagnosis must be an array'),
@@ -70,7 +70,7 @@ router.delete(
   '/:specialId',
   authenticate,
   checkRole('admin'),
-  param('specialId').matches(SPECIAL_ID_PATTERN).withMessage('Invalid Special ID format (expected: JYCS + 10 digits)'),
+  param('specialId').matches(SPECIAL_ID_PATTERN).withMessage('Invalid Special ID format (expected: MEC + 10 digits)'),
   patientController.deactivatePatient
 );
 

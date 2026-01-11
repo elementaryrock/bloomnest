@@ -23,7 +23,7 @@ const PatientCard = ({ patient }) => {
                 </div>
                 <div>
                     <h4 className="font-semibold text-gray-800">{patient?.childName || 'Child Name'}</h4>
-                    <p className="text-sm text-primary-600">{patient?.specialId || 'JYCS2025000000'}</p>
+                    <p className="text-sm text-primary-600">{patient?.specialId || 'MEC2025000000'}</p>
                 </div>
             </div>
 
@@ -426,7 +426,7 @@ const BookingPage = () => {
             // Use mock data
             setPatient({
                 childName: user?.childName || 'Demo Child',
-                specialId: user?.specialId || 'JYCS2025000001',
+                specialId: user?.specialId || 'MEC2025000001',
                 age: 8,
                 gender: 'Male',
                 diagnosis: ['ASD'],
