@@ -14,7 +14,7 @@
 
 ## Problem Statement
 
-> Children with special needs and their families lack a unified platform that addresses the complete therapeutic journey - from scheduling sessions to tracking family-wide impact, preparing children for challenging situations, and making progress tangible and rewarding. Current systems focus only on the child, ignore family wellbeing, provide no preparation tools for anxiety-inducing situations, and present progress in abstract, demotivating ways.
+> Children with special needs and their families often lack access to a unified digital platform that supports the entire therapeutic journey. Existing solutions mainly focus on session scheduling and individual child progress, while overlooking family wellbeing, emotional preparedness for challenging situations, and meaningful progress visualization. This gap results in fragmented care, increased anxiety, and reduced motivation for both children and their families. Addressing these limitations is essential to create a holistic, supportive, and engaging therapeutic ecosystem.
 
 ---
 
