@@ -8,7 +8,8 @@ import {
     Menu,
     X,
     User,
-    Heart
+    Heart,
+    Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -26,6 +27,7 @@ const ParentLayout = ({ children }) => {
         { path: '/parent/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/parent/book', icon: CalendarPlus, label: 'Book Session' },
         { path: '/parent/history', icon: History, label: 'Session History' },
+        { path: '/parent/neural-narrative', icon: Sparkles, label: 'NeuralNarrative' },
     ];
 
     return (

@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import ParentDashboardHome from './ParentDashboardHome';
 import BookingPage from './BookingPage';
 import SessionHistory from './SessionHistory';
+import NeuralNarrative from './NeuralNarrative';
 import ParentLayout from './ParentLayout';
 
 const ParentDashboard = () => {
@@ -15,6 +16,7 @@ const ParentDashboard = () => {
                 <Route path="dashboard" element={<ParentDashboardHome />} />
                 <Route path="book" element={<BookingPage />} />
                 <Route path="history" element={<SessionHistory />} />
+                <Route path="neural-narrative" element={<NeuralNarrative />} />
                 <Route path="/" element={<Navigate to="dashboard" replace />} />
             </Routes>
         </ParentLayout>
@@ -22,3 +24,4 @@ const ParentDashboard = () => {
 };
 
 export default ParentDashboard;
+
