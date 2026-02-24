@@ -45,6 +45,7 @@ const adminRoutes = require('./routes/admin.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const narrativeRoutes = require('./routes/narrative.routes');
 const skillSproutRoutes = require('./routes/skillsprout.routes');
+const familyWellbeingRoutes = require('./routes/familyWellbeing.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
@@ -56,6 +57,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/narrative', narrativeRoutes);
 app.use('/api/skillsprout', skillSproutRoutes);
+app.use('/api/family-wellbeing', familyWellbeingRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -12,5 +12,6 @@ module.exports = {
   SystemSettings: require('./SystemSettings'),
   SkillGoal: require('./SkillGoal'),
   GrowthLog: require('./GrowthLog'),
-  ChildXP: require('./ChildXP')
+  ChildXP: require('./ChildXP'),
+  FamilyWellbeing: require('./FamilyWellbeing')
 };

@@ -10,7 +10,8 @@ import {
     User,
     Heart,
     Sparkles,
-    Sprout
+    Sprout,
+    Waves
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -30,6 +31,7 @@ const ParentLayout = ({ children }) => {
         { path: '/parent/history', icon: History, label: 'Session History' },
         { path: '/parent/neural-narrative', icon: Sparkles, label: 'NeuralNarrative' },
         { path: '/parent/skill-sprout', icon: Sprout, label: 'SkillSprout' },
+        { path: '/parent/therapy-ripple', icon: Waves, label: 'TherapyRipple' },
     ];
 
     return (

@@ -6,6 +6,7 @@ import BookingPage from './BookingPage';
 import SessionHistory from './SessionHistory';
 import NeuralNarrative from './NeuralNarrative';
 import SkillSprout from './SkillSprout';
+import TherapyRipple from './TherapyRipple';
 import ParentLayout from './ParentLayout';
 
 const ParentDashboard = () => {
@@ -19,6 +20,7 @@ const ParentDashboard = () => {
                 <Route path="history" element={<SessionHistory />} />
                 <Route path="neural-narrative" element={<NeuralNarrative />} />
                 <Route path="skill-sprout" element={<SkillSprout />} />
+                <Route path="therapy-ripple" element={<TherapyRipple />} />
                 <Route path="/" element={<Navigate to="dashboard" replace />} />
             </Routes>
         </ParentLayout>
