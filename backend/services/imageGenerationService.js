@@ -5,9 +5,11 @@
  * Includes automatic retry with backoff for rate limit errors.
  */
 
-const IMAGEN_MODEL = 'imagen-4.0-generate-001';
 const GEMINI_TEXT_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash-lite'];
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+// Import our new multi-provider image generation system
+const { generateImageWithFallback } = require('./imageProviders');
 
 /**
  * Sleep for a given number of milliseconds.
@@ -197,36 +199,12 @@ function getDefaultOutline(childName, scenario, comfortObject) {
 }
 
 /**
- * Generate a single image using Imagen 4 predict API.
- * Returns a base64-encoded image.
- *
- * Imagen 4 REST endpoint:
- *   POST /v1beta/models/imagen-4.0-generate-001:predict
- *   Body: { instances: [{ prompt }], parameters: { sampleCount: 1 } }
- *   Response: { predictions: [{ bytesBase64Encoded, mimeType }] }
+ * Generate a single image using our multi-provider system.
+ * Tries Pollinations, Cloudflare, and Imagen in order.
  */
 async function generateImage(prompt, apiKey) {
-    const url = `${API_BASE}/${IMAGEN_MODEL}:predict`;
-
-    const data = await apiCallWithRetry(url, {
-        instances: [{ prompt }],
-        parameters: { sampleCount: 1 }
-    }, apiKey, 3);
-
-    const predictions = data.predictions;
-    if (!predictions || predictions.length === 0) {
-        throw new Error('No predictions returned from Imagen API');
-    }
-
-    const prediction = predictions[0];
-    if (!prediction.bytesBase64Encoded) {
-        throw new Error('No image data in Imagen response');
-    }
-
-    return {
-        base64: prediction.bytesBase64Encoded,
-        mimeType: prediction.mimeType || 'image/png'
-    };
+    // For our wrapper, we'll pass the apiKey in options for Imagen fallback
+    return await generateImageWithFallback(prompt, { apiKey });
 }
 
 /**
@@ -251,17 +229,14 @@ async function generateStorybook(childName, scenario, comfortObject, apiKey, clo
     const outline = await generateStoryOutline(childName, scenario, comfortObject, apiKey);
     console.log(`[NeuralNarrative] Generated ${outline.length}-page outline`);
 
-    // Step 2: Generate images for each page (with delay between requests)
-    const pages = [];
-    for (let i = 0; i < outline.length; i++) {
-        const page = outline[i];
+    // Step 2: Generate images for each page in PARALLEL (with a bit of control)
+    const pagePromises = outline.map(async (page, i) => {
         const pageNum = i + 1;
-        console.log(`[NeuralNarrative] Generating image for page ${pageNum}/${outline.length}...`);
 
-        // Add a delay between image generations to avoid hitting rate limits
-        if (i > 0) {
-            await sleep(3000);
-        }
+        // Slightly stagger the start to be nice to APIs
+        if (i > 0) await sleep(500 * i);
+
+        console.log(`[NeuralNarrative] Starting generation for page ${pageNum}/${outline.length}...`);
 
         const imagePrompt = buildPagePrompt(
             childName,
@@ -284,21 +259,28 @@ async function generateStorybook(childName, scenario, comfortObject, apiKey, clo
                 imageUrl = `data:${imageResult.mimeType};base64,${imageResult.base64}`;
             }
 
-            pages.push({
+            return {
                 pageNumber: pageNum,
                 caption: page.caption,
-                imageUrl: imageUrl
-            });
+                imageUrl: imageUrl,
+                provider: imageResult.provider // Track which one worked
+            };
         } catch (imgError) {
             console.error(`[NeuralNarrative] Failed to generate image for page ${pageNum}:`, imgError.message);
             // Use a placeholder for failed images
-            pages.push({
+            return {
                 pageNumber: pageNum,
                 caption: page.caption,
-                imageUrl: `https://placehold.co/768x768/E8F5E9/2E7D32?text=Page+${pageNum}`
-            });
+                imageUrl: `https://placehold.co/768x768/E8F5E9/2E7D32?text=Page+${pageNum}`,
+                error: true
+            };
         }
-    }
+    });
+
+    const pages = await Promise.all(pagePromises);
+
+    // Ensure they are sorted by page number
+    pages.sort((a, b) => a.pageNumber - b.pageNumber);
 
     return pages;
 }
