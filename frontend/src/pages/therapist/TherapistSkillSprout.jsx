@@ -15,6 +15,7 @@ const CATEGORY_CONFIG = {
     speech: { label: 'Speech', color: 'bg-teal-100 text-teal-700' },
     sensory: { label: 'Sensory', color: 'bg-green-100 text-green-700' },
     selfcare: { label: 'Self-Care', color: 'bg-orange-100 text-orange-700' },
+    custom: { label: 'Custom Habit', color: 'bg-amber-100 text-amber-700' },
 };
 
 const PLANT_MAP = {
@@ -22,6 +23,7 @@ const PLANT_MAP = {
     motor: 'Mighty Maple 🍁', social: 'Kindness Clover 🍀',
     emotional: 'Calm Cactus 🌵', speech: 'Speak Sunflower 🌻',
     sensory: 'Wonder Willow 🌿', selfcare: 'Care Chrysanthemum 🌸',
+    custom: 'Dream Daisy 🌼',
 };
 
 const GROWTH_STAGES = ['🌱 Seed', '🌿 Sprout', '🪴 Small Plant', '🌸 Flower', '🌳 Tree'];
@@ -32,6 +34,7 @@ export default function TherapistSkillSprout() {
     const [gardenData, setGardenData] = useState(null);
     const [analytics, setAnalytics] = useState(null);
     const [activeTab, setActiveTab] = useState('garden'); // garden | analytics | add
+    const [goalFilter, setGoalFilter] = useState('all'); // all | therapist | parent
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -170,44 +173,76 @@ export default function TherapistSkillSprout() {
                     {/* Garden Tab */}
                     {activeTab === 'garden' && (
                         <div className="bg-gradient-to-b from-sky-50 to-emerald-50 rounded-2xl p-5 border border-emerald-100">
-                            <h3 className="font-bold text-gray-800 mb-4">Patient ID: <span className="text-emerald-600">{searchedId}</span> — {gardenData.goals?.length || 0} plants</h3>
-                            {gardenData.goals?.length === 0 ? (
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                                <h3 className="font-bold text-gray-800">
+                                    Patient ID: <span className="text-emerald-600">{searchedId}</span> — {gardenData.goals?.length || 0} plants
+                                </h3>
+
+                                <div className="flex gap-2 bg-white/60 p-1 rounded-xl border border-emerald-100 shadow-sm">
+                                    {[
+                                        { id: 'all', label: 'All Goals' },
+                                        { id: 'therapist', label: 'Therapist' },
+                                        { id: 'parent', label: 'Parent' },
+                                    ].map(f => (
+                                        <button
+                                            key={f.id}
+                                            onClick={() => setGoalFilter(f.id)}
+                                            className={`px-4 py-1.5 rounded-lg font-bold text-xs transition-all ${goalFilter === f.id
+                                                ? 'bg-emerald-500 text-white shadow-sm'
+                                                : 'text-emerald-700 hover:bg-emerald-100'
+                                                }`}
+                                        >
+                                            {f.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {gardenData.goals?.filter(g => goalFilter === 'all' || g.goalOwnerType === goalFilter).length === 0 ? (
                                 <div className="text-center py-12">
                                     <div className="text-6xl mb-3">🌱</div>
                                     <p className="text-gray-500">No goals yet. Plant the first one!</p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {gardenData.goals.map(goal => {
-                                        const progress = Math.round((goal.currentCompletions / goal.requiredCompletions) * 100);
-                                        const cat = CATEGORY_CONFIG[goal.skillCategory] || CATEGORY_CONFIG.cognitive;
-                                        return (
-                                            <div key={goal._id} className={`bg-white rounded-2xl border-2 ${goal.isCompleted ? 'border-emerald-300' : 'border-gray-100'} p-4 shadow-sm`}>
-                                                <div className="text-center text-4xl mb-2">{goal.isCompleted ? '🌳' : GROWTH_STAGES[goal.growthStage]?.split(' ')[0]}</div>
-                                                <p className="font-bold text-sm text-gray-900 text-center">{goal.goalName}</p>
-                                                <p className="text-xs text-center text-gray-500 mt-0.5">{goal.plantSpecies} {goal.plantEmoji}</p>
-                                                <span className={`mt-2 inline-block text-xs px-2 py-0.5 rounded-full font-medium ${cat.color}`}>{cat.label}</span>
-                                                <div className="mt-3">
-                                                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                                        <span>{goal.currentCompletions}/{goal.requiredCompletions}</span>
-                                                        <span className="font-semibold">{progress}%</span>
+                                    {gardenData.goals
+                                        .filter(g => goalFilter === 'all' || g.goalOwnerType === goalFilter)
+                                        .map(goal => {
+                                            const progress = Math.round((goal.currentCompletions / goal.requiredCompletions) * 100);
+                                            const cat = CATEGORY_CONFIG[goal.skillCategory] || CATEGORY_CONFIG.cognitive;
+                                            const isParent = goal.goalOwnerType === 'parent';
+                                            return (
+                                                <div key={goal._id} className={`bg-white rounded-2xl border-2 ${goal.isCompleted ? 'border-emerald-300' : isParent ? 'border-amber-200' : 'border-gray-100'} p-4 shadow-sm relative overflow-hidden`}>
+                                                    {isParent && (
+                                                        <div className="absolute top-2 right-2 flex items-center gap-1 bg-amber-100 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-200 shadow-sm">
+                                                            ⭐ PARENT
+                                                        </div>
+                                                    )}
+                                                    <div className="text-center text-4xl mb-2">{goal.isCompleted ? '🌳' : GROWTH_STAGES[goal.growthStage]?.split(' ')[0]}</div>
+                                                    <p className="font-bold text-sm text-gray-900 text-center">{goal.goalName}</p>
+                                                    <p className="text-xs text-center text-gray-500 mt-0.5">{goal.plantSpecies} {goal.plantEmoji}</p>
+                                                    <span className={`mt-2 inline-block text-xs px-2 py-0.5 rounded-full font-medium ${cat.color}`}>{cat.label}</span>
+                                                    <div className="mt-3">
+                                                        <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                                            <span>{goal.currentCompletions}/{goal.requiredCompletions}</span>
+                                                            <span className="font-semibold">{progress}%</span>
+                                                        </div>
+                                                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full" style={{ width: `${progress}%` }} />
+                                                        </div>
                                                     </div>
-                                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                        <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full" style={{ width: `${progress}%` }} />
-                                                    </div>
+                                                    {!goal.isCompleted && (
+                                                        <button
+                                                            onClick={() => handleComplete(goal._id)}
+                                                            className="mt-3 w-full py-2 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl hover:bg-emerald-100 transition-all border border-emerald-200"
+                                                        >
+                                                            ✓ Mark Activity Done
+                                                        </button>
+                                                    )}
+                                                    {goal.isCompleted && <div className="mt-3 text-center text-xs text-emerald-600 font-bold">✅ Goal Complete!</div>}
                                                 </div>
-                                                {!goal.isCompleted && (
-                                                    <button
-                                                        onClick={() => handleComplete(goal._id)}
-                                                        className="mt-3 w-full py-2 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl hover:bg-emerald-100 transition-all border border-emerald-200"
-                                                    >
-                                                        ✓ Mark Activity Done
-                                                    </button>
-                                                )}
-                                                {goal.isCompleted && <div className="mt-3 text-center text-xs text-emerald-600 font-bold">✅ Goal Complete!</div>}
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
                                 </div>
                             )}
                         </div>

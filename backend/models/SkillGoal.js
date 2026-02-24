@@ -17,6 +17,19 @@ const skillGoalSchema = new mongoose.Schema({
         default: 'therapist'
     },
 
+    // ── NEW: Identifies who owns this goal (backward-compatible, defaults to therapist)
+    goalOwnerType: {
+        type: String,
+        enum: ['therapist', 'parent'],
+        default: 'therapist',
+        index: true
+    },
+    // Stores the MongoDB userId of the parent who created this goal (for edit/delete permission)
+    parentCreatorId: {
+        type: String,
+        default: null
+    },
+
     // Goal Details
     goalName: {
         type: String,
@@ -29,7 +42,7 @@ const skillGoalSchema = new mongoose.Schema({
     },
     skillCategory: {
         type: String,
-        enum: ['communication', 'cognitive', 'motor', 'social', 'emotional', 'speech', 'sensory', 'selfcare'],
+        enum: ['communication', 'cognitive', 'motor', 'social', 'emotional', 'speech', 'sensory', 'selfcare', 'custom'],
         required: true
     },
     difficultyLevel: {
@@ -136,6 +149,10 @@ skillGoalSchema.pre('validate', function (next) {
     if (this.skillCategory && plantMap[this.skillCategory]) {
         this.plantSpecies = plantMap[this.skillCategory].species;
         this.plantEmoji = plantMap[this.skillCategory].emoji;
+    } else {
+        // Default for custom/other categories
+        this.plantSpecies = 'Dream Daisy';
+        this.plantEmoji = '🌼';
     }
     next();
 });

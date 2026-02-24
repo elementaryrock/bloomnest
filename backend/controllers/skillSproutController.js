@@ -81,6 +81,9 @@ exports.createGoal = async (req, res) => {
             patientId,
             createdBy: req.user.userId,
             createdByRole: req.user.role,
+            // ── Parent goal stamping ──
+            goalOwnerType: req.user.role === 'parent' ? 'parent' : 'therapist',
+            parentCreatorId: req.user.role === 'parent' ? String(req.user.userId) : null,
             goalName,
             description,
             skillCategory,
@@ -314,6 +317,74 @@ exports.deleteGoal = async (req, res) => {
         await SkillGoal.findByIdAndUpdate(goalId, { isActive: false });
         return res.json({ success: true, message: 'Goal removed from garden' });
     } catch (err) {
+        return res.status(500).json({ success: false, error: { message: err.message } });
+    }
+};
+
+// ─────────────────────────────────────────────────────────────
+// PUT /api/skillsprout/parent-goals/:goalId
+// Parents can edit ONLY their own goals (goalOwnerType === 'parent')
+// ─────────────────────────────────────────────────────────────
+exports.updateParentGoal = async (req, res) => {
+    try {
+        const { goalId } = req.params;
+        const { goalName, description, requiredCompletions, rewardMilestone } = req.body;
+
+        const goal = await SkillGoal.findById(goalId);
+        if (!goal) return res.status(404).json({ success: false, error: { message: 'Goal not found' } });
+
+        // Only allow editing parent-owned goals
+        if (goal.goalOwnerType !== 'parent') {
+            return res.status(403).json({ success: false, error: { message: 'Only parent-created goals can be edited this way' } });
+        }
+
+        // Parents can only edit goals they personally created
+        if (req.user.role === 'parent' && goal.parentCreatorId !== String(req.user.userId)) {
+            return res.status(403).json({ success: false, error: { message: 'You can only edit your own goals' } });
+        }
+
+        // Apply safe edits (never touch growthStage, completions, or XP)
+        if (goalName) goal.goalName = goalName.trim();
+        if (description !== undefined) goal.description = description;
+        if (rewardMilestone !== undefined) goal.rewardMilestone = rewardMilestone;
+        // Only allow increasing requiredCompletions to avoid cheating
+        if (requiredCompletions && requiredCompletions > goal.currentCompletions) {
+            goal.requiredCompletions = requiredCompletions;
+        }
+
+        await goal.save();
+        return res.json({ success: true, data: goal });
+    } catch (err) {
+        console.error('updateParentGoal error:', err);
+        return res.status(500).json({ success: false, error: { message: err.message } });
+    }
+};
+
+// ─────────────────────────────────────────────────────────────
+// DELETE /api/skillsprout/parent-goals/:goalId
+// Parents can soft-delete ONLY their own goals
+// ─────────────────────────────────────────────────────────────
+exports.deleteParentGoal = async (req, res) => {
+    try {
+        const { goalId } = req.params;
+
+        const goal = await SkillGoal.findById(goalId);
+        if (!goal) return res.status(404).json({ success: false, error: { message: 'Goal not found' } });
+
+        // Guard: only parent-owned goals may be deleted via this route
+        if (goal.goalOwnerType !== 'parent') {
+            return res.status(403).json({ success: false, error: { message: 'Therapist goals cannot be deleted by parents' } });
+        }
+
+        // The parent must be the creator
+        if (req.user.role === 'parent' && goal.parentCreatorId !== String(req.user.userId)) {
+            return res.status(403).json({ success: false, error: { message: 'You can only delete your own goals' } });
+        }
+
+        await SkillGoal.findByIdAndUpdate(goalId, { isActive: false });
+        return res.json({ success: true, message: 'Your goal has been removed 🌱' });
+    } catch (err) {
+        console.error('deleteParentGoal error:', err);
         return res.status(500).json({ success: false, error: { message: err.message } });
     }
 };

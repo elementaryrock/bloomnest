@@ -9,7 +9,9 @@ const {
     waterPlant,
     getGrowthLogs,
     getAnalytics,
-    deleteGoal
+    deleteGoal,
+    updateParentGoal,
+    deleteParentGoal
 } = require('../controllers/skillSproutController');
 
 // All routes require authentication
@@ -42,5 +44,12 @@ router.get('/logs/:patientId', getGrowthLogs);
 
 // GET /api/skillsprout/analytics/:patientId
 router.get('/analytics/:patientId', getAnalytics);
+
+// ── Parent Goal Management (separate path → zero impact on therapist routes) ──
+// PUT  /api/skillsprout/parent-goals/:goalId  (parents edit their own goals)
+router.put('/parent-goals/:goalId', updateParentGoal);
+
+// DELETE /api/skillsprout/parent-goals/:goalId  (parents delete their own goals)
+router.delete('/parent-goals/:goalId', deleteParentGoal);
 
 module.exports = router;

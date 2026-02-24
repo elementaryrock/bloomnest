@@ -5,7 +5,7 @@ import './skillsprout.css';
 import {
     Sprout, Droplets, Trophy, Star, Plus, Flame, Zap,
     Leaf, ChevronRight, X, Check, BarChart3, Clock,
-    Sparkles, Target, BookOpen, Puzzle,
+    Sparkles, Target, BookOpen, Puzzle, Edit2, Trash2,
     Activity, MessageCircle, Heart, Shield, RefreshCw
 } from 'lucide-react';
 
@@ -27,6 +27,7 @@ const CATEGORY_CONFIG = {
     speech: { icon: BookOpen, label: 'Speech', color: 'bg-teal-100 text-teal-700', border: 'border-teal-200', plant: 'Speak Sunflower 🌻' },
     sensory: { icon: Leaf, label: 'Sensory', color: 'bg-green-100 text-green-700', border: 'border-green-200', plant: 'Wonder Willow 🌿' },
     selfcare: { icon: Shield, label: 'Self-Care', color: 'bg-orange-100 text-orange-700', border: 'border-orange-200', plant: 'Care Chrysanthemum 🌸' },
+    custom: { icon: Star, label: 'Custom Habit', color: 'bg-amber-100 text-amber-700', border: 'border-amber-200', plant: 'Dream Daisy 🌼' },
 };
 
 const SEASONS = {
@@ -140,10 +141,14 @@ function CelebrationModal({ event, onClose }) {
 }
 
 // ─── Plant Card ───────────────────────────────────────────────
-function PlantCard({ goal, onComplete, onWater, disabled }) {
+function PlantCard({ goal, onComplete, onWater, onEdit, onDelete, currentUserId, disabled }) {
     const [watering, setWatering] = useState(false);
     const [completing, setCompleting] = useState(false);
     const [showRipple, setShowRipple] = useState(false);
+
+    const isParentGoal = goal.goalOwnerType === 'parent';
+    const isOwner = isParentGoal && goal.parentCreatorId === currentUserId;
+
     const cat = CATEGORY_CONFIG[goal.skillCategory] || CATEGORY_CONFIG.cognitive;
     const stage = GROWTH_STAGES[goal.growthStage] || GROWTH_STAGES[0];
     const progress = Math.round((goal.currentCompletions / goal.requiredCompletions) * 100);
@@ -178,6 +183,31 @@ function PlantCard({ goal, onComplete, onWater, disabled }) {
                 </div>
             )}
 
+            {/* Parent Goal Indicator */}
+            {isParentGoal && (
+                <div className="absolute top-3 left-3 flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-1 rounded-full border border-amber-200 shadow-sm z-10">
+                    <Star size={10} fill="currentColor" /> PARENT
+                </div>
+            )}
+
+            {/* Edit/Delete for Parents */}
+            {!goal.isCompleted && isOwner && (
+                <div className="absolute top-12 left-3 flex flex-col gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                        onClick={() => onEdit(goal)}
+                        className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-blue-500 shadow-sm hover:bg-white transition-colors border border-blue-100"
+                    >
+                        <Edit2 size={12} />
+                    </button>
+                    <button
+                        onClick={() => onDelete(goal._id)}
+                        className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-red-500 shadow-sm hover:bg-white transition-colors border border-red-100"
+                    >
+                        <Trash2 size={12} />
+                    </button>
+                </div>
+            )}
+
             {/* Plant emoji + stage */}
             <div className="text-center mb-3 relative">
                 <div className={`plant-stage-emoji ${goal.isCompleted ? 'tree-glow animate-bounce-gentle' : 'animate-sway'}`}>
@@ -195,6 +225,9 @@ function PlantCard({ goal, onComplete, onWater, disabled }) {
                 <span className={`mt-2 inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cat.color}`}>
                     {React.createElement(cat.icon, { size: 10 })} {cat.label}
                 </span>
+                {goal.goalOwnerType === 'therapist' && (
+                    <span className="ml-1 text-[10px] text-gray-400 font-medium">Therapist Goal</span>
+                )}
             </div>
 
             {/* Progress bar */}
@@ -255,11 +288,92 @@ function ForestTree({ goal, season }) {
     const cat = CATEGORY_CONFIG[goal.skillCategory] || CATEGORY_CONFIG.cognitive;
     const seasonLeaves = { spring: '🌸', summer: '🌿', autumn: '🍂', winter: '❄️' };
     return (
-        <div className="forest-tree text-center group">
+        <div className="forest-tree text-center group relative">
+            {goal.goalOwnerType === 'parent' && (
+                <div className="absolute -top-1 -right-1 text-amber-500">
+                    <Star size={12} fill="currentColor" />
+                </div>
+            )}
             <div className="text-5xl mb-1 group-hover:animate-tree-shake inline-block">🌳</div>
             <div className="text-lg">{seasonLeaves[season]}</div>
             <p className="text-xs font-bold text-gray-700 mt-1 leading-tight max-w-[80px] mx-auto">{goal.goalName}</p>
             <span className={`mt-1 inline-block text-[10px] font-medium px-2 py-0.5 rounded-full ${cat.color}`}>{cat.label}</span>
+        </div>
+    );
+}
+
+// ─── Edit Goal Modal (For Parents) ───────────────────────────
+function EditGoalModal({ goal, onUpdated, onClose }) {
+    const [form, setForm] = useState({
+        goalName: goal.goalName,
+        description: goal.description || '',
+        requiredCompletions: goal.requiredCompletions,
+        rewardMilestone: goal.rewardMilestone || ''
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const submit = async e => {
+        e.preventDefault();
+        if (!form.goalName.trim()) { setError('Goal name is required'); return; }
+        setLoading(true);
+        try {
+            const res = await api.put(`/skillsprout/parent-goals/${goal._id}`, form);
+            if (res.data.success) { onUpdated(res.data.data); onClose(); }
+        } catch (err) {
+            setError(err.response?.data?.error?.message || 'Failed to update goal');
+        } finally { setLoading(false); }
+    };
+
+    return (
+        <div className="celebration-overlay" onClick={onClose}>
+            <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                        <Edit2 className="text-blue-500" size={24} /> Edit Your Goal
+                    </h2>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                </div>
+
+                <form onSubmit={submit} className="space-y-4">
+                    {error && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>}
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Goal Name 🌱</label>
+                        <input
+                            type="text" required
+                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 transition-colors"
+                            value={form.goalName} onChange={e => setForm(f => ({ ...f, goalName: e.target.value }))}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Target Activities (Min: {goal.currentCompletions})</label>
+                        <input
+                            type="number" min={goal.currentCompletions + 1} max="50"
+                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
+                            value={form.requiredCompletions}
+                            onChange={e => setForm(f => ({ ...f, requiredCompletions: parseInt(e.target.value) || 10 }))}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Reward Message 🎁</label>
+                        <input
+                            type="text"
+                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
+                            value={form.rewardMilestone} onChange={e => setForm(f => ({ ...f, rewardMilestone: e.target.value }))}
+                        />
+                    </div>
+
+                    <button
+                        type="submit" disabled={loading}
+                        className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-black text-lg rounded-2xl hover:from-blue-600 hover:to-indigo-600 transition-all shadow-md disabled:opacity-60"
+                    >
+                        {loading ? 'Updating...' : 'Save Changes'}
+                    </button>
+                </form>
+            </div>
         </div>
     );
 }
@@ -291,7 +405,8 @@ function AddGoalModal({ patientId, onCreated, onClose }) {
             <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-5">
                     <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                        <Sprout className="text-emerald-500" size={24} /> Plant a New Goal!
+                        <Sprout className="text-emerald-500" size={24} />
+                        {user?.role === 'parent' ? 'Plant a Parent Goal' : 'Plant a Therapy Goal'}!
                     </h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
                 </div>
@@ -504,10 +619,12 @@ export default function SkillSprout() {
     const seasonCfg = SEASONS[season];
 
     const [view, setView] = useState('garden'); // garden | forest | analytics
+    const [goalFilter, setGoalFilter] = useState('all'); // all | therapist | parent
     const [goals, setGoals] = useState([]);
     const [xp, setXP] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [editingGoal, setEditingGoal] = useState(null);
     const [celebration, setCelebration] = useState(null);
     const [confettiActive, setConfettiActive] = useState(false);
     const [xpPopup, setXPPopup] = useState(null);
@@ -572,9 +689,29 @@ export default function SkillSprout() {
         triggerCelebration({ type: 'stage', stage: 0, xp: 0 });
     };
 
-    const activeGoals = goals.filter(g => !g.isCompleted);
-    const completedGoals = goals.filter(g => g.isCompleted);
-    const canAddGoals = user?.role !== 'parent'; // only therapist/admin add goals
+    const handleGoalUpdated = (updatedGoal) => {
+        setGoals(gs => gs.map(g => g._id === updatedGoal._id ? updatedGoal : g));
+    };
+
+    const handleDeleteGoal = async (goalId) => {
+        if (!window.confirm('Are you sure you want to remove this goal? This cannot be undone.')) return;
+        try {
+            await api.delete(`/skillsprout/parent-goals/${goalId}`);
+            setGoals(gs => gs.filter(g => g._id !== goalId));
+        } catch (err) {
+            alert(err.response?.data?.error?.message || 'Error deleting goal');
+        }
+    };
+
+    // Filter logic
+    const filteredGoals = goals.filter(g => {
+        if (goalFilter === 'all') return true;
+        return g.goalOwnerType === goalFilter;
+    });
+
+    const activeGoals = filteredGoals.filter(g => !g.isCompleted);
+    const completedGoals = filteredGoals.filter(g => g.isCompleted);
+    const canAddGoals = true; // Both therapists and parents can now add goals
 
     if (loading) {
         return (
@@ -636,24 +773,45 @@ export default function SkillSprout() {
                     </div>
                 </div>
 
-                {/* View tabs */}
-                <div className="flex gap-2 mt-5 bg-white/60 backdrop-blur-sm p-1.5 rounded-2xl w-fit shadow-sm border border-white">
-                    {[
-                        { id: 'garden', icon: Sprout, label: 'My Garden' },
-                        { id: 'forest', icon: Leaf, label: 'Forest' },
-                        { id: 'analytics', icon: BarChart3, label: 'Progress' },
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setView(tab.id)}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${view === tab.id
-                                ? 'bg-white shadow-md text-emerald-700'
-                                : 'text-gray-600 hover:text-gray-800'
-                                }`}
-                        >
-                            <tab.icon size={16} /> {tab.label}
-                        </button>
-                    ))}
+                {/* View tabs and Filters */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-5">
+                    <div className="flex gap-2 bg-white/60 backdrop-blur-sm p-1.5 rounded-2xl w-fit shadow-sm border border-white">
+                        {[
+                            { id: 'garden', icon: Sprout, label: 'My Garden' },
+                            { id: 'forest', icon: Leaf, label: 'Forest' },
+                            { id: 'analytics', icon: BarChart3, label: 'Progress' },
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setView(tab.id)}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${view === tab.id
+                                    ? 'bg-white shadow-md text-emerald-700'
+                                    : 'text-gray-600 hover:text-gray-800'
+                                    }`}
+                            >
+                                <tab.icon size={16} /> {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex gap-2 bg-amber-50/50 p-1 rounded-xl border border-amber-100/50">
+                        {[
+                            { id: 'all', label: 'All Goals' },
+                            { id: 'therapist', label: 'Clinician' },
+                            { id: 'parent', label: 'Parent' },
+                        ].map(f => (
+                            <button
+                                key={f.id}
+                                onClick={() => setGoalFilter(f.id)}
+                                className={`px-4 py-1.5 rounded-lg font-bold text-xs transition-all ${goalFilter === f.id
+                                    ? 'bg-amber-500 text-white shadow-sm'
+                                    : 'text-amber-700 hover:bg-amber-100'
+                                    }`}
+                            >
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -664,7 +822,11 @@ export default function SkillSprout() {
                         <div className="text-center py-20">
                             <div className="text-8xl mb-4 animate-bounce-gentle">🌱</div>
                             <h3 className="text-2xl font-black text-gray-700 mb-2">Your garden is waiting!</h3>
-                            <p className="text-gray-500 mb-6">Ask your therapist to plant your first goal seed</p>
+                            <p className="text-gray-500 mb-6">
+                                {user?.role === 'parent'
+                                    ? 'Plant a goal seed to start growing your child\'s skills'
+                                    : 'Ask your therapist to plant your first goal seed'}
+                            </p>
                             {canAddGoals && (
                                 <button
                                     onClick={() => setShowAddModal(true)}
@@ -683,6 +845,9 @@ export default function SkillSprout() {
                                         goal={goal}
                                         onComplete={handleComplete}
                                         onWater={handleWater}
+                                        onEdit={setEditingGoal}
+                                        onDelete={handleDeleteGoal}
+                                        currentUserId={user?.userId}
                                     />
                                 ))}
                                 {/* Add new plant slot */}
