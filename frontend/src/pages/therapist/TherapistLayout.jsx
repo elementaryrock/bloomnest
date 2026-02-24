@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { FiHome, FiCalendar, FiFileText, FiClipboard, FiLogOut, FiMenu, FiX, FiUser } from 'react-icons/fi';
+import { Sprout } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
 
@@ -15,10 +16,11 @@ const TherapistLayout = ({ children }) => {
     };
 
     const navItems = [
-        { path: '/therapist/dashboard', icon: FiHome, label: 'Dashboard' },
-        { path: '/therapist/schedule', icon: FiCalendar, label: 'My Schedule' },
-        { path: '/therapist/sessions', icon: FiFileText, label: 'Session Notes' },
-        { path: '/therapist/assessments', icon: FiClipboard, label: 'Assessments' },
+        { path: '/therapist/dashboard', icon: FiHome, label: 'Dashboard', lucide: false },
+        { path: '/therapist/schedule', icon: FiCalendar, label: 'My Schedule', lucide: false },
+        { path: '/therapist/sessions', icon: FiFileText, label: 'Session Notes', lucide: false },
+        { path: '/therapist/assessments', icon: FiClipboard, label: 'Assessments', lucide: false },
+        { path: '/therapist/skill-sprout', icon: Sprout, label: 'SkillSprout 🌱', lucide: true },
     ];
 
     return (

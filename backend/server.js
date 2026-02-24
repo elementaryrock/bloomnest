@@ -44,6 +44,7 @@ const assessmentRoutes = require('./routes/assessment.routes');
 const adminRoutes = require('./routes/admin.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const narrativeRoutes = require('./routes/narrative.routes');
+const skillSproutRoutes = require('./routes/skillsprout.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
@@ -54,6 +55,7 @@ app.use('/api/assessments', assessmentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/narrative', narrativeRoutes);
+app.use('/api/skillsprout', skillSproutRoutes);
 
 // 404 handler
 app.use((req, res) => {

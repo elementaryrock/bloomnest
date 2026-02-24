@@ -1,0 +1,218 @@
+/* SkillSprout — garden animations & child-friendly UI */
+
+/* ── Plant grow animation ── */
+@keyframes sproutUp {
+  0%   { transform: scaleY(0) translateY(20px); opacity: 0; }
+  60%  { transform: scaleY(1.1) translateY(-4px); opacity: 1; }
+  100% { transform: scaleY(1) translateY(0); opacity: 1; }
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50%       { transform: rotate(3deg); }
+}
+
+@keyframes floatUp {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-60px) scale(0.5); opacity: 0; }
+}
+
+@keyframes popIn {
+  0%   { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+  70%  { transform: scale(1.15) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes confettiFall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4); }
+  50%       { box-shadow: 0 0 0 12px rgba(52, 211, 153, 0); }
+}
+
+@keyframes water-drop {
+  0%   { transform: scale(1) translateY(0); opacity: 0.8; }
+  50%  { transform: scale(1.3) translateY(-15px); opacity: 1; }
+  100% { transform: scale(0.5) translateY(-30px); opacity: 0; }
+}
+
+@keyframes soil-ripple {
+  0%   { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes star-burst {
+  0%   { transform: scale(0) rotate(0deg); opacity: 1; }
+  50%  { transform: scale(1.5) rotate(180deg); opacity: 1; }
+  100% { transform: scale(0.8) rotate(360deg); opacity: 0; }
+}
+
+@keyframes xp-float {
+  0%   { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-80px); opacity: 0; }
+}
+
+@keyframes tree-shake {
+  0%,100% { transform: translateX(0) rotate(0); }
+  20%      { transform: translateX(-4px) rotate(-2deg); }
+  40%      { transform: translateX(4px) rotate(2deg); }
+  60%      { transform: translateX(-3px) rotate(-1deg); }
+  80%      { transform: translateX(3px) rotate(1deg); }
+}
+
+@keyframes rainbow-border {
+  0%   { border-color: #f87171; }
+  16%  { border-color: #fb923c; }
+  33%  { border-color: #facc15; }
+  50%  { border-color: #4ade80; }
+  66%  { border-color: #60a5fa; }
+  83%  { border-color: #c084fc; }
+  100% { border-color: #f87171; }
+}
+
+@keyframes leaf-fall {
+  0%   { transform: translateY(-10px) rotate(0deg) translateX(0); opacity: 1; }
+  50%  { transform: translateY(20px) rotate(180deg) translateX(15px); opacity: 0.8; }
+  100% { transform: translateY(50px) rotate(360deg) translateX(-5px); opacity: 0; }
+}
+
+/* ── Utility animation classes ── */
+.animate-sprout      { animation: sproutUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-sway        { animation: sway 3s ease-in-out infinite; }
+.animate-float-up    { animation: floatUp 1s ease-out forwards; }
+.animate-pop-in      { animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-bounce-gentle { animation: bounce-gentle 2s ease-in-out infinite; }
+.animate-pulse-glow  { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-tree-shake  { animation: tree-shake 0.5s ease-in-out; }
+.animate-xp-float   { animation: xp-float 1.5s ease-out forwards; }
+.animate-star-burst  { animation: star-burst 0.8s ease-out forwards; }
+
+/* ── Shimmer loading ── */
+.shimmer {
+  background: linear-gradient(90deg, #f0fdf4 25%, #d1fae5 50%, #f0fdf4 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ── Garden soil ── */
+.garden-soil {
+  background: linear-gradient(180deg, #92400e 0%, #78350f 100%);
+  border-radius: 0 0 50% 50% / 0 0 20px 20px;
+}
+
+/* ── Confetti particle ── */
+.confetti-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  animation: confettiFall linear forwards;
+}
+
+/* ── Plant card hover ── */
+.plant-card {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.plant-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+}
+
+/* ── Water button ── */
+.water-btn {
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  transition: all 0.2s ease;
+}
+.water-btn:hover {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  transform: scale(1.05);
+}
+.water-btn:active {
+  transform: scale(0.97);
+}
+
+/* ── Progress bar grow animation ── */
+.progress-fill {
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Forest tree hover ── */
+.forest-tree {
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+.forest-tree:hover {
+  transform: scale(1.1) translateY(-4px);
+}
+
+/* ── Celebration overlay ── */
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+/* ── Leaf float ── */
+.leaf-float {
+  position: absolute;
+  pointer-events: none;
+  animation: leaf-fall linear forwards;
+}
+
+/* ── XP popup ── */
+.xp-popup {
+  position: absolute;
+  pointer-events: none;
+  font-weight: 800;
+  z-index: 100;
+  animation: xp-float 1.5s ease-out forwards;
+}
+
+/* ── Soil ripple ── */
+.soil-ripple {
+  border-radius: 50%;
+  animation: soil-ripple 0.6s ease-out forwards;
+}
+
+/* ── Seasonal themes ── */
+.season-spring { background: linear-gradient(135deg, #f0fdf4, #dcfce7, #bbf7d0); }
+.season-summer { background: linear-gradient(135deg, #fefce8, #fef9c3, #fde047); }
+.season-autumn { background: linear-gradient(135deg, #fff7ed, #fed7aa, #fb923c20); }
+.season-winter { background: linear-gradient(135deg, #f0f9ff, #e0f2fe, #bae6fd); }
+
+/* ── Glow effects for completed trees ── */
+.tree-glow {
+  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.6));
+}
+
+/* ── Child-friendly large emoji plant stages ── */
+.plant-stage-emoji {
+  font-size: 3rem;
+  line-height: 1;
+  display: block;
+  text-align: center;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+  transition: all 0.3s ease;
+}
+
+.plant-stage-emoji:hover {
+  transform: scale(1.1);
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.2));
+}

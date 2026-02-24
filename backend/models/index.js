@@ -9,5 +9,8 @@ module.exports = {
   OTP: require('./OTP'),
   Notification: require('./Notification'),
   Report: require('./Report'),
-  SystemSettings: require('./SystemSettings')
+  SystemSettings: require('./SystemSettings'),
+  SkillGoal: require('./SkillGoal'),
+  GrowthLog: require('./GrowthLog'),
+  ChildXP: require('./ChildXP')
 };

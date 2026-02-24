@@ -6,6 +6,7 @@ import TherapistSchedule from './TherapistSchedule';
 import TherapistSessions from './TherapistSessions';
 import TherapistAssessments from './TherapistAssessments';
 import SessionNotes from './SessionNotes';
+import TherapistSkillSprout from './TherapistSkillSprout';
 
 const TherapistDashboard = () => {
     return (
@@ -16,6 +17,7 @@ const TherapistDashboard = () => {
                 <Route path="sessions" element={<TherapistSessions />} />
                 <Route path="assessments" element={<TherapistAssessments />} />
                 <Route path="session/:sessionId/notes" element={<SessionNotes />} />
+                <Route path="skill-sprout" element={<TherapistSkillSprout />} />
                 <Route path="/" element={<Navigate to="dashboard" replace />} />
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Routes>
