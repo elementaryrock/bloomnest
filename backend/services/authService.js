@@ -21,17 +21,6 @@ class AuthService {
       throw new Error('Invalid Special ID or phone number');
     }
 
-    // Check rate limiting (max 5 OTPs per hour)
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentOTPs = await OTP.countDocuments({
-      specialId,
-      createdAt: { $gte: oneHourAgo }
-    });
-
-    if (recentOTPs >= 5) {
-      throw new Error('Rate limit exceeded. Please try again after an hour.');
-    }
-
     // Generate OTP
     const otp = this.generateOTP();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
