@@ -152,9 +152,9 @@ class PatientController {
   // Search patients
   async searchPatients(req, res) {
     try {
-      const { query } = req.query;
+      const { query: searchQuery, page = 1, limit = 20 } = req.query;
 
-      if (!query) {
+      if (!searchQuery) {
         return res.status(400).json({
           success: false,
           error: {
@@ -164,23 +164,45 @@ class PatientController {
         });
       }
 
-      // Search by Special ID, child name, parent name, or phone
-      const patients = await Patient.find({
-        isActive: true,
-        $or: [
-          { specialId: new RegExp(query, 'i') },
-          { childName: new RegExp(query, 'i') },
-          { parentName: new RegExp(query, 'i') },
-          { parentPhone: new RegExp(query, 'i') }
-        ]
-      })
-        .select('specialId childName parentName parentPhone photoUrl diagnosis age')
-        .limit(20);
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const searchLimit = parseInt(limit);
+
+      // SPECIAL_ID_PATTERN: MEC + 10 digits
+      // If query starts with MEC and followed by digits, or is just digits (partial ID search)
+      // we prioritize ID search. Otherwise, we search by name.
+
+      const isIdQuery = /^MEC/i.test(searchQuery) || /^\d+$/.test(searchQuery);
+
+      let dbQuery = { isActive: true };
+
+      if (isIdQuery) {
+        // Exact match or partial start-of-string match for ID
+        dbQuery.specialId = new RegExp(`^${searchQuery}`, 'i');
+      } else {
+        // Partial match for child name
+        dbQuery.$or = [
+          { childName: new RegExp(searchQuery, 'i') },
+          { parentName: new RegExp(searchQuery, 'i') }
+        ];
+      }
+
+      const patients = await Patient.find(dbQuery)
+        .select('specialId childName parentName parentPhone photoUrl diagnosis age registrationDate')
+        .sort({ childName: 1 })
+        .limit(searchLimit)
+        .skip(skip);
+
+      const total = await Patient.countDocuments(dbQuery);
 
       res.status(200).json({
         success: true,
         data: patients,
-        count: patients.length
+        pagination: {
+          page: parseInt(page),
+          limit: searchLimit,
+          total,
+          pages: Math.ceil(total / searchLimit)
+        }
       });
     } catch (error) {
       console.error('Search patients error:', error);
@@ -199,7 +221,7 @@ class PatientController {
     try {
       const { specialId } = req.params;
       const errors = validationResult(req);
-      
+
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,

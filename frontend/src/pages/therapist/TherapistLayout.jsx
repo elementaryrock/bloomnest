@@ -132,6 +132,24 @@ const TherapistLayout = ({ children }) => {
     { path: "/therapist/skill-sprout", icon: Sprout, label: "SkillSprout" },
   ];
 
+  const highlightMatch = (text, query) => {
+    if (!query) return text;
+    const parts = text.split(new RegExp(`(${query})`, "gi"));
+    return (
+      <span>
+        {parts.map((part, i) =>
+          part.toLowerCase() === query.toLowerCase() ? (
+            <span key={i} className="bg-yellow-200 text-slate-900 rounded-sm">
+              {part}
+            </span>
+          ) : (
+            part
+          )
+        )}
+      </span>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans text-slate-900">
       {/* Mobile Header */}
@@ -160,11 +178,10 @@ const TherapistLayout = ({ children }) => {
       <div className="flex flex-1 overflow-hidden">
         {/* Premium Sidebar */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-50 w-[260px] bg-white border-r border-slate-200 transform transition-transform duration-500 ease-out flex flex-col ${
-            sidebarOpen
+          className={`fixed lg:static inset-y-0 left-0 z-50 w-[260px] bg-white border-r border-slate-200 transform transition-transform duration-500 ease-out flex flex-col ${sidebarOpen
               ? "translate-x-0 shadow-2xl"
               : "-translate-x-full lg:translate-x-0"
-          }`}
+            }`}
         >
           {/* Brand Cluster */}
           <div className="px-6 py-8 hidden lg:block">
@@ -192,10 +209,9 @@ const TherapistLayout = ({ children }) => {
                 to={item.path}
                 onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-premium text-sm font-semibold group ${
-                    isActive
-                      ? "bg-blue-50 text-blue-700 shadow-sm"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-premium text-sm font-semibold group ${isActive
+                    ? "bg-blue-50 text-blue-700 shadow-sm"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                   }`
                 }
               >
@@ -269,9 +285,21 @@ const TherapistLayout = ({ children }) => {
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}
-                placeholder="Search patient records..."
-                className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 outline-none text-sm text-slate-700 py-2.5 pl-10 pr-4 rounded-xl transition-premium placeholder-slate-400 font-medium"
+                placeholder="Search by Patient ID or Child Name..."
+                className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 outline-none text-sm text-slate-700 py-2.5 pl-10 pr-10 rounded-xl transition-premium placeholder-slate-400 font-medium"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSearchResults([]);
+                    setShowSearchResults(false);
+                  }}
+                  className="absolute right-3 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X size={14} strokeWidth={3} />
+                </button>
+              )}
 
               {/* Search Results Dropdown */}
               {showSearchResults && (
@@ -297,10 +325,10 @@ const TherapistLayout = ({ children }) => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-slate-900 text-sm truncate">
-                              {patient.childName}
+                              {highlightMatch(patient.childName, searchQuery)}
                             </p>
                             <p className="text-xs text-slate-500">
-                              {patient.specialId} • {patient.parentName}
+                              {highlightMatch(patient.specialId, searchQuery)} • {patient.parentName}
                             </p>
                           </div>
                           {patient.diagnosis &&
