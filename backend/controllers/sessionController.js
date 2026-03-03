@@ -320,7 +320,7 @@ class SessionController {
       const { Staff } = require('../models');
 
       // Find staff record first
-      const staff = await Staff.findOne({ staffId: req.user.userId });
+      const staff = await Staff.findById(req.user.userId);
 
       if (!staff) {
         return res.status(404).json({

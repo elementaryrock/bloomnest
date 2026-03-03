@@ -98,6 +98,17 @@ const TherapistDashboardHome = () => {
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good Morning!';
+        if (hour < 17) return 'Good Afternoon!';
+        return 'Good Evening!';
+    };
+
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
     useEffect(() => {
         fetchDashboardData();
     }, []);
@@ -147,7 +158,8 @@ const TherapistDashboardHome = () => {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold text-gray-800">Good Morning!</h1>
+                <p className="text-sm font-medium text-gray-400 mb-1">{currentDate}</p>
+                <h1 className="text-2xl font-bold text-gray-800">{getGreeting()}</h1>
                 <p className="text-gray-600">Here's your schedule for today</p>
             </div>
 
