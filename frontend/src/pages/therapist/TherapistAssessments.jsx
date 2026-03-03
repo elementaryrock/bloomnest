@@ -9,6 +9,7 @@ const TherapistAssessments = () => {
     const [assessments, setAssessments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchLoading, setSearchLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [saving, setSaving] = useState(false);
 
@@ -18,13 +19,19 @@ const TherapistAssessments = () => {
     });
 
     useEffect(() => {
-        fetchAssessments();
-    }, []);
+        const delayDebounceFn = setTimeout(() => {
+            fetchAssessments(searchQuery);
+        }, 500);
 
-    const fetchAssessments = async () => {
-        setLoading(true);
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
+
+    const fetchAssessments = async (query = '') => {
+        if (query) setSearchLoading(true);
+        else setLoading(true);
+
         try {
-            const res = await api.get('/assessments');
+            const res = await api.get(`/assessments${query ? `?query=${encodeURIComponent(query)}` : ''}`);
             if (res.data.success) {
                 setAssessments(res.data.data);
             }
@@ -33,6 +40,7 @@ const TherapistAssessments = () => {
             toast.error('Failed to load assessments');
         } finally {
             setLoading(false);
+            setSearchLoading(false);
         }
     };
 
@@ -68,10 +76,15 @@ const TherapistAssessments = () => {
         return <span className="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Draft</span>;
     };
 
-    const filteredAssessments = assessments.filter(assessment =>
-        (assessment.specialId && assessment.specialId.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (assessment.assessmentId && assessment.assessmentId.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    const highlightText = (text, query) => {
+        if (!query || !text) return text;
+        const parts = text.toString().split(new RegExp(`(${query})`, 'gi'));
+        return parts.map((part, i) =>
+            part.toLowerCase() === query.toLowerCase()
+                ? <span key={i} className="bg-yellow-200 text-gray-900 px-0.5 rounded">{part}</span>
+                : part
+        );
+    };
 
     return (
         <div className="space-y-6 relative">
@@ -129,17 +142,28 @@ const TherapistAssessments = () => {
 
             {/* List Section */}
             <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                <div className="p-4 border-b border-gray-100 bg-gray-50">
-                    <div className="relative max-w-md">
+                <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                    <div className="relative max-w-md flex-1">
                         <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search by Patient ID (MEC...)"
-                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
+                            placeholder="Search by Patient ID or Child Name"
+                            className="w-full pl-10 pr-10 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
                         />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                <FiX />
+                            </button>
+                        )}
                     </div>
+                    {searchLoading && (
+                        <div className="ml-4 animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                    )}
                 </div>
 
                 <div className="overflow-x-auto">
@@ -147,11 +171,12 @@ const TherapistAssessments = () => {
                         <div className="flex justify-center items-center h-48">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                         </div>
-                    ) : filteredAssessments.length > 0 ? (
+                    ) : assessments.length > 0 ? (
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
                                     <th className="p-4 font-semibold">Assessment ID</th>
+                                    <th className="p-4 font-semibold">Child Name</th>
                                     <th className="p-4 font-semibold">Patient ID</th>
                                     <th className="p-4 font-semibold">Date</th>
                                     <th className="p-4 font-semibold">Status</th>
@@ -159,10 +184,17 @@ const TherapistAssessments = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredAssessments.map(assessment => (
+                                {assessments.map(assessment => (
                                     <tr key={assessment._id} className="hover:bg-gray-50 transition">
-                                        <td className="p-4 font-medium text-purple-600">{assessment.assessmentId}</td>
-                                        <td className="p-4 text-gray-800 font-semibold">{assessment.specialId}</td>
+                                        <td className="p-4 font-medium text-purple-600">
+                                            {highlightText(assessment.assessmentId, searchQuery)}
+                                        </td>
+                                        <td className="p-4 text-gray-800 font-bold">
+                                            {highlightText(assessment.childName || 'N/A', searchQuery)}
+                                        </td>
+                                        <td className="p-4 text-gray-600 font-medium">
+                                            {highlightText(assessment.specialId, searchQuery)}
+                                        </td>
                                         <td className="p-4 text-gray-600">
                                             {new Date(assessment.assessmentDate).toLocaleDateString()}
                                         </td>

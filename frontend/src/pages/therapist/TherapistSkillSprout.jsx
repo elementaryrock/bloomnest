@@ -3,7 +3,7 @@ import api from '../../services/api';
 import '../parent/skillsprout.css';
 import {
     Sprout, Plus, Search, User, BarChart3,
-    Trophy, Droplets, Target, Check, Zap, Leaf, X
+    Trophy, Droplets, Target, Check, Zap, Leaf, X, Trash2
 } from 'lucide-react';
 
 const CATEGORY_CONFIG = {
@@ -155,6 +155,18 @@ export default function TherapistSkillSprout() {
             setGardenData(res.data.data);
         } catch (err) {
             alert(err.response?.data?.error?.message || 'Error');
+        }
+    };
+
+    const handleDeleteGoal = async (goalId, goalName) => {
+        if (!window.confirm(`Are you sure you want to remove "${goalName}" from the garden?`)) return;
+
+        try {
+            await api.delete(`/skillsprout/goals/${goalId}`);
+            const res = await api.get(`/skillsprout/garden/${searchedId}`);
+            setGardenData(res.data.data);
+        } catch (err) {
+            alert(err.response?.data?.error?.message || 'Error deleting goal');
         }
     };
 
@@ -314,11 +326,20 @@ export default function TherapistSkillSprout() {
                                             const isParent = goal.goalOwnerType === 'parent';
                                             return (
                                                 <div key={goal._id} className={`bg-white rounded-2xl border-2 ${goal.isCompleted ? 'border-emerald-300' : isParent ? 'border-amber-200' : 'border-gray-100'} p-4 shadow-sm relative overflow-hidden`}>
-                                                    {isParent && (
-                                                        <div className="absolute top-2 right-2 flex items-center gap-1 bg-amber-100 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-200 shadow-sm">
-                                                            ⭐ PARENT
-                                                        </div>
-                                                    )}
+                                                    <div className="absolute top-2 right-2 flex items-center gap-2">
+                                                        {isParent && (
+                                                            <div className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-200 shadow-sm">
+                                                                ⭐ PARENT
+                                                            </div>
+                                                        )}
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteGoal(goal._id, goal.goalName); }}
+                                                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                            title="Delete Goal"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
                                                     <div className="text-center text-4xl mb-2">{goal.isCompleted ? '🌳' : GROWTH_STAGES[goal.growthStage]?.split(' ')[0]}</div>
                                                     <p className="font-bold text-sm text-gray-900 text-center">{goal.goalName}</p>
                                                     <p className="text-xs text-center text-gray-500 mt-0.5">{goal.plantSpecies} {goal.plantEmoji}</p>

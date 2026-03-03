@@ -380,33 +380,79 @@ class AssessmentController {
   // Get all assessments (admin/receptionist/therapist)
   async getAllAssessments(req, res) {
     try {
-      const { page = 1, limit = 20, status, specialId } = req.query;
+      const { page = 1, limit = 20, status, specialId, query } = req.query;
 
-      const query = {};
+      const filter = {};
 
       if (status) {
-        query.status = status;
+        filter.status = status;
       }
 
       if (specialId) {
-        query.specialId = specialId;
+        filter.specialId = specialId;
       }
 
       // If therapist, only show their assessments
       if (req.user.role === 'therapist') {
         const therapist = await Therapist.findOne({ staffId: req.user.userId });
         if (therapist) {
-          query.therapistId = therapist._id;
+          filter.therapistId = therapist._id;
         }
       }
 
-      const assessments = await Assessment.find(query)
-        .populate('therapistId', 'specialization')
-        .sort({ assessmentDate: -1 })
-        .limit(parseInt(limit))
-        .skip((parseInt(page) - 1) * parseInt(limit));
+      // aggregation pipeline for joining patient data and filtering
+      const pipeline = [
+        { $match: filter },
+        {
+          $lookup: {
+            from: 'patients',
+            localField: 'specialId',
+            foreignField: 'specialId',
+            as: 'patient'
+          }
+        },
+        { $unwind: { path: '$patient', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            assessmentId: 1,
+            specialId: 1,
+            therapistId: 1,
+            assessmentDate: 1,
+            status: 1,
+            parentAccepted: 1,
+            childName: '$patient.childName',
+            createdAt: 1
+          }
+        }
+      ];
 
-      const total = await Assessment.countDocuments(query);
+      // If query is provided, filter by patientId or childName
+      if (query && query.trim()) {
+        const searchRegex = new RegExp(query.trim(), 'i');
+        pipeline.push({
+          $match: {
+            $or: [
+              { specialId: { $regex: searchRegex } },
+              { childName: { $regex: searchRegex } },
+              { assessmentId: { $regex: searchRegex } }
+            ]
+          }
+        });
+      }
+
+      // Sort, skip, and limit
+      pipeline.push({ $sort: { assessmentDate: -1 } });
+
+      // Get total count for pagination (before skip/limit)
+      const countPipeline = [...pipeline];
+      countPipeline.push({ $count: 'total' });
+      const countResult = await Assessment.aggregate(countPipeline);
+      const total = countResult.length > 0 ? countResult[0].total : 0;
+
+      pipeline.push({ $skip: (parseInt(page) - 1) * parseInt(limit) });
+      pipeline.push({ $limit: parseInt(limit) });
+
+      const assessments = await Assessment.aggregate(pipeline);
 
       res.status(200).json({
         success: true,
