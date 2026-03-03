@@ -54,8 +54,10 @@ const StaffLogin = () => {
             taglineHighlight="Portal"
             taglineDescription="Secure access for receptionists, therapists, and administrators to manage therapy sessions."
         >
-            {/* Right Panel Logo */}
-            <div className="login-right-logo">MEC</div>
+            {/* Right panel logo icon */}
+            <div className="w-12 h-12 rounded-xl overflow-hidden shadow-soft ring-4 ring-amber-50 mx-auto mb-6">
+                <img src="/logos/BloomNest-glass.png" alt="Bloomnest Logo" className="w-full h-full object-cover" />
+            </div>
 
             <h1>Staff Login</h1>
             <p className="login-subtitle">Sign in to access the management portal</p>

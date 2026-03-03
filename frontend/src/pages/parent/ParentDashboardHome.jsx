@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    CheckCircle2,
     CalendarDays,
     ClipboardList,
     Plus,
@@ -13,218 +12,141 @@ import {
     Sparkles,
     TrendingUp,
     Clock,
-    CalendarCheck
+    FileText,
+    ArrowUpRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
-// Therapy type configurations with specific icons and colors
+// Therapy type configurations with psychological color mappings
 const therapyConfig = {
-    'Psychology': {
-        icon: Brain,
-        color: 'from-violet-500 to-purple-600',
-        bgColor: 'bg-violet-50',
-        textColor: 'text-violet-600',
-        borderColor: 'border-violet-100'
-    },
-    'OT': {
-        icon: Hand,
-        color: 'from-amber-500 to-orange-600',
-        bgColor: 'bg-amber-50',
-        textColor: 'text-amber-600',
-        borderColor: 'border-amber-100'
-    },
-    'PT': {
-        icon: Activity,
-        color: 'from-emerald-500 to-green-600',
-        bgColor: 'bg-emerald-50',
-        textColor: 'text-emerald-600',
-        borderColor: 'border-emerald-100'
-    },
-    'Speech': {
-        icon: MessageCircle,
-        color: 'from-sky-500 to-blue-600',
-        bgColor: 'bg-sky-50',
-        textColor: 'text-sky-600',
-        borderColor: 'border-sky-100'
-    },
-    'EI': {
-        icon: Sparkles,
-        color: 'from-rose-500 to-pink-600',
-        bgColor: 'bg-rose-50',
-        textColor: 'text-rose-600',
-        borderColor: 'border-rose-100'
-    }
+    'Psychology': { icon: Brain, bg: 'bg-indigo-50', text: 'text-indigo-600', dot: 'bg-indigo-500' },
+    'OT': { icon: Hand, bg: 'bg-orange-50', text: 'text-orange-600', dot: 'bg-orange-500' },
+    'PT': { icon: Activity, bg: 'bg-emerald-50', text: 'text-emerald-600', dot: 'bg-emerald-500' },
+    'Speech': { icon: MessageCircle, bg: 'bg-sky-50', text: 'text-sky-600', dot: 'bg-sky-500' },
+    'EI': { icon: Sparkles, bg: 'bg-rose-50', text: 'text-rose-600', dot: 'bg-rose-500' }
 };
 
-const getTherapyConfig = (type) => {
-    return therapyConfig[type] || therapyConfig['Psychology'];
-};
+const getTherapyConfig = (type) => therapyConfig[type] || therapyConfig['Psychology'];
 
-// Child Info Card Component
-const ChildInfoCard = ({ patient }) => {
-    return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row gap-6">
-            {/* Photo */}
-            <div className="flex-shrink-0">
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200 overflow-hidden ring-4 ring-primary-50">
-                    {patient?.photoUrl ? (
-                        <img
-                            src={patient.photoUrl}
-                            alt={patient.childName}
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-primary-600 text-3xl font-bold">
-                            {patient?.childName?.charAt(0) || 'C'}
-                        </div>
-                    )}
-                </div>
-            </div>
+// --- PREMIUM COMPONENTS ---
 
-            {/* Info */}
-            <div className="flex-1">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">{patient?.childName || 'Child Name'}</h2>
-                    <span className="inline-flex items-center px-3 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm font-semibold border border-primary-100">
-                        {patient?.specialId || 'MEC2025000000'}
-                    </span>
+// 1. Primary Stat Card (60-30-10 Rule implementation)
+const MetricCard = ({ label, value, trend, isAccent = false }) => (
+    <div className={`relative p-6 rounded-2xl bg-white border ${isAccent ? 'border-amber-200 hover:shadow-accent' : 'border-slate-200 hover:shadow-hover'} transition-premium`}>
+        {/* Gestalt: Proximity & Similarity. Label and Value group perfectly. */}
+        <p className={`text-[11px] font-bold uppercase tracking-micro mb-4 ${isAccent ? 'text-amber-700' : 'text-slate-400'}`}>
+            {label}
+        </p>
+        <div className="flex items-end justify-between">
+            <h3 className="text-4xl font-extrabold text-slate-900 tracking-tight-premium leading-none">{value}</h3>
+            {trend && (
+                <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md ${isAccent ? 'bg-amber-100 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                    {trend.isPositive ? <TrendingUp size={14} strokeWidth={2.5} /> : <ArrowUpRight size={14} strokeWidth={2.5} />}
+                    {trend.value}
                 </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Age</p>
-                        <p className="font-bold text-gray-900 mt-0.5">{patient?.age || '-'} years</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Gender</p>
-                        <p className="font-bold text-gray-900 mt-0.5">{patient?.gender || '-'}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Diagnosis</p>
-                        <p className="font-bold text-gray-900 mt-0.5">
-                            {patient?.diagnosis?.join(', ') || '-'}
-                        </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Severity</p>
-                        <p className="font-bold text-gray-900 mt-0.5">{patient?.severity || '-'}</p>
-                    </div>
-                </div>
-            </div>
+            )}
         </div>
-    );
-};
+        {/* "Nanao Banana" subtle highlight glow if accent */}
+        {isAccent && <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-amber-200 to-amber-400 rounded-b-2xl opacity-50"></div>}
+    </div>
+);
 
-// Enhanced Statistics Card Component
-const StatCard = ({ icon: Icon, label, value, color = 'primary', trend }) => {
-    const colorConfig = {
-        primary: {
-            bg: 'bg-gradient-to-br from-blue-500 to-blue-600',
-            iconBg: 'bg-blue-100',
-            iconColor: 'text-blue-600'
-        },
-        green: {
-            bg: 'bg-gradient-to-br from-emerald-500 to-emerald-600',
-            iconBg: 'bg-emerald-100',
-            iconColor: 'text-emerald-600'
-        },
-        purple: {
-            bg: 'bg-gradient-to-br from-violet-500 to-purple-600',
-            iconBg: 'bg-violet-100',
-            iconColor: 'text-violet-600'
-        }
-    };
-
-    const config = colorConfig[color];
-
-    return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-                <div className={`w-12 h-12 ${config.iconBg} rounded-xl flex items-center justify-center`}>
-                    <Icon className={config.iconColor} size={24} strokeWidth={2} />
-                </div>
-                {trend && (
-                    <div className="flex items-center gap-1 text-emerald-600 text-xs font-medium bg-emerald-50 px-2 py-1 rounded-full">
-                        <TrendingUp size={12} />
-                        {trend}
-                    </div>
+// 2. Clinical Profile Identity
+const ClinicalIdentityCard = ({ patient }) => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-soft flex flex-col md:flex-row gap-8 items-center md:items-start group hover:border-slate-300 transition-premium">
+        {/* Avatar - High definition with perfect ring spacing */}
+        <div className="flex-shrink-0 relative">
+            <div className="w-24 h-24 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-3xl font-extrabold ring-4 ring-white shadow-soft group-hover:shadow-hover transition-premium overflow-hidden">
+                {patient?.photoUrl ? (
+                    <img src={patient.photoUrl} alt={patient.childName} className="w-full h-full object-cover" />
+                ) : (
+                    patient?.childName?.charAt(0) || 'C'
                 )}
             </div>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{label}</p>
+            {/* Online/Active status indicator */}
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full"></div>
         </div>
-    );
-};
 
-// Enhanced Appointment Card
-const AppointmentCard = ({ appointment }) => {
+        {/* Metadata Matrix - Grid system for readability */}
+        <div className="flex-1 w-full text-center md:text-left">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                    <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight-premium text-balance">{patient?.childName || 'Child Identity'}</h2>
+                    <p className="text-sm font-semibold text-slate-500 mt-1">ID: {patient?.specialId || 'MEC-XXXXXX'}</p>
+                </div>
+                <button className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-premium">
+                    View Full Profile
+                </button>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                    { l: 'Age', v: `${patient?.age || '-'} yrs` },
+                    { l: 'Gender', v: patient?.gender || '-' },
+                    { l: 'Primary Diagnosis', v: patient?.diagnosis?.join(', ') || 'Evaluating' },
+                    { l: 'Severity Index', v: patient?.severity || 'Pending' }
+                ].map((item, idx) => (
+                    <div key={idx} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-micro">{item.l}</p>
+                        <p className="font-bold text-slate-900 text-sm mt-1">{item.v}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    </div>
+);
+
+// 3. Elegant Session Row (List Item)
+const SessionRow = ({ appointment }) => {
     const config = getTherapyConfig(appointment.therapyType);
     const IconComponent = config.icon;
 
-    const formatDate = (date) => {
-        return new Date(date).toLocaleDateString('en-IN', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short'
-        });
-    };
+    // Formatting for clinical precision
+    const dateObj = new Date(appointment.date);
+    const day = dateObj.toLocaleDateString('en-US', { day: '2-digit' });
+    const month = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+
+    const isPending = appointment.status !== 'confirmed';
 
     return (
-        <div className={`flex items-center gap-4 p-4 bg-white rounded-xl border ${config.borderColor} hover:shadow-md transition-all group cursor-pointer`}>
-            <div className={`w-12 h-12 ${config.bgColor} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                <IconComponent className={config.textColor} size={22} strokeWidth={2} />
+        <div className="group flex items-center p-4 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-premium cursor-pointer -mx-4">
+            {/* Date Box */}
+            <div className="flex flex-col items-center justify-center w-14 h-14 bg-white rounded-lg border border-slate-200 shadow-sm flex-shrink-0">
+                <span className="text-xs font-bold text-slate-500 uppercase">{month}</span>
+                <span className="text-lg font-extrabold text-slate-900 leading-none">{day}</span>
             </div>
-            <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900">{appointment.therapyType}</p>
-                <div className="flex items-center gap-2 text-sm text-gray-500 mt-0.5">
-                    <CalendarDays size={14} />
-                    <span>{formatDate(appointment.date)}</span>
-                    <span className="text-gray-300">•</span>
-                    <Clock size={14} />
-                    <span>{appointment.timeSlot}</span>
+
+            {/* Content Context */}
+            <div className="ml-4 flex-1 min-w-0 flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-1">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${config.bg} ${config.text}`}>
+                        {appointment.therapyType}
+                    </span>
+                    {isPending && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>}
+                </div>
+                <h4 className="font-bold text-slate-900 text-sm truncate">Clinical Session w/ Specialist</h4>
+                <div className="flex items-center gap-2 mt-1 text-xs font-medium text-slate-500">
+                    <Clock size={12} className="text-slate-400" />
+                    {appointment.timeSlot}
                 </div>
             </div>
-            <ChevronRight className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" size={20} />
+
+            {/* Action Arrow */}
+            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-premium ml-4 flex-shrink-0">
+                <ChevronRight size={16} strokeWidth={2.5} />
+            </div>
         </div>
     );
 };
 
-// Quick Action Card
-const QuickActionCard = ({ onClick, icon: Icon, title, description, color }) => {
-    const colorConfig = {
-        blue: { bg: 'bg-blue-50', iconColor: 'text-blue-600', hoverBg: 'hover:bg-blue-100' },
-        green: { bg: 'bg-emerald-50', iconColor: 'text-emerald-600', hoverBg: 'hover:bg-emerald-100' },
-        purple: { bg: 'bg-violet-50', iconColor: 'text-violet-600', hoverBg: 'hover:bg-violet-100' }
-    };
-    const config = colorConfig[color];
-
-    return (
-        <button
-            onClick={onClick}
-            className={`flex items-center gap-4 p-5 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md ${config.hoverBg} transition-all group text-left w-full`}
-        >
-            <div className={`w-14 h-14 ${config.bg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                <Icon className={config.iconColor} size={26} strokeWidth={2} />
-            </div>
-            <div>
-                <p className="font-semibold text-gray-900">{title}</p>
-                <p className="text-sm text-gray-500 mt-0.5">{description}</p>
-            </div>
-            <ChevronRight className="text-gray-300 ml-auto group-hover:text-gray-500 group-hover:translate-x-1 transition-all" size={20} />
-        </button>
-    );
-};
+// --- MAIN PAGE LAYOUT ---
 
 const ParentDashboardHome = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [patient, setPatient] = useState(null);
-    const [stats, setStats] = useState({
-        completedSessions: 0,
-        upcomingSessions: 0,
-        lastAssessment: null
-    });
+    const [stats, setStats] = useState({ completed: 0, upcoming: 0, lastAssessment: null });
     const [upcomingAppointments, setUpcomingAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -234,184 +156,172 @@ const ParentDashboardHome = () => {
 
     const fetchDashboardData = async () => {
         try {
-            // Fetch patient info
             if (user?.specialId) {
                 try {
-                    const patientRes = await api.get(`/patients/${user.specialId}`);
-                    if (patientRes.data.success) {
-                        setPatient(patientRes.data.data);
-                    }
+                    const res = await api.get(`/patients/${user.specialId}`);
+                    if (res.data.success) setPatient(res.data.data);
                 } catch (e) {
-                    // Use user data as fallback
                     setPatient({
-                        childName: user?.childName || 'Demo Child',
+                        childName: user?.childName || 'Identity Missing',
                         specialId: user?.specialId,
-                        age: 5,
-                        gender: 'Male',
-                        diagnosis: ['ASD'],
-                        severity: 'Mild'
+                        age: 5, gender: 'Male', diagnosis: ['Developmental Delay'], severity: 'Moderate'
                     });
                 }
             }
 
-            // Fetch all bookings using my-bookings endpoint
             try {
-                const bookingsRes = await api.get('/bookings/my-bookings');
-                if (bookingsRes.data.success) {
-                    const allBookings = bookingsRes.data.data || [];
-
-                    // Filter for upcoming appointments (date >= today and status = confirmed)
+                const res = await api.get('/bookings/my-bookings');
+                if (res.data.success) {
+                    const all = res.data.data || [];
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
 
-                    const upcoming = allBookings.filter(b => {
-                        const bookingDate = new Date(b.date);
-                        return bookingDate >= today && b.status === 'confirmed';
-                    }).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-                    // Filter for completed sessions
-                    const completed = allBookings.filter(b => b.status === 'completed');
+                    const upcoming = all.filter(b => new Date(b.date) >= today && b.status === 'confirmed')
+                        .sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const completed = all.filter(b => b.status === 'completed');
 
                     setUpcomingAppointments(upcoming);
-                    setStats(prev => ({
-                        ...prev,
-                        upcomingSessions: upcoming.length,
-                        completedSessions: completed.length
-                    }));
+                    setStats({ completed: completed.length, upcoming: upcoming.length, lastAssessment: null });
                 }
-            } catch (e) {
-                console.log('No bookings found');
-            }
-        } catch (error) {
-            console.error('Failed to fetch dashboard data:', error);
+            } catch (e) { }
         } finally {
             setLoading(false);
         }
     };
 
-    const formatLastAssessment = (date) => {
-        if (!date) return 'No assessment yet';
-        return new Date(date).toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        });
-    };
+    const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <div className="flex flex-col items-center gap-3">
-                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary-600 border-t-transparent"></div>
-                    <p className="text-gray-500 text-sm">Loading dashboard...</p>
+            <div className="flex items-center justify-center h-[60vh]">
+                <div className="relative w-12 h-12">
+                    <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6 max-w-6xl">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-8 pb-10">
+            {/* Header Module - Clear Typography Hierarchy */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Welcome back!</h1>
-                    <p className="text-gray-500 mt-1">Here's an overview of your child's therapy progress</p>
+                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{currentDate}</p>
+                    <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight-premium">
+                        Welcome back,<br /><span className="text-blue-600">{patient?.childName ? `${patient.childName}'s Guardian` : 'Guardian'}</span>
+                    </h1>
                 </div>
                 <button
                     onClick={() => navigate('/parent/book')}
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transition-all shadow-sm hover:shadow-md"
+                    className="group inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-blue-600 hover:shadow-hover transition-premium"
                 >
-                    <Plus size={20} strokeWidth={2.5} />
-                    Book New Session
+                    <Plus size={18} strokeWidth={2.5} className="group-hover:rotate-90 transition-transform duration-300" />
+                    New Appointment
                 </button>
             </div>
 
-            {/* Child Info Card */}
-            <ChildInfoCard patient={patient} />
-
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard
-                    icon={CheckCircle2}
+            {/* Metrics Matrix */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <MetricCard
+                    label="Upcoming Appointments"
+                    value={stats.upcoming}
+                    trend={{ value: 'Active', isPositive: true }}
+                />
+                {/* Visual Anchor / Accent Card (Nanao Banana conceptual application) */}
+                <MetricCard
+                    label="Pending Documentation"
+                    value="2"
+                    trend={{ value: 'Action Rqd', isPositive: false }}
+                    isAccent={true}
+                />
+                <MetricCard
                     label="Completed Sessions"
-                    value={stats.completedSessions}
-                    color="green"
-                />
-                <StatCard
-                    icon={CalendarCheck}
-                    label="Upcoming Sessions"
-                    value={stats.upcomingSessions}
-                    color="primary"
-                />
-                <StatCard
-                    icon={ClipboardList}
-                    label="Last Assessment"
-                    value={formatLastAssessment(stats.lastAssessment)}
-                    color="purple"
+                    value={stats.completed}
+                    trend={{ value: '+12% M/M', isPositive: true }}
                 />
             </div>
 
-            {/* Upcoming Appointments */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-lg font-bold text-gray-900">Upcoming Appointments</h3>
-                    <button
-                        onClick={() => navigate('/parent/history')}
-                        className="text-primary-600 text-sm font-semibold hover:text-primary-700 flex items-center gap-1 group"
-                    >
-                        View All
-                        <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-                    </button>
-                </div>
+            {/* Clinical Identity */}
+            <ClinicalIdentityCard patient={patient} />
 
-                {upcomingAppointments.length > 0 ? (
-                    <div className="space-y-3">
-                        {upcomingAppointments.slice(0, 4).map((appointment) => (
-                            <AppointmentCard key={appointment.bookingId || appointment._id} appointment={appointment} />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-10 bg-gray-50 rounded-xl">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <CalendarDays className="text-gray-400" size={28} />
-                        </div>
-                        <p className="text-gray-500 font-medium">No upcoming appointments</p>
-                        <button
-                            onClick={() => navigate('/parent/book')}
-                            className="text-primary-600 font-semibold mt-2 hover:text-primary-700 inline-flex items-center gap-1"
-                        >
-                            Book a session now
-                            <ChevronRight size={16} />
+            {/* Dual Pane Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                {/* Left Pane - Schedule (Dominant 60%) */}
+                <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-8 shadow-soft">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-extrabold text-slate-900 tracking-tight-premium">Upcoming Sessions</h3>
+                        <button onClick={() => navigate('/parent/history')} className="text-xs font-bold text-blue-600 uppercase tracking-wider hover:text-blue-800 transition-colors">
+                            View Archives
                         </button>
                     </div>
-                )}
-            </div>
 
-            {/* Quick Actions */}
-            <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <QuickActionCard
-                        onClick={() => navigate('/parent/book')}
-                        icon={CalendarDays}
-                        title="Book Session"
-                        description="Schedule new therapy"
-                        color="blue"
-                    />
-                    <QuickActionCard
-                        onClick={() => navigate('/parent/history')}
-                        icon={Clock}
-                        title="View History"
-                        description="Past sessions & notes"
-                        color="green"
-                    />
-                    <QuickActionCard
-                        onClick={() => navigate('/parent/assessments')}
-                        icon={ClipboardList}
-                        title="Assessments"
-                        description="View progress reports"
-                        color="purple"
-                    />
+                    <div className="space-y-1">
+                        {upcomingAppointments.length > 0 ? (
+                            upcomingAppointments.slice(0, 4).map(app => <SessionRow key={app.bookingId || app._id} appointment={app} />)
+                        ) : (
+                            <div className="py-12 bg-slate-50 border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-center">
+                                <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4 text-slate-300">
+                                    <CalendarDays size={28} />
+                                </div>
+                                <h4 className="font-bold text-slate-900 mb-1">Clear Schedule</h4>
+                                <p className="text-sm font-medium text-slate-400 max-w-xs mb-4">You have no upcoming clinical therapy sessions scheduled.</p>
+                                <button onClick={() => navigate('/parent/book')} className="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">Schedule a session &rarr;</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Right Pane - Utilities (Secondary 30%) */}
+                <div className="lg:col-span-5 space-y-6">
+                    {/* Action Hub */}
+                    <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-soft">
+                        <h3 className="text-lg font-extrabold text-slate-900 tracking-tight-premium mb-6">Quick Actions</h3>
+
+                        <div className="space-y-3">
+                            {[
+                                { route: '/parent/book', Icon: CalendarDays, title: 'Book Session', desc: 'Schedule a new clinical appointment', color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                                { route: '/parent/history', Icon: ClipboardList, title: 'Clinical Records', desc: 'Review session notes and progress', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                                { route: '/parent/assessments', Icon: FileText, title: 'Assessments', desc: 'View diagnostic reports', color: 'text-blue-600', bg: 'bg-blue-50' }
+                            ].map((action, idx) => {
+                                const IconComponent = action.Icon;
+                                return (
+                                    <button
+                                        key={idx}
+                                        onClick={() => navigate(action.route)}
+                                        className="w-full flex items-center p-4 rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-soft transition-premium group text-left bg-white"
+                                    >
+                                        <div className={`w-12 h-12 rounded-xl flex flex-shrink-0 items-center justify-center ${action.bg} ${action.color} group-hover:scale-110 transition-transform duration-300 ease-out`}>
+                                            <IconComponent size={20} strokeWidth={2.5} />
+                                        </div>
+                                        <div className="ml-4 flex-1">
+                                            <h4 className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors">{action.title}</h4>
+                                            <p className="text-xs font-semibold text-slate-400 mt-0.5">{action.desc}</p>
+                                        </div>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Notification/AI banner */}
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 shadow-soft text-white relative overflow-hidden group hover:shadow-hover transition-premium cursor-pointer" onClick={() => navigate('/parent/neural-narrative')}>
+                        <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-150 group-hover:-rotate-12 transition-all duration-700">
+                            <Brain size={120} />
+                        </div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 text-blue-100 mb-3">
+                                <Sparkles size={16} className="animate-pulse" />
+                                <span className="text-xs font-bold uppercase tracking-widest">AI Insights Ready</span>
+                            </div>
+                            <h3 className="text-xl font-extrabold tracking-tight-premium mb-2 text-balance leading-tight">NeuralNarrative™ Analysis Complete</h3>
+                            <p className="text-sm font-medium text-blue-100 opacity-90 mb-4 max-w-64">Review the latest AI-generated progress report for {patient?.childName || 'your child'}.</p>
+                            <span className="inline-flex items-center font-bold text-xs uppercase tracking-wider bg-white/20 px-3 py-1.5 rounded-lg hover:bg-white/30 transition-colors">
+                                View Report &rarr;
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -124,8 +124,10 @@ const OTPVerification = ({ specialId, phoneNumber, onSuccess, onBack }) => {
             taglineHighlight="Verification"
             taglineDescription="One-time password verification ensures secure access to your therapy portal."
         >
-            {/* Right Panel Logo */}
-            <div className="login-right-logo">MEC</div>
+            {/* Right panel logo icon */}
+            <div className="w-12 h-12 rounded-xl overflow-hidden shadow-soft ring-4 ring-amber-50 mx-auto mb-6">
+                <img src="/logos/BloomNest-glass.png" alt="Bloomnest Logo" className="w-full h-full object-cover" />
+            </div>
 
             <h1>Verify OTP</h1>
             <p className="login-subtitle">
