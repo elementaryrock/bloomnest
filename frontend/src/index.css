@@ -24,50 +24,232 @@ code {
 }
 
 /* ============================================
-   Refined Light Theme Login Styles
+   Split-Screen Mosaic Tile Login Styles
    ============================================ */
 
-/* Soft gradient background */
-.login-gradient-bg {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #e0f2fe 100%);
+/* Full-screen wrapper */
+.login-page-wrapper {
     min-height: 100vh;
+    background: #e5e7eb;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Enhanced card with soft shadow */
-.login-card {
+/* Main full-screen container */
+.login-container {
+    width: 100%;
+    flex: 1;
     background: white;
-    border-radius: 1.5rem;
-    box-shadow:
-        0 4px 6px -1px rgba(0, 0, 0, 0.05),
-        0 10px 20px -5px rgba(59, 130, 246, 0.08),
-        0 0 0 1px rgba(59, 130, 246, 0.05);
-    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    overflow: hidden;
 }
 
-.login-card:hover {
-    box-shadow:
-        0 8px 12px -2px rgba(0, 0, 0, 0.06),
-        0 20px 40px -10px rgba(59, 130, 246, 0.12),
-        0 0 0 1px rgba(59, 130, 246, 0.08);
+/* ---- Left Panel: Blue Mosaic Tiles ---- */
+.login-left-panel {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 2.5rem;
+    background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 40%, #3b82f6 80%, #1e40af 100%);
 }
 
-/* Premium input fields */
+/* Mosaic tile grid overlay */
+.mosaic-grid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    gap: 3px;
+    z-index: 1;
+}
+
+.mosaic-tile {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    transition: opacity 0.8s ease;
+}
+
+/* Varying tile opacities for the mosaic effect */
+.mosaic-tile:nth-child(3n+1) {
+    opacity: 0.3;
+}
+
+.mosaic-tile:nth-child(5n+2) {
+    opacity: 0.6;
+}
+
+.mosaic-tile:nth-child(7n+3) {
+    opacity: 0.9;
+}
+
+.mosaic-tile:nth-child(4n) {
+    opacity: 0.15;
+}
+
+.mosaic-tile:nth-child(6n+1) {
+    opacity: 0.5;
+}
+
+.mosaic-tile:nth-child(9n+4) {
+    opacity: 0.75;
+}
+
+.mosaic-tile:nth-child(11n+5) {
+    opacity: 0.4;
+}
+
+.mosaic-tile:nth-child(2n) {
+    opacity: 0.25;
+}
+
+.mosaic-tile:nth-child(13n+7) {
+    opacity: 0.85;
+}
+
+/* Some tiles with blue tints */
+.mosaic-tile:nth-child(5n) {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.mosaic-tile:nth-child(8n+3) {
+    background: rgba(29, 78, 216, 0.25);
+}
+
+.mosaic-tile:nth-child(10n+1) {
+    background: rgba(147, 197, 253, 0.35);
+}
+
+.mosaic-tile:nth-child(12n+6) {
+    background: rgba(96, 165, 250, 0.3);
+}
+
+/* Subtle hover animation on tiles */
+.mosaic-tile:hover {
+    opacity: 1 !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+    transition: all 0.3s ease;
+}
+
+/* Fade-out gradient at the bottom of left panel for text readability */
+.login-left-panel::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 55%;
+    background: linear-gradient(to top, rgba(30, 64, 175, 0.85) 0%, transparent 100%);
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Logo icon on left panel */
+.login-left-logo {
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    z-index: 10;
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.75rem;
+    color: #1e40af;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Marketing text at the bottom of left panel */
+.login-left-text {
+    position: relative;
+    z-index: 5;
+}
+
+.login-left-text h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1.2;
+    margin: 0 0 0.75rem 0;
+}
+
+.login-left-text h2 span {
+    font-style: italic;
+    color: #93c5fd;
+}
+
+.login-left-text p {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* ---- Right Panel: Login Form ---- */
+.login-right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 3rem;
+    position: relative;
+}
+
+/* Right panel logo icon */
+.login-right-logo {
+    width: 40px;
+    height: 40px;
+    background: #1e293b;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.65rem;
+    color: white;
+    margin: 0 auto 1.5rem;
+}
+
+.login-right-panel h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e293b;
+    text-align: center;
+    margin: 0 0 0.25rem 0;
+}
+
+.login-right-panel .login-subtitle {
+    text-align: center;
+    color: #64748b;
+    font-size: 0.875rem;
+    margin: 0 0 2rem 0;
+}
+
+/* Form inputs — flat gray style per screenshot */
 .login-input {
     width: 100%;
     padding: 0.875rem 1rem 0.875rem 2.75rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 0.75rem;
-    font-size: 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
     color: #1e293b;
-    background: #f8fafc;
+    background: #f1f5f9;
     transition: all 0.2s ease;
 }
 
 .login-input:focus {
     outline: none;
-    border-color: #3b82f6;
-    background: white;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    background: #e2e8f0;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .login-input::placeholder {
@@ -75,35 +257,36 @@ code {
 }
 
 .login-input.error {
-    border-color: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4);
 }
 
 .login-input.error:focus {
-    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
-/* Primary button */
+/* Primary button — blue gradient pill */
 .login-btn-primary {
     width: 100%;
     padding: 0.875rem 1.5rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
     color: white;
     font-weight: 600;
     font-size: 1rem;
     border: none;
-    border-radius: 0.75rem;
+    border-radius: 2rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.25s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
 }
 
 .login-btn-primary:hover {
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
 }
 
 .login-btn-primary:active {
@@ -125,7 +308,7 @@ code {
     font-weight: 600;
     font-size: 1rem;
     border: 2px solid #e2e8f0;
-    border-radius: 0.75rem;
+    border-radius: 2rem;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -139,7 +322,7 @@ code {
     background: #eff6ff;
 }
 
-/* Logo container */
+/* Logo container (legacy — kept for OTP etc.) */
 .logo-circle {
     width: 5rem;
     height: 5rem;
@@ -190,6 +373,26 @@ code {
 
 .input-group:focus-within .input-icon {
     color: #3b82f6;
+}
+
+/* Footer links under the container */
+.login-footer-links {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1.5rem;
+    padding: 1rem 0.5rem 0;
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.login-footer-links a {
+    color: #94a3b8;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.login-footer-links a:hover {
+    color: #64748b;
 }
 
 /* OTP input */
@@ -247,6 +450,61 @@ code {
 .animate-delay-3 {
     animation-delay: 0.3s;
     opacity: 0;
+}
+
+/* Mosaic tile shimmer animation */
+@keyframes tileShimmer {
+
+    0%,
+    100% {
+        opacity: 0.2;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.mosaic-tile:nth-child(3n+1) {
+    animation: tileShimmer 4s ease-in-out infinite;
+}
+
+.mosaic-tile:nth-child(5n+2) {
+    animation: tileShimmer 5s ease-in-out 0.5s infinite;
+}
+
+.mosaic-tile:nth-child(7n+3) {
+    animation: tileShimmer 6s ease-in-out 1s infinite;
+}
+
+.mosaic-tile:nth-child(11n+5) {
+    animation: tileShimmer 4.5s ease-in-out 1.5s infinite;
+}
+
+/* Responsive: stack on mobile */
+@media (max-width: 768px) {
+    .login-container {
+        flex-direction: column;
+        min-height: auto;
+    }
+
+    .login-left-panel {
+        min-height: 200px;
+        padding: 1.5rem;
+    }
+
+    .login-left-text h2 {
+        font-size: 1.5rem;
+    }
+
+    .login-right-panel {
+        padding: 2rem 1.5rem;
+    }
+
+    .mosaic-grid {
+        grid-template-columns: repeat(6, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+    }
 }
 
 /* Toast customization */

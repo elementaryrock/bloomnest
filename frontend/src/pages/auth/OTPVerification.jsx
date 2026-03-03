@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FiArrowLeft, FiLoader, FiRefreshCw } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import MosaicLoginLayout from '../../components/MosaicLoginLayout';
 
 const OTPVerification = ({ specialId, phoneNumber, onSuccess, onBack }) => {
     const { loginWithOTP, requestOTP } = useAuth();
@@ -118,84 +119,82 @@ const OTPVerification = ({ specialId, phoneNumber, onSuccess, onBack }) => {
         : '';
 
     return (
-        <div className="login-gradient-bg min-h-screen flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
-                {/* Header */}
-                <div className="text-center mb-8 animate-fadeIn">
-                    <div className="logo-circle">
-                        <span className="text-white text-2xl font-bold">MEC</span>
-                    </div>
-                    <h1 className="text-2xl font-bold text-gray-800 mt-4">Verify OTP</h1>
-                    <p className="text-gray-600 mt-2">
-                        Enter the 6-digit code sent to {maskedPhone}
-                    </p>
+        <MosaicLoginLayout
+            tagline="Secure OTP"
+            taglineHighlight="Verification"
+            taglineDescription="One-time password verification ensures secure access to your therapy portal."
+        >
+            {/* Right Panel Logo */}
+            <div className="login-right-logo">MEC</div>
+
+            <h1>Verify OTP</h1>
+            <p className="login-subtitle">
+                Enter the 6-digit code sent to {maskedPhone}
+            </p>
+
+            <div style={{ maxWidth: '380px', margin: '0 auto', width: '100%' }}>
+                {/* Back Button */}
+                <button
+                    onClick={onBack}
+                    className="flex items-center text-gray-500 hover:text-blue-600 mb-6 transition-colors font-medium text-sm"
+                >
+                    <FiArrowLeft className="mr-2" />
+                    Back to login
+                </button>
+
+                {/* OTP Inputs */}
+                <div className="flex justify-center gap-3 mb-6">
+                    {otp.map((digit, index) => (
+                        <input
+                            key={index}
+                            ref={el => inputRefs.current[index] = el}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            value={digit}
+                            onChange={e => handleChange(index, e.target.value)}
+                            onKeyDown={e => handleKeyDown(index, e)}
+                            onPaste={handlePaste}
+                            className={`otp-input ${digit ? 'filled' : ''} ${loading ? 'opacity-50' : ''}`}
+                            disabled={loading}
+                        />
+                    ))}
                 </div>
 
-                {/* OTP Card */}
-                <div className="login-card p-8 animate-fadeIn animate-delay-1">
-                    {/* Back Button */}
-                    <button
-                        onClick={onBack}
-                        className="flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors font-medium"
-                    >
-                        <FiArrowLeft className="mr-2" />
-                        Back to login
-                    </button>
-
-                    {/* OTP Inputs */}
-                    <div className="flex justify-center gap-3 mb-6">
-                        {otp.map((digit, index) => (
-                            <input
-                                key={index}
-                                ref={el => inputRefs.current[index] = el}
-                                type="text"
-                                inputMode="numeric"
-                                maxLength={1}
-                                value={digit}
-                                onChange={e => handleChange(index, e.target.value)}
-                                onKeyDown={e => handleKeyDown(index, e)}
-                                onPaste={handlePaste}
-                                className={`otp-input ${digit ? 'filled' : ''} ${loading ? 'opacity-50' : ''}`}
-                                disabled={loading}
-                            />
-                        ))}
+                {/* Loading indicator */}
+                {loading && (
+                    <div className="flex items-center justify-center text-blue-600 mb-4">
+                        <FiLoader className="animate-spin mr-2" />
+                        Verifying...
                     </div>
+                )}
 
-                    {/* Loading indicator */}
-                    {loading && (
-                        <div className="flex items-center justify-center text-primary-600 mb-4">
-                            <FiLoader className="animate-spin mr-2" />
-                            Verifying...
-                        </div>
-                    )}
+                {/* Attempts indicator */}
+                {attempts > 0 && (
+                    <p className="text-center text-sm text-amber-600 mb-4">
+                        {3 - attempts} attempt(s) remaining
+                    </p>
+                )}
 
-                    {/* Attempts indicator */}
-                    {attempts > 0 && (
-                        <p className="text-center text-sm text-amber-600 mb-4">
-                            {3 - attempts} attempt(s) remaining
+                {/* Resend OTP */}
+                <div className="text-center">
+                    {canResend ? (
+                        <button
+                            onClick={handleResend}
+                            className="flex items-center justify-center mx-auto text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                        >
+                            <FiRefreshCw className="mr-2" />
+                            Resend OTP
+                        </button>
+                    ) : (
+                        <p className="text-gray-500">
+                            Resend OTP in <span className="font-semibold text-blue-600">{resendTimer}s</span>
                         </p>
                     )}
-
-                    {/* Resend OTP */}
-                    <div className="text-center">
-                        {canResend ? (
-                            <button
-                                onClick={handleResend}
-                                className="flex items-center justify-center mx-auto text-primary-600 hover:text-primary-700 font-medium transition-colors"
-                            >
-                                <FiRefreshCw className="mr-2" />
-                                Resend OTP
-                            </button>
-                        ) : (
-                            <p className="text-gray-500">
-                                Resend OTP in <span className="font-semibold text-primary-600">{resendTimer}s</span>
-                            </p>
-                        )}
-                    </div>
                 </div>
 
                 {/* Instructions */}
-                <div className="info-box mt-6 animate-fadeIn animate-delay-2">
+                <div className="info-box mt-6">
                     <p className="text-sm text-blue-800">
                         <strong>Didn't receive the code?</strong><br />
                         Make sure your phone number is correct and check your SMS inbox.
@@ -203,7 +202,7 @@ const OTPVerification = ({ specialId, phoneNumber, onSuccess, onBack }) => {
                     </p>
                 </div>
             </div>
-        </div>
+        </MosaicLoginLayout>
     );
 };
 

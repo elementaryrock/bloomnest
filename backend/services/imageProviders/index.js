@@ -3,11 +3,14 @@
  * Manages multiple image generation providers with automatic failover.
  */
 
+const geminiImage = require('./geminiImageProvider');
 const pollinations = require('./pollinationsProvider');
+const aiHorde = require('./aiHordeProvider');
 const cloudflare = require('./cloudflareProvider');
 const imagen = require('./imagenProvider');
 
-const ALL_PROVIDERS = [pollinations, cloudflare, imagen];
+// Priority order: Gemini Flash Image (free) > Pollinations (free) > AI Horde (free, community) > Cloudflare (free tier) > Imagen 4 (paid)
+const ALL_PROVIDERS = [geminiImage, pollinations, aiHorde, cloudflare, imagen];
 
 /**
  * Get available providers in their priority order.
