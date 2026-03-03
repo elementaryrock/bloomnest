@@ -351,7 +351,7 @@ class AssessmentController {
         });
       } catch (pdfError) {
         console.error('PDF generation error:', pdfError);
-        
+
         // Save assessment even if PDF generation fails
         await assessment.save();
 
@@ -424,6 +424,74 @@ class AssessmentController {
         success: false,
         error: {
           code: 'FETCH_ASSESSMENTS_FAILED',
+          message: error.message
+        }
+      });
+    }
+  }
+
+  // Parent accept assessment
+  async acceptAssessment(req, res) {
+    try {
+      const { assessmentId } = req.params;
+
+      // Verify parent is accessing their own child's assessment
+      const patient = await Patient.findOne({ specialId: req.user.specialId });
+      if (!patient) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'PATIENT_NOT_FOUND',
+            message: 'Patient profile not found'
+          }
+        });
+      }
+
+      const assessment = await Assessment.findOne({
+        assessmentId,
+        specialId: patient.specialId,
+        status: 'completed'
+      });
+
+      if (!assessment) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'ASSESSMENT_NOT_FOUND',
+            message: 'Assessment not found or not yet completed'
+          }
+        });
+      }
+
+      if (assessment.parentAccepted) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'ALREADY_ACCEPTED',
+            message: 'Assessment has already been accepted'
+          }
+        });
+      }
+
+      assessment.parentAccepted = true;
+      assessment.parentAcceptedAt = new Date();
+      await assessment.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Assessment acknowledged successfully',
+        data: {
+          assessmentId: assessment.assessmentId,
+          parentAccepted: assessment.parentAccepted,
+          parentAcceptedAt: assessment.parentAcceptedAt
+        }
+      });
+    } catch (error) {
+      console.error('Accept assessment error:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'ACCEPT_ASSESSMENT_FAILED',
           message: error.message
         }
       });

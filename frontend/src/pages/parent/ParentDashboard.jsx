@@ -9,6 +9,8 @@ import SkillSprout from './SkillSprout';
 import TherapyRipple from './TherapyRipple';
 import ParentLayout from './ParentLayout';
 import ParentProfile from './ParentProfile';
+import ParentAssessments from './ParentAssessments';
+import ParentAssessmentDetail from './ParentAssessmentDetail';
 
 const ParentDashboard = () => {
     const { user } = useAuth();
@@ -23,6 +25,8 @@ const ParentDashboard = () => {
                 <Route path="skill-sprout" element={<SkillSprout />} />
                 <Route path="therapy-ripple" element={<TherapyRipple />} />
                 <Route path="profile" element={<ParentProfile />} />
+                <Route path="assessments" element={<ParentAssessments />} />
+                <Route path="assessment/:assessmentId" element={<ParentAssessmentDetail />} />
                 <Route path="/" element={<Navigate to="dashboard" replace />} />
             </Routes>
         </ParentLayout>

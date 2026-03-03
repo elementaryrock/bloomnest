@@ -20,7 +20,10 @@ import {
     AlertCircle,
     FileText,
     ExternalLink,
-    MessageSquare
+    MessageSquare,
+    Calendar,
+    Clock,
+    ClipboardList
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -30,9 +33,12 @@ const ParentLayout = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [helpOpen, setHelpOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchOpen, setSearchOpen] = useState(false);
 
     const notifRef = React.useRef(null);
     const helpRef = React.useRef(null);
+    const searchRef = React.useRef(null);
 
     React.useEffect(() => {
         const handleClickOutside = (event) => {
@@ -42,10 +48,41 @@ const ParentLayout = ({ children }) => {
             if (helpRef.current && !helpRef.current.contains(event.target)) {
                 setHelpOpen(false);
             }
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setSearchOpen(false);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const sessionData = [
+        { id: 1, title: 'Speech Therapy', therapist: 'Dr. Sarah Johnson', date: '2024-03-05', time: '10:00 AM', type: 'upcoming', status: 'confirmed' },
+        { id: 2, title: 'Occupational Therapy', therapist: 'Dr. Michael Chen', date: '2024-03-07', time: '2:00 PM', type: 'upcoming', status: 'confirmed' },
+        { id: 3, title: 'Physical Therapy', therapist: 'Dr. Emily Davis', date: '2024-03-10', time: '11:00 AM', type: 'upcoming', status: 'pending' },
+        { id: 4, title: 'Speech Therapy', therapist: 'Dr. Sarah Johnson', date: '2024-02-28', time: '10:00 AM', type: 'completed', status: 'completed' },
+        { id: 5, title: 'Behavioral Therapy', therapist: 'Dr. Lisa Brown', date: '2024-02-25', time: '3:00 PM', type: 'completed', status: 'completed' },
+        { id: 6, title: 'Occupational Therapy', therapist: 'Dr. Michael Chen', date: '2024-02-20', time: '9:00 AM', type: 'completed', status: 'completed' },
+    ];
+
+    const filteredSessions = searchQuery.trim() === '' 
+        ? [] 
+        : sessionData.filter(session => 
+            session.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            session.therapist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            session.date.includes(searchQuery)
+        );
+
+    const handleSearch = (e) => {
+        setSearchQuery(e.target.value);
+        setSearchOpen(e.target.value.length > 0);
+    };
+
+    const handleSessionClick = (session) => {
+        navigate('/parent/history');
+        setSearchOpen(false);
+        setSearchQuery('');
+    };
 
     const handleLogout = () => {
         logout();
@@ -56,6 +93,7 @@ const ParentLayout = ({ children }) => {
         { path: '/parent/dashboard', icon: LayoutDashboard, label: 'Overview' },
         { path: '/parent/history', icon: History, label: 'Clinical Records' },
         { path: '/parent/book', icon: CalendarPlus, label: 'Appointments' },
+        { path: '/parent/assessments', icon: ClipboardList, label: 'Assessments' },
         { path: '/parent/neural-narrative', icon: Sparkles, label: 'NeuralNarrative™' },
         { path: '/parent/skill-sprout', icon: Sprout, label: 'SkillSprout' },
         { path: '/parent/therapy-ripple', icon: Waves, label: 'TherapyRipple' },
@@ -158,13 +196,55 @@ const ParentLayout = ({ children }) => {
                     {/* Top Bar - Ultra Clean */}
                     <header className="hidden lg:flex items-center justify-between px-8 py-5 bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-20">
                         {/* Search */}
-                        <div className="flex items-center relative group w-96">
+                        <div className="flex items-center relative group w-96" ref={searchRef}>
                             <Search size={16} className="text-slate-400 absolute left-3 group-focus-within:text-blue-500 transition-colors" strokeWidth={2.5} />
                             <input
                                 type="text"
-                                placeholder="Search medical archives..."
+                                value={searchQuery}
+                                onChange={handleSearch}
+                                onFocus={() => searchQuery.length > 0 && setSearchOpen(true)}
+                                placeholder="Search sessions, therapists..."
                                 className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 outline-none text-sm text-slate-700 py-2.5 pl-10 pr-4 rounded-xl transition-premium placeholder-slate-400 font-medium"
                             />
+
+                            {searchOpen && (
+                                <div className="absolute top-full mt-2 w-[400px] bg-white rounded-2xl shadow-hover border border-slate-100 z-50 overflow-hidden animate-fadeIn">
+                                    {filteredSessions.length > 0 ? (
+                                        <div className="max-h-80 overflow-y-auto">
+                                            <div className="px-4 py-2 border-b border-slate-100">
+                                                <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Sessions & Bookings</p>
+                                            </div>
+                                            {filteredSessions.map(session => (
+                                                <button
+                                                    key={session.id}
+                                                    onClick={() => handleSessionClick(session)}
+                                                    className="w-full flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors text-left border-b border-slate-50 last:border-0"
+                                                >
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${session.type === 'upcoming' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                        <Calendar size={18} strokeWidth={2} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-bold text-slate-900 text-sm">{session.title}</p>
+                                                        <p className="text-xs text-slate-500 truncate">{session.therapist}</p>
+                                                    </div>
+                                                    <div className="text-right flex-shrink-0">
+                                                        <div className="flex items-center gap-1 text-xs text-slate-500">
+                                                            <Clock size={12} />
+                                                            <span>{session.time}</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400">{session.date}</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="p-8 text-center">
+                                            <p className="text-sm text-slate-500">No sessions found</p>
+                                            <p className="text-xs text-slate-400 mt-1">Try searching for therapy type or date</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Actions */}

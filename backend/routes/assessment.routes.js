@@ -58,6 +58,17 @@ router.post(
   assessmentController.completeAssessment
 );
 
+// Accept assessment (parent only)
+router.post(
+  '/:assessmentId/accept',
+  authenticate,
+  checkRole('parent'),
+  [
+    param('assessmentId').notEmpty().withMessage('Assessment ID is required')
+  ],
+  assessmentController.acceptAssessment
+);
+
 // Get all assessments (admin/receptionist)
 router.get(
   '/',

@@ -10,7 +10,7 @@ import {
   FiActivity,
   FiArrowLeft,
   FiFileText,
-  FiClipboardList,
+  FiClipboard,
 } from "react-icons/fi";
 import api from "../../services/api";
 
@@ -33,9 +33,16 @@ const TherapistPatientDetails = () => {
       const res = await api.get(`/patients/${specialId}`);
       if (res.data.success) {
         setPatient(res.data.data);
+      } else {
+        toast.error("Patient not found");
+        navigate("/therapist/dashboard");
       }
     } catch (error) {
-      toast.error("Failed to load patient details");
+      console.error("Error fetching patient:", error);
+      toast.error(
+        error.response?.data?.error?.message ||
+          "Failed to load patient details",
+      );
       navigate("/therapist/dashboard");
     } finally {
       setLoading(false);
@@ -44,7 +51,7 @@ const TherapistPatientDetails = () => {
 
   const fetchPatientSessions = async () => {
     try {
-      const res = await api.get(`/sessions/patient/${specialId}`);
+      const res = await api.get(`/sessions/patient/${specialId}/history`);
       if (res.data.success) {
         setSessions(res.data.data || []);
       }
@@ -286,7 +293,7 @@ const TherapistPatientDetails = () => {
       {/* Assessments */}
       <div className="bg-white rounded-xl shadow-md p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <FiClipboardList className="text-purple-600" />
+          <FiClipboard className="text-purple-600" />
           Assessments ({assessments.length})
         </h3>
         {assessments.length > 0 ? (

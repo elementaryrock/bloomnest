@@ -20,7 +20,7 @@ const assessmentSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  
+
   assessmentData: {
     presentingProblems: {
       type: String
@@ -71,7 +71,7 @@ const assessmentSchema = new mongoose.Schema({
       type: Date
     }
   },
-  
+
   status: {
     type: String,
     enum: ['draft', 'completed'],
@@ -80,7 +80,15 @@ const assessmentSchema = new mongoose.Schema({
   pdfUrl: {
     type: String
   },
-  
+
+  parentAccepted: {
+    type: Boolean,
+    default: false
+  },
+  parentAcceptedAt: {
+    type: Date
+  },
+
   createdAt: {
     type: Date,
     default: Date.now
@@ -94,7 +102,7 @@ const assessmentSchema = new mongoose.Schema({
   }
 });
 
-assessmentSchema.pre('save', function(next) {
+assessmentSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });
