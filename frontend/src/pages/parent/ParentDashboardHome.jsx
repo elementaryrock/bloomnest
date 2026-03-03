@@ -53,49 +53,55 @@ const MetricCard = ({ label, value, trend, isAccent = false }) => (
 );
 
 // 2. Clinical Profile Identity
-const ClinicalIdentityCard = ({ patient }) => (
-    <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-soft flex flex-col md:flex-row gap-8 items-center md:items-start group hover:border-slate-300 transition-premium">
-        {/* Avatar - High definition with perfect ring spacing */}
-        <div className="flex-shrink-0 relative">
-            <div className="w-24 h-24 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-3xl font-extrabold ring-4 ring-white shadow-soft group-hover:shadow-hover transition-premium overflow-hidden">
-                {patient?.photoUrl ? (
-                    <img src={patient.photoUrl} alt={patient.childName} className="w-full h-full object-cover" />
-                ) : (
-                    patient?.childName?.charAt(0) || 'C'
-                )}
-            </div>
-            {/* Online/Active status indicator */}
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full"></div>
-        </div>
+const ClinicalIdentityCard = ({ patient }) => {
+    const navigate = useNavigate();
 
-        {/* Metadata Matrix - Grid system for readability */}
-        <div className="flex-1 w-full text-center md:text-left">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div>
-                    <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight-premium text-balance">{patient?.childName || 'Child Identity'}</h2>
-                    <p className="text-sm font-semibold text-slate-500 mt-1">ID: {patient?.specialId || 'MEC-XXXXXX'}</p>
+    return (
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-soft flex flex-col md:flex-row gap-8 items-center md:items-start group hover:border-slate-300 transition-premium">
+            {/* Avatar - High definition with perfect ring spacing */}
+            <div className="flex-shrink-0 relative">
+                <div className="w-24 h-24 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-3xl font-extrabold ring-4 ring-white shadow-soft group-hover:shadow-hover transition-premium overflow-hidden">
+                    {patient?.photoUrl ? (
+                        <img src={patient.photoUrl} alt={patient.childName} className="w-full h-full object-cover" />
+                    ) : (
+                        patient?.childName?.charAt(0) || 'C'
+                    )}
                 </div>
-                <button className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-premium">
-                    View Full Profile
-                </button>
+                {/* Online/Active status indicator */}
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full"></div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                    { l: 'Age', v: `${patient?.age || '-'} yrs` },
-                    { l: 'Gender', v: patient?.gender || '-' },
-                    { l: 'Primary Diagnosis', v: patient?.diagnosis?.join(', ') || 'Evaluating' },
-                    { l: 'Severity Index', v: patient?.severity || 'Pending' }
-                ].map((item, idx) => (
-                    <div key={idx} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-micro">{item.l}</p>
-                        <p className="font-bold text-slate-900 text-sm mt-1">{item.v}</p>
+            {/* Metadata Matrix - Grid system for readability */}
+            <div className="flex-1 w-full text-center md:text-left">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight-premium text-balance">{patient?.childName || 'Child Identity'}</h2>
+                        <p className="text-sm font-semibold text-slate-500 mt-1">ID: {patient?.specialId || 'MEC-XXXXXX'}</p>
                     </div>
-                ))}
+                    <button
+                        onClick={() => navigate('/parent/profile')}
+                        className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-premium">
+                        View Full Profile
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                        { l: 'Age', v: `${patient?.age || '-'} yrs` },
+                        { l: 'Gender', v: patient?.gender || '-' },
+                        { l: 'Primary Diagnosis', v: patient?.diagnosis?.join(', ') || 'Evaluating' },
+                        { l: 'Severity Index', v: patient?.severity || 'Pending' }
+                    ].map((item, idx) => (
+                        <div key={idx} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-micro">{item.l}</p>
+                            <p className="font-bold text-slate-900 text-sm mt-1">{item.v}</p>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 // 3. Elegant Session Row (List Item)
 const SessionRow = ({ appointment }) => {
