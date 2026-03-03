@@ -272,13 +272,12 @@ const TherapistPatientDetails = () => {
                   </p>
                 </div>
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    session.status === "completed"
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${session.status === "completed"
                       ? "bg-green-100 text-green-600"
                       : session.status === "in-progress"
                         ? "bg-amber-100 text-amber-600"
                         : "bg-blue-100 text-blue-600"
-                  }`}
+                    }`}
                 >
                   {session.status}
                 </span>
@@ -314,11 +313,10 @@ const TherapistPatientDetails = () => {
                   </p>
                 </div>
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    assessment.status === "completed"
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${assessment.status === "completed"
                       ? "bg-green-100 text-green-600"
                       : "bg-amber-100 text-amber-600"
-                  }`}
+                    }`}
                 >
                   {assessment.status}
                 </span>
