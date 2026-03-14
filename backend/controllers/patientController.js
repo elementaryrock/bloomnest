@@ -290,6 +290,65 @@ class PatientController {
     }
   }
 
+  // Update patient photo (accessible by parents for their own child)
+  async updatePatientPhoto(req, res) {
+    try {
+      const { specialId } = req.params;
+      const { photoUrl } = req.body;
+
+      // Verify the parent is updating their own child's photo
+      if (req.user.role === 'parent' && req.user.specialId !== specialId) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: 'You can only update your own child\'s photo'
+          }
+        });
+      }
+
+      if (!photoUrl) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Photo URL is required'
+          }
+        });
+      }
+
+      const patient = await Patient.findOne({ specialId, isActive: true });
+
+      if (!patient) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'PATIENT_NOT_FOUND',
+            message: 'Patient not found'
+          }
+        });
+      }
+
+      patient.photoUrl = photoUrl;
+      await patient.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Photo updated successfully',
+        data: { photoUrl: patient.photoUrl }
+      });
+    } catch (error) {
+      console.error('Update patient photo error:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'UPDATE_FAILED',
+          message: error.message
+        }
+      });
+    }
+  }
+
   // Deactivate patient
   async deactivatePatient(req, res) {
     try {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -11,8 +11,11 @@ import {
     ShieldAlert,
     FileText,
     Brain,
-    Clock
+    Clock,
+    Camera,
+    Loader2
 } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -21,6 +24,8 @@ const ParentProfile = () => {
     const navigate = useNavigate();
     const [patient, setPatient] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -43,6 +48,66 @@ const ParentProfile = () => {
         };
         fetchProfile();
     }, [user]);
+
+    const handlePhotoClick = () => {
+        if (!uploading) {
+            fileInputRef.current?.click();
+        }
+    };
+
+    const handlePhotoChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file size (5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('File size exceeds 5MB limit');
+            return;
+        }
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            toast.error('Only image files are allowed');
+            return;
+        }
+
+        setUploading(true);
+        try {
+            // Step 1: Upload to Cloudinary
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const uploadRes = await api.post('/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                timeout: 30000
+            });
+
+            if (!uploadRes.data.success) {
+                throw new Error('Upload failed');
+            }
+
+            const newPhotoUrl = uploadRes.data.data.url;
+
+            // Step 2: Update patient record with new photo URL
+            const updateRes = await api.patch(`/patients/${user.specialId}/photo`, {
+                photoUrl: newPhotoUrl
+            });
+
+            if (updateRes.data.success) {
+                setPatient(prev => ({ ...prev, photoUrl: newPhotoUrl }));
+                toast.success('Photo updated successfully!');
+            }
+        } catch (error) {
+            console.error('Photo update error:', error);
+            toast.error(error.response?.data?.error?.message || 'Failed to update photo');
+        } finally {
+            setUploading(false);
+            // Reset file input so same file can be selected again
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
 
     if (loading) {
         return (
@@ -123,19 +188,43 @@ const ParentProfile = () => {
                 </div>
             </div>
 
+            {/* Hidden file input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoChange}
+            />
+
             {/* Profile Header Card */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 shadow-hover text-white flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
                     <User size={160} />
                 </div>
 
-                <div className="flex-shrink-0 relative z-10">
-                    <div className="w-28 h-28 rounded-2xl bg-white/10 backdrop-blur-sm border-4 border-white/20 flex items-center justify-center text-white text-4xl font-extrabold shadow-inner overflow-hidden">
+                <div className="flex-shrink-0 relative z-10 group">
+                    <div
+                        className="w-28 h-28 rounded-2xl bg-white/10 backdrop-blur-sm border-4 border-white/20 flex items-center justify-center text-white text-4xl font-extrabold shadow-inner overflow-hidden cursor-pointer relative"
+                        onClick={handlePhotoClick}
+                    >
                         {patient?.photoUrl ? (
                             <img src={patient.photoUrl} alt={patient.childName} className="w-full h-full object-cover" />
                         ) : (
                             patient?.childName?.charAt(0) || 'C'
                         )}
+
+                        {/* Photo edit overlay */}
+                        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ${uploading ? 'bg-black/50' : 'bg-black/0 group-hover:bg-black/40'}`}>
+                            {uploading ? (
+                                <Loader2 size={28} className="text-white animate-spin" />
+                            ) : (
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center gap-1">
+                                    <Camera size={22} className="text-white" />
+                                    <span className="text-[10px] font-bold text-white uppercase tracking-wider">Edit</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

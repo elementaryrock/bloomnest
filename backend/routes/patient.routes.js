@@ -63,6 +63,18 @@ router.get(
   patientController.getPatient,
 );
 
+// Update patient photo (parent can update their own child's photo)
+router.patch(
+  "/:specialId/photo",
+  authenticate,
+  [
+    param("specialId")
+      .matches(SPECIAL_ID_PATTERN)
+      .withMessage("Invalid Special ID format (expected: MEC + 10 digits)"),
+  ],
+  patientController.updatePatientPhoto,
+);
+
 // Update patient information (receptionist/admin only)
 router.put(
   "/:specialId",
