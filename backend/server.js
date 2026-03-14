@@ -1,3 +1,4 @@
+require('./utils/discordLogger'); // Send all logs to Discord webhook
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');

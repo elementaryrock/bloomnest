@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../../services/api';
 import '../parent/skillsprout.css';
 import {
     Sprout, Plus, Search, User, BarChart3,
-    Trophy, Droplets, Target, Check, Zap, Leaf
+    Trophy, Droplets, Target, Check, Zap, Leaf, X, Trash2
 } from 'lucide-react';
 
 const CATEGORY_CONFIG = {
@@ -37,6 +37,45 @@ export default function TherapistSkillSprout() {
     const [goalFilter, setGoalFilter] = useState('all'); // all | therapist | parent
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [showResults, setShowResults] = useState(false);
+
+    const searchRef = useRef(null);
+    const searchTimeoutRef = useRef(null);
+
+    // Click outside listener for search results
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowResults(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const performSearch = useCallback(async (query) => {
+        if (!query || query.length < 2) {
+            setSearchResults([]);
+            setShowResults(false);
+            return;
+        }
+
+        setSearchLoading(true);
+        try {
+            const res = await api.get(`/patients/search?query=${encodeURIComponent(query)}`);
+            if (res.data.success) {
+                setSearchResults(res.data.data || []);
+                setShowResults(true);
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            setSearchResults([]);
+        } finally {
+            setSearchLoading(false);
+        }
+    }, []);
 
     // Add goal form
     const [form, setForm] = useState({
@@ -47,9 +86,30 @@ export default function TherapistSkillSprout() {
     const [addSuccess, setAddSuccess] = useState('');
     const [addError, setAddError] = useState('');
 
-    const searchPatient = async () => {
-        const id = patientIdInput.trim();
-        if (!id) { setError('Please enter a patient ID'); return; }
+    const handleSearchChange = (e) => {
+        const query = e.target.value;
+        setPatientIdInput(query);
+
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+        if (query.length >= 2) {
+            searchTimeoutRef.current = setTimeout(() => {
+                performSearch(query);
+            }, 300);
+        } else {
+            setSearchResults([]);
+            setShowResults(false);
+        }
+    };
+
+    const selectPatient = (patient) => {
+        setPatientIdInput(patient.specialId);
+        setSearchedId(patient.specialId);
+        setShowResults(false);
+        fetchPatientData(patient.specialId);
+    };
+
+    const fetchPatientData = async (id) => {
         setLoading(true); setError('');
         try {
             const [gardenRes, analyticsRes] = await Promise.all([
@@ -63,6 +123,12 @@ export default function TherapistSkillSprout() {
             setError(err.response?.data?.error?.message || 'Patient not found or no garden yet');
             setGardenData(null); setAnalytics(null); setSearchedId('');
         } finally { setLoading(false); }
+    };
+
+    const searchPatient = async () => {
+        const id = patientIdInput.trim();
+        if (!id) { setError('Please enter a patient ID or Name'); return; }
+        fetchPatientData(id);
     };
 
     const handleAddGoal = async e => {
@@ -92,6 +158,18 @@ export default function TherapistSkillSprout() {
         }
     };
 
+    const handleDeleteGoal = async (goalId, goalName) => {
+        if (!window.confirm(`Are you sure you want to remove "${goalName}" from the garden?`)) return;
+
+        try {
+            await api.delete(`/skillsprout/goals/${goalId}`);
+            const res = await api.get(`/skillsprout/garden/${searchedId}`);
+            setGardenData(res.data.data);
+        } catch (err) {
+            alert(err.response?.data?.error?.message || 'Error deleting goal');
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-5xl">
             {/* Header */}
@@ -110,21 +188,56 @@ export default function TherapistSkillSprout() {
                 <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <User size={18} className="text-emerald-500" /> Search Patient Garden
                 </h3>
-                <div className="flex gap-3">
-                    <input
-                        type="text"
-                        placeholder="Enter Patient Special ID (e.g. MEC2025000001)"
-                        className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400 transition-colors"
-                        value={patientIdInput}
-                        onChange={e => setPatientIdInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && searchPatient()}
-                    />
+                <div className="flex gap-3 relative" ref={searchRef}>
+                    <div className="flex-1 relative">
+                        <input
+                            type="text"
+                            placeholder="Enter Patient Special ID or Child Name..."
+                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400 transition-colors pr-10"
+                            value={patientIdInput}
+                            onChange={handleSearchChange}
+                            onKeyDown={e => e.key === 'Enter' && searchPatient()}
+                        />
+                        {patientIdInput && (
+                            <button
+                                onClick={() => { setPatientIdInput(''); setSearchResults([]); setShowResults(false); }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                <X size={16} />
+                            </button>
+                        )}
+
+                        {/* Search Results Dropdown */}
+                        {showResults && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden max-h-60 overflow-y-auto">
+                                {searchResults.length > 0 ? (
+                                    searchResults.map(p => (
+                                        <button
+                                            key={p.specialId}
+                                            onClick={() => selectPatient(p)}
+                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 transition-colors text-left border-b border-gray-50 last:border-0"
+                                        >
+                                            <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                                <User size={16} />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-gray-900 text-sm truncate">{p.childName}</p>
+                                                <p className="text-xs text-gray-500">{p.specialId} • {p.parentName}</p>
+                                            </div>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="p-4 text-center text-gray-500 text-sm">No patients found</div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                     <button
                         onClick={searchPatient}
                         disabled={loading}
-                        className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-3 rounded-xl font-bold hover:from-emerald-600 hover:to-teal-600 transition-all shadow-sm disabled:opacity-60"
+                        className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-3 rounded-xl font-bold hover:from-emerald-600 hover:to-teal-600 transition-all shadow-sm disabled:opacity-60 h-[46px]"
                     >
-                        {loading ? '...' : <><Search size={16} /> Search</>}
+                        {loading || searchLoading ? '...' : <><Search size={16} /> Search</>}
                     </button>
                 </div>
                 {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
@@ -213,11 +326,20 @@ export default function TherapistSkillSprout() {
                                             const isParent = goal.goalOwnerType === 'parent';
                                             return (
                                                 <div key={goal._id} className={`bg-white rounded-2xl border-2 ${goal.isCompleted ? 'border-emerald-300' : isParent ? 'border-amber-200' : 'border-gray-100'} p-4 shadow-sm relative overflow-hidden`}>
-                                                    {isParent && (
-                                                        <div className="absolute top-2 right-2 flex items-center gap-1 bg-amber-100 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-200 shadow-sm">
-                                                            ⭐ PARENT
-                                                        </div>
-                                                    )}
+                                                    <div className="absolute top-2 right-2 flex items-center gap-2">
+                                                        {isParent && (
+                                                            <div className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-200 shadow-sm">
+                                                                ⭐ PARENT
+                                                            </div>
+                                                        )}
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteGoal(goal._id, goal.goalName); }}
+                                                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                            title="Delete Goal"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
                                                     <div className="text-center text-4xl mb-2">{goal.isCompleted ? '🌳' : GROWTH_STAGES[goal.growthStage]?.split(' ')[0]}</div>
                                                     <p className="font-bold text-sm text-gray-900 text-center">{goal.goalName}</p>
                                                     <p className="text-xs text-center text-gray-500 mt-0.5">{goal.plantSpecies} {goal.plantEmoji}</p>

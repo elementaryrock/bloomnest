@@ -9,7 +9,8 @@ const patientSchema = new mongoose.Schema({
   },
   childName: {
     type: String,
-    required: true
+    required: true,
+    index: true
   },
   dateOfBirth: {
     type: Date,
@@ -27,7 +28,7 @@ const patientSchema = new mongoose.Schema({
   photoUrl: {
     type: String
   },
-  
+
   parentName: {
     type: String,
     required: true
@@ -51,7 +52,7 @@ const patientSchema = new mongoose.Schema({
   address: {
     type: String
   },
-  
+
   diagnosis: [{
     type: String,
     enum: ['ASD', 'SLD', 'ID', 'CP']
@@ -69,7 +70,7 @@ const patientSchema = new mongoose.Schema({
   medicalHistory: {
     type: String
   },
-  
+
   registeredBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Staff'
@@ -89,7 +90,7 @@ const patientSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  
+
   createdAt: {
     type: Date,
     default: Date.now
@@ -101,7 +102,7 @@ const patientSchema = new mongoose.Schema({
 });
 
 // Update the updatedAt timestamp before saving
-patientSchema.pre('save', function(next) {
+patientSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });
