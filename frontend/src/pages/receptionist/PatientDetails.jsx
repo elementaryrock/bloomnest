@@ -12,6 +12,8 @@ const PatientDetails = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editMode, setEditMode] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [photoUrl, setPhotoUrl] = useState(null);
 
     const {
         register,
@@ -29,6 +31,7 @@ const PatientDetails = () => {
             const res = await api.get(`/patients/${specialId}`);
             if (res.data.success) {
                 setPatient(res.data.data);
+                setPhotoUrl(res.data.data.photoUrl);
                 reset(res.data.data);
             }
         } catch (error) {
@@ -36,6 +39,36 @@ const PatientDetails = () => {
             navigate('/receptionist/search');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePhotoChange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('File size exceeds 5MB limit');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            setUploading(true);
+            try {
+                const res = await api.post('/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+
+                if (res.data.success) {
+                    setPhotoUrl(res.data.data.url);
+                    toast.success('Photo uploaded successfully');
+                }
+            } catch (error) {
+                console.error('Photo upload error:', error);
+                toast.error(error.response?.data?.error?.message || 'Failed to upload photo');
+            } finally {
+                setUploading(false);
+            }
         }
     };
 
@@ -51,7 +84,8 @@ const PatientDetails = () => {
                 address: data.address,
                 severity: data.severity,
                 presentingProblems: data.presentingProblems,
-                medicalHistory: data.medicalHistory
+                medicalHistory: data.medicalHistory,
+                photoUrl: photoUrl
             });
             if (res.data.success) {
                 toast.success('Patient updated successfully');
@@ -67,6 +101,7 @@ const PatientDetails = () => {
 
     const cancelEdit = () => {
         reset(patient);
+        setPhotoUrl(patient.photoUrl);
         setEditMode(false);
     };
 
@@ -143,40 +178,102 @@ const PatientDetails = () => {
                         <FiUser className="text-green-600" />
                         Child Information
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div>
-                            <label className="block text-sm text-gray-500 mb-1">Child Name</label>
-                            <p className="font-medium text-gray-800">{patient.childName}</p>
-                        </div>
-                        <div>
-                            <label className="block text-sm text-gray-500 mb-1">Date of Birth</label>
-                            <p className="font-medium text-gray-800">
-                                {new Date(patient.dateOfBirth).toLocaleDateString('en-IN')}
-                            </p>
-                        </div>
-                        <div>
-                            <label className="block text-sm text-gray-500 mb-1">Age</label>
-                            <p className="font-medium text-gray-800">{patient.age} years</p>
-                        </div>
-                        <div>
-                            <label className="block text-sm text-gray-500 mb-1">Gender</label>
-                            <p className="font-medium text-gray-800">{patient.gender}</p>
-                        </div>
-                        <div>
-                            <label className="block text-sm text-gray-500 mb-1">Diagnosis</label>
-                            <div className="flex flex-wrap gap-2">
-                                {patient.diagnosis?.map((d) => (
-                                    <span key={d} className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-sm">
-                                        {d}
-                                    </span>
-                                ))}
+                    <div className="flex flex-col md:flex-row gap-8 mb-8">
+                        {/* Photo Section */}
+                        <div className="flex-shrink-0">
+                            <div className="w-32 h-32 rounded-2xl bg-gray-100 overflow-hidden relative shadow-inner border border-gray-100">
+                                {photoUrl ? (
+                                    <img src={photoUrl} alt={patient.childName} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                        <FiUser size={48} />
+                                    </div>
+                                )}
+                                {uploading && (
+                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white"></div>
+                                    </div>
+                                )}
                             </div>
+                            {editMode && (
+                                <div className="mt-3">
+                                    <label className="block">
+                                        <span className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-green-100 transition inline-block text-center w-full">
+                                            Change Photo
+                                        </span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handlePhotoChange}
+                                        />
+                                    </label>
+                                </div>
+                            )}
                         </div>
-                        <div>
-                            <label className="block text-sm text-gray-500 mb-1">Registration Date</label>
-                            <p className="font-medium text-gray-800">
-                                {new Date(patient.registrationDate).toLocaleDateString('en-IN')}
-                            </p>
+
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div>
+                                <label className="block text-sm text-gray-500 mb-1">Child Name</label>
+                                {editMode ? (
+                                    <input
+                                        type="text"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        {...register('childName', { required: 'Name is required' })}
+                                    />
+                                ) : (
+                                    <p className="font-medium text-gray-800">{patient.childName}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-500 mb-1">Date of Birth</label>
+                                {editMode ? (
+                                    <input
+                                        type="date"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        {...register('dateOfBirth', { required: 'DOB is required' })}
+                                    />
+                                ) : (
+                                    <p className="font-medium text-gray-800">
+                                        {new Date(patient.dateOfBirth).toLocaleDateString('en-IN')}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-500 mb-1">Age</label>
+                                <p className="font-medium text-gray-800">{patient.age} years</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-500 mb-1">Gender</label>
+                                {editMode ? (
+                                    <select
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        {...register('gender')}
+                                    >
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                ) : (
+                                    <p className="font-medium text-gray-800">{patient.gender}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-500 mb-1">Diagnosis</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {patient.diagnosis?.map((d) => (
+                                        <span key={d} className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-sm">
+                                            {d}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-500 mb-1">Registration Date</label>
+                                <p className="font-medium text-gray-800">
+                                    {new Date(patient.registrationDate).toLocaleDateString('en-IN')}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>

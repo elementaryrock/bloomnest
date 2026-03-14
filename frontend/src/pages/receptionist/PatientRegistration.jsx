@@ -16,7 +16,8 @@ const PatientRegistration = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [generatedId, setGeneratedId] = useState(null);
-    const [photoPreview, setPhotoPreview] = useState(null);
+    const [photoUrl, setPhotoUrl] = useState(null);
+    const [uploading, setUploading] = useState(false);
 
     const {
         register,
@@ -33,14 +34,34 @@ const PatientRegistration = () => {
 
     const selectedDiagnosis = watch('diagnosis') || [];
 
-    const handlePhotoChange = (e) => {
+    const handlePhotoChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPhotoPreview(reader.result);
-            };
-            reader.readAsDataURL(file);
+            // Validation
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('File size exceeds 5MB limit');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            setUploading(true);
+            try {
+                const res = await api.post('/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+
+                if (res.data.success) {
+                    setPhotoUrl(res.data.data.url);
+                    toast.success('Photo uploaded successfully');
+                }
+            } catch (error) {
+                console.error('Photo upload error:', error);
+                toast.error(error.response?.data?.error?.message || 'Failed to upload photo');
+            } finally {
+                setUploading(false);
+            }
         }
     };
 
@@ -68,7 +89,7 @@ const PatientRegistration = () => {
         try {
             const response = await api.post('/patients/register', {
                 ...data,
-                photoUrl: photoPreview // In real app, upload to Cloudinary first
+                photoUrl: photoUrl
             });
 
             if (response.data.success) {
@@ -106,7 +127,7 @@ const PatientRegistration = () => {
                             onClick={() => {
                                 setGeneratedId(null);
                                 setCurrentStep(1);
-                                setPhotoPreview(null);
+                                setPhotoUrl(null);
                             }}
                             className="flex-1 py-3 border border-green-600 text-green-600 rounded-lg font-medium hover:bg-green-50 transition"
                         >
@@ -171,12 +192,16 @@ const PatientRegistration = () => {
 
                             {/* Photo Upload */}
                             <div className="flex items-center gap-6">
-                                <div className="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-                                    {photoPreview ? (
-                                        <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                                <div className="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 relative">
+                                    {photoUrl ? (
+                                        <img src={photoUrl} alt="Preview" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                            <FiUser size={32} />
+                                            {uploading ? (
+                                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-green-600"></div>
+                                            ) : (
+                                                <FiUser size={32} />
+                                            )}
                                         </div>
                                     )}
                                 </div>

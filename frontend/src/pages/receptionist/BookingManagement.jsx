@@ -267,194 +267,235 @@ const BookingManagement = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 lg:space-y-8">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-gray-800">Booking Management</h1>
-                <p className="text-gray-600">Schedule and manage therapy sessions for patients</p>
+            <div className="mb-4">
+                <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Booking Management</h1>
+                <p className="text-gray-500 mt-2 text-sm lg:text-base">Schedule and orchestrate therapy sessions with precision.</p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
                 {/* Patient Search Panel */}
-                <div className="bg-white rounded-xl shadow-md p-6">
-                    <h3 className="font-semibold text-gray-800 mb-4">Search Patient</h3>
+                <div className="w-full lg:w-1/3 flex flex-col gap-6">
+                    <div className="bg-white rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-5 tracking-tight">Search Patient</h3>
 
-                    {/* Search Box */}
-                    <div className="relative mb-4">
-                        <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search by name or Special ID..."
-                            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                        />
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery('')}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            >
-                                <FiX size={18} />
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Patient List */}
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {loading ? (
-                            <div className="flex justify-center py-8">
-                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-green-600"></div>
-                            </div>
-                        ) : patients.length > 0 ? (
-                            patients.map((patient) => (
+                        {/* Search Box */}
+                        <div className="relative mb-6">
+                            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search by name or ID..."
+                                className="w-full pl-11 pr-10 py-3 bg-gray-50 border-transparent focus:bg-white focus:border-green-500 rounded-xl focus:ring-4 focus:ring-green-500/10 transition-all text-sm outline-none placeholder:text-gray-400"
+                            />
+                            {searchQuery && (
                                 <button
-                                    key={patient.specialId}
-                                    onClick={() => handleSelectPatient(patient)}
-                                    className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition ${selectedPatient?.specialId === patient.specialId
-                                        ? 'bg-green-100 border-2 border-green-500'
-                                        : 'bg-gray-50 hover:bg-gray-100'
-                                        }`}
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                        <FiUser className="text-gray-500" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-medium text-gray-800">{patient.childName}</p>
-                                        <p className="text-sm text-green-600">{patient.specialId}</p>
-                                    </div>
-                                    <FiChevronRight className="text-gray-400" />
+                                    <FiX size={18} />
                                 </button>
-                            ))
-                        ) : searchQuery.length >= 2 ? (
-                            <p className="text-center text-gray-500 py-8">No patients found</p>
-                        ) : (
-                            <p className="text-center text-gray-500 py-8">Type at least 2 characters to search</p>
-                        )}
+                            )}
+                        </div>
+
+                        {/* Patient List */}
+                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                            {loading ? (
+                                <div className="flex justify-center py-10">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-600"></div>
+                                </div>
+                            ) : patients.length > 0 ? (
+                                patients.map((patient) => (
+                                    <button
+                                        key={patient.specialId}
+                                        onClick={() => handleSelectPatient(patient)}
+                                        className={`w-full group flex items-center gap-4 p-4 rounded-xl text-left transition-all duration-200 ${selectedPatient?.specialId === patient.specialId
+                                            ? 'bg-green-600 text-white shadow-md shadow-green-600/20 translate-x-1'
+                                            : 'bg-white border border-gray-100 hover:border-green-200 hover:bg-green-50/50 hover:shadow-sm'
+                                            }`}
+                                    >
+                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${selectedPatient?.specialId === patient.specialId ? 'bg-white/20' : 'bg-gray-100 group-hover:bg-green-100'}`}>
+                                            <FiUser className={selectedPatient?.specialId === patient.specialId ? 'text-white' : 'text-gray-500 group-hover:text-green-600'} size={20} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`font-semibold truncate ${selectedPatient?.specialId === patient.specialId ? 'text-white' : 'text-gray-900'}`}>{patient.childName}</p>
+                                            <p className={`text-xs font-medium tracking-wide mt-0.5 truncate ${selectedPatient?.specialId === patient.specialId ? 'text-green-100' : 'text-gray-500'}`}>{patient.specialId}</p>
+                                        </div>
+                                        <FiChevronRight className={`flex-shrink-0 transition-transform ${selectedPatient?.specialId === patient.specialId ? 'text-white translate-x-1' : 'text-gray-300 group-hover:text-green-500'}`} />
+                                    </button>
+                                ))
+                            ) : searchQuery.length >= 2 ? (
+                                <div className="text-center py-10">
+                                    <p className="text-gray-500 text-sm">No patients found</p>
+                                </div>
+                            ) : (
+                                <div className="text-center py-10">
+                                    <p className="text-gray-500 text-sm">Type at least 2 characters to search</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Patient Bookings Panel */}
-                <div className="bg-white rounded-xl shadow-md p-6">
-                    {selectedPatient ? (
-                        <>
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 className="font-semibold text-gray-800">{selectedPatient.childName}</h3>
-                                    <p className="text-sm text-green-600">{selectedPatient.specialId}</p>
-                                </div>
-                                <button
-                                    onClick={() => setShowScheduleModal(true)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
-                                >
-                                    <FiPlus />
-                                    Schedule Session
-                                </button>
-                            </div>
-
-                            {/* Session Limits Display */}
-                            {Object.keys(sessionLimits).length > 0 && (
-                                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                                    <p className="text-xs font-medium text-blue-800 mb-2">Monthly Sessions Remaining (2 per therapy):</p>
-                                    <div className="grid grid-cols-5 gap-2 text-xs">
-                                        {therapyTypes.map((type) => {
-                                            const limit = sessionLimits[type.value] || { remaining: 2 };
-                                            return (
-                                                <div
-                                                    key={type.value}
-                                                    className={`text-center p-1 rounded ${limit.remaining === 0
-                                                        ? 'bg-red-100 text-red-700'
-                                                        : limit.remaining === 1
-                                                            ? 'bg-yellow-100 text-yellow-700'
-                                                            : 'bg-green-100 text-green-700'
-                                                        }`}
-                                                >
-                                                    <div className="font-bold">{limit.remaining}/2</div>
-                                                    <div className="truncate">{type.value}</div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Bookings List */}
-                            {bookingsLoading ? (
-                                <div className="flex justify-center py-8">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-green-600"></div>
-                                </div>
-                            ) : patientBookings.length > 0 ? (
-                                <div className="space-y-3 max-h-96 overflow-y-auto">
-                                    {patientBookings.map((booking) => (
-                                        <div
-                                            key={booking.bookingId || booking._id}
-                                            className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg"
-                                        >
-                                            <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                                                <FiCalendar className="text-purple-600" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="font-medium text-gray-800">{booking.therapyType}</p>
-                                                <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                    <FiCalendar size={14} />
-                                                    {new Date(booking.date).toLocaleDateString('en-IN')}
-                                                    <FiClock size={14} className="ml-2" />
-                                                    {booking.timeSlot}
-                                                </div>
-                                            </div>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                                                {booking.status}
+                <div className="w-full lg:w-2/3">
+                    <div className="bg-white rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 p-6 lg:p-8 min-h-[600px] flex flex-col">
+                        {selectedPatient ? (
+                            <>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-gray-100">
+                                    <div>
+                                        <p className="text-sm font-medium text-green-600 tracking-wide uppercase mb-1">Patient Record</p>
+                                        <h3 className="text-2xl font-bold text-gray-900">{selectedPatient.childName}</h3>
+                                        <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
+                                            <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-gray-100 font-medium font-mono text-xs text-gray-700">
+                                                {selectedPatient.specialId}
                                             </span>
-                                            {booking.status === 'confirmed' && (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleEditBooking(booking)}
-                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                                        title="Reschedule Session"
-                                                    >
-                                                        <FiEdit />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleCancelBooking(booking.bookingId || booking._id)}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                                                        title="Cancel Session"
-                                                    >
-                                                        <FiTrash2 />
-                                                    </button>
-                                                </>
-                                            )}
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 text-gray-500">
-                                    <FiCalendar className="mx-auto mb-2" size={32} />
-                                    <p>No bookings found</p>
+                                    </div>
                                     <button
                                         onClick={() => setShowScheduleModal(true)}
-                                        className="mt-4 text-green-600 font-medium hover:underline"
+                                        className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-all shadow-sm hover:shadow-md active:scale-[0.98]"
                                     >
-                                        Schedule first session
+                                        <FiPlus size={18} />
+                                        <span>Schedule Session</span>
                                     </button>
                                 </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="text-center py-12 text-gray-500">
-                            <FiUser className="mx-auto mb-2" size={32} />
-                            <p>Select a patient to view bookings</p>
-                        </div>
-                    )}
+
+                                {/* Session Limits Display */}
+                                {Object.keys(sessionLimits).length > 0 && (
+                                    <div className="mb-8 p-5 bg-gradient-to-br from-green-50/50 to-emerald-50/50 border border-green-100/50 rounded-2xl">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h4 className="text-sm font-semibold text-green-900">Current Month Sessions</h4>
+                                            <span className="text-xs font-medium px-2.5 py-1 bg-green-100 text-green-700 rounded-full">Max 2 per therapy</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                            {therapyTypes.map((type) => {
+                                                const limit = sessionLimits[type.value] || { remaining: 2 };
+                                                return (
+                                                    <div
+                                                        key={type.value}
+                                                        className={`relative overflow-hidden flex flex-col justify-center items-center p-3 rounded-xl border transition-all ${limit.remaining === 0
+                                                            ? 'bg-red-50/50 border-red-100'
+                                                            : limit.remaining === 1
+                                                                ? 'bg-yellow-50/50 border-yellow-100 shadow-sm'
+                                                                : 'bg-white border-green-100 shadow-sm'
+                                                            }`}
+                                                    >
+                                                        <span className={`text-2xl font-bold mb-1 ${limit.remaining === 0 ? 'text-red-600' : limit.remaining === 1 ? 'text-yellow-600' : 'text-green-600'}`}>
+                                                            {limit.remaining}
+                                                        </span>
+                                                        <span className={`text-[10px] font-semibold tracking-wider uppercase text-center ${limit.remaining === 0 ? 'text-red-500' : limit.remaining === 1 ? 'text-yellow-600' : 'text-gray-500'}`}>
+                                                            {type.value}
+                                                        </span>
+                                                        {limit.remaining === 0 && (
+                                                            <div className="absolute top-0 right-0 w-8 h-8 bg-red-100 rotate-45 translate-x-4 -translate-y-4"></div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Bookings List */}
+                                {bookingsLoading ? (
+                                    <div className="flex flex-1 justify-center items-center py-12">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-600"></div>
+                                    </div>
+                                ) : patientBookings.length > 0 ? (
+                                    <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                                        {patientBookings.map((booking) => (
+                                            <div
+                                                key={booking.bookingId || booking._id}
+                                                className="group flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:border-green-200 hover:shadow-md hover:shadow-green-500/5 transition-all"
+                                            >
+                                                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
+                                                    <FiClock className="text-gray-500" size={20} />
+                                                </div>
+
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-3 mb-1.5">
+                                                        <h4 className="font-semibold text-gray-900 text-lg">{booking.therapyType}</h4>
+                                                        <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wider uppercase ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                                                            booking.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                                                                'bg-red-100 text-red-700'
+                                                            }`}>
+                                                            {booking.status}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                                                        <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-100">
+                                                            <FiCalendar size={14} className="text-gray-400" />
+                                                            <span className="font-medium text-gray-700">{new Date(booking.date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-100">
+                                                            <FiClock size={14} className="text-gray-400" />
+                                                            <span className="font-medium text-gray-700">{booking.timeSlot}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {booking.status === 'confirmed' && (
+                                                    <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity mt-2 sm:mt-0">
+                                                        <button
+                                                            onClick={() => handleEditBooking(booking)}
+                                                            className="flex items-center justify-center w-10 h-10 bg-white border border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 rounded-xl transition-colors"
+                                                            title="Reschedule Session"
+                                                        >
+                                                            <FiEdit size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleCancelBooking(booking.bookingId || booking._id)}
+                                                            className="flex items-center justify-center w-10 h-10 bg-white border border-gray-200 text-gray-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 rounded-xl transition-colors"
+                                                            title="Cancel Session"
+                                                        >
+                                                            <FiTrash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center flex-1 py-16 text-center border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/50">
+                                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100">
+                                            <FiCalendar className="text-gray-400" size={24} />
+                                        </div>
+                                        <h4 className="text-lg font-semibold text-gray-900 mb-1">No Active Sessions</h4>
+                                        <p className="text-gray-500 mb-6 text-sm">This patient doesn't have any sessions scheduled yet.</p>
+                                        <button
+                                            onClick={() => setShowScheduleModal(true)}
+                                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                                        >
+                                            <FiPlus size={18} />
+                                            Schedule First Session
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center px-6">
+                                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
+                                    <FiCalendar className="text-gray-400" size={32} />
+                                </div>
+                                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Patient Selected</h3>
+                                <p className="text-gray-500 max-w-sm text-sm">Select a patient from the list or search for a specific patient to manage their therapy sessions.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* Schedule Modal */}
             {showScheduleModal && selectedPatient && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-                        <div className="flex items-center justify-between p-6 border-b">
+                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-gray-100 overflow-hidden transform transition-all">
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-gray-50/50">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-800">{editingBooking ? 'Reschedule Session' : 'Schedule Session'}</h3>
-                                <p className="text-sm text-gray-500">{selectedPatient.childName} - {selectedPatient.specialId}</p>
+                                <h3 className="text-xl font-bold text-gray-900 tracking-tight">{editingBooking ? 'Reschedule Session' : 'Schedule New Session'}</h3>
+                                <p className="text-sm text-gray-500 mt-1 font-medium">{selectedPatient.childName} <span className="text-gray-300 mx-2">|</span> {selectedPatient.specialId}</p>
                             </div>
                             <button
                                 onClick={() => {
@@ -462,20 +503,20 @@ const BookingManagement = () => {
                                     setEditingBooking(null);
                                     setScheduleForm({ therapyType: '', date: '', timeSlot: '', therapistId: '' });
                                 }}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
                             >
-                                <FiX size={24} />
+                                <FiX size={20} />
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-6">
                             {/* Therapy Type */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Therapy Type *</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Therapy Type <span className="text-red-500">*</span></label>
                                 <select
                                     value={scheduleForm.therapyType}
                                     onChange={(e) => setScheduleForm({ ...scheduleForm, therapyType: e.target.value, timeSlot: '', therapistId: '' })}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm font-medium outline-none"
                                 >
                                     <option value="">Select therapy type</option>
                                     {therapyTypes.map((type) => {
@@ -488,32 +529,30 @@ const BookingManagement = () => {
                                     })}
                                 </select>
                                 {scheduleForm.therapyType && sessionLimits[scheduleForm.therapyType] && (
-                                    <p className={`mt-1 text-sm ${sessionLimits[scheduleForm.therapyType].remaining === 0
-                                        ? 'text-red-600'
-                                        : sessionLimits[scheduleForm.therapyType].remaining === 1
-                                            ? 'text-yellow-600'
-                                            : 'text-green-600'
-                                        }`}>
-                                        {sessionLimits[scheduleForm.therapyType].remaining} session(s) remaining this month
-                                    </p>
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${sessionLimits[scheduleForm.therapyType].remaining === 0 ? 'bg-red-500' : sessionLimits[scheduleForm.therapyType].remaining === 1 ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+                                        <p className="text-xs font-medium text-gray-600">
+                                            {sessionLimits[scheduleForm.therapyType].remaining} session(s) remaining this month
+                                        </p>
+                                    </div>
                                 )}
                             </div>
 
                             {/* Therapist */}
                             {scheduleForm.therapyType && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Therapist (Optional)</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Therapist <span className="text-gray-400 font-normal">(Optional)</span></label>
                                     {therapistsLoading ? (
-                                        <div className="flex justify-center py-3">
+                                        <div className="flex justify-center py-3 bg-gray-50 border border-gray-100 rounded-xl">
                                             <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-green-600"></div>
                                         </div>
                                     ) : (
                                         <select
                                             value={scheduleForm.therapistId}
                                             onChange={(e) => setScheduleForm({ ...scheduleForm, therapistId: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm font-medium outline-none"
                                         >
-                                            <option value="">Auto-assign therapist</option>
+                                            <option value="">Auto-assign available therapist</option>
                                             {therapists.map((therapist) => (
                                                 <option key={therapist._id} value={therapist._id}>
                                                     {therapist.staffId?.name || therapist.name || 'Unknown'}
@@ -526,37 +565,40 @@ const BookingManagement = () => {
 
                             {/* Date */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
-                                <input
-                                    type="date"
-                                    value={scheduleForm.date}
-                                    onChange={(e) => setScheduleForm({ ...scheduleForm, date: e.target.value, timeSlot: '' })}
-                                    min={new Date().toISOString().split('T')[0]}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                                />
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Date <span className="text-red-500">*</span></label>
+                                <div className="relative">
+                                    <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                    <input
+                                        type="date"
+                                        value={scheduleForm.date}
+                                        onChange={(e) => setScheduleForm({ ...scheduleForm, date: e.target.value, timeSlot: '' })}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm font-medium outline-none"
+                                    />
+                                </div>
                             </div>
 
                             {/* Time Slot */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Time Slot *</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Available Time Slots <span className="text-red-500">*</span></label>
                                 {slotsLoading ? (
-                                    <div className="flex justify-center py-4">
+                                    <div className="flex justify-center py-6 bg-gray-50 border border-gray-100 rounded-xl">
                                         <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-green-600"></div>
                                     </div>
                                 ) : scheduleForm.date && scheduleForm.therapyType ? (
                                     availableSlots.length > 0 ? (
-                                        <div className="grid grid-cols-3 gap-2">
+                                        <div className="grid grid-cols-3 gap-3">
                                             {availableSlots.map((slot) => (
                                                 <button
                                                     key={slot.time}
                                                     type="button"
                                                     disabled={!slot.available}
                                                     onClick={() => setScheduleForm({ ...scheduleForm, timeSlot: slot.time })}
-                                                    className={`py-2 px-3 rounded-lg text-sm font-medium transition ${!slot.available
-                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                    className={`py-3 px-2 rounded-xl text-sm font-medium transition-all ${!slot.available
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60 border border-transparent'
                                                         : scheduleForm.timeSlot === slot.time
-                                                            ? 'bg-green-600 text-white'
-                                                            : 'bg-gray-100 hover:bg-green-100 text-gray-700'
+                                                            ? 'bg-gray-900 text-white shadow-md border border-gray-900 scale-[0.98]'
+                                                            : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-400 hover:shadow-sm'
                                                         }`}
                                                 >
                                                     {slot.time}
@@ -564,31 +606,36 @@ const BookingManagement = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="text-center text-gray-500 py-4">No slots available for this date</p>
+                                        <div className="flex flex-col items-center justify-center p-6 bg-gray-50 border border-gray-100 rounded-xl border-dashed">
+                                            <FiClock className="text-gray-300 mb-2" size={24} />
+                                            <p className="text-center text-sm text-gray-500">No slots available for this date</p>
+                                        </div>
                                     )
                                 ) : (
-                                    <p className="text-center text-gray-500 py-4">Select therapy type and date first</p>
+                                    <div className="p-4 bg-gray-50 border border-gray-100 rounded-xl">
+                                        <p className="text-center text-sm text-gray-500">Select therapy type and date to view slots</p>
+                                    </div>
                                 )}
                             </div>
                         </div>
 
-                        <div className="flex gap-3 p-6 border-t">
+                        <div className="flex gap-3 px-6 py-5 border-t border-gray-100 bg-gray-50/50">
                             <button
                                 onClick={() => {
                                     setShowScheduleModal(false);
                                     setEditingBooking(null);
                                     setScheduleForm({ therapyType: '', date: '', timeSlot: '', therapistId: '' });
                                 }}
-                                className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50"
+                                className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={editingBooking ? handleRescheduleBooking : handleScheduleBooking}
                                 disabled={!scheduleForm.therapyType || !scheduleForm.date || !scheduleForm.timeSlot}
-                                className="flex-1 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-all shadow-sm shadow-green-600/20 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
                             >
-                                {editingBooking ? 'Reschedule Session' : 'Schedule Session'}
+                                {editingBooking ? 'Confirm Reschedule' : 'Confirm Booking'}
                             </button>
                         </div>
                     </div>
