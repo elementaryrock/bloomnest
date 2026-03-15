@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
     CalendarPlus,
@@ -319,8 +319,14 @@ const ParentLayout = ({ children }) => {
                                         ))}
                                         <div className="my-2 border-t border-slate-100"></div>
                                         <div className="px-3 flex items-center justify-between text-[10px] font-bold text-slate-400 tracking-wider uppercase">
-                                            <span>Version 2.4.0</span>
-                                            <a href="#" className="hover:text-blue-600 transition-colors bg-transparent border-none">Changelog</a>
+                                            <span>Version 0.9.0</span>
+                                            <Link
+                                                to="/changelog"
+                                                onClick={() => setHelpOpen(false)}
+                                                className="hover:text-blue-600 transition-colors"
+                                            >
+                                                Changelog
+                                            </Link>
                                         </div>
                                     </div>
                                 )}

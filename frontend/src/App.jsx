@@ -4,6 +4,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import ChangelogPage from './pages/ChangelogPage';
 
 // Auth Pages
 import { ParentLogin, StaffLogin } from './pages/auth';
@@ -39,6 +40,7 @@ function App() {
             <Route path="/login" element={<ParentLogin />} />
             <Route path="/staff/login" element={<StaffLogin />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/changelog" element={<ChangelogPage />} />
 
             {/* Parent Routes */}
             <Route
