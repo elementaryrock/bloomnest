@@ -4,7 +4,6 @@ import {
     Sparkles,
     ChevronLeft,
     ChevronRight,
-    Upload,
     Loader2,
     Image as ImageIcon,
     Star,
@@ -13,7 +12,9 @@ import {
     History,
     ArrowLeft,
     Shield,
-    Smile
+    Smile,
+    LayoutGrid,
+    BookText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -49,6 +50,7 @@ const NeuralNarrative = () => {
     const [history, setHistory] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [generationProgress, setGenerationProgress] = useState('');
+    const [storyLayout, setStoryLayout] = useState('storybook');
 
     const handleGenerate = async () => {
         const finalScenario = scenario === 'custom' ? customScenario : scenario;
@@ -92,6 +94,7 @@ const NeuralNarrative = () => {
             if (response.data.success) {
                 setStorybook(response.data.data);
                 setCurrentPage(0);
+                setStoryLayout('grid');
                 setCurrentView('storybook');
                 toast.success('Your storybook is ready! 🎉');
             } else {
@@ -124,6 +127,7 @@ const NeuralNarrative = () => {
     const openFromHistory = (narrative) => {
         setStorybook(narrative);
         setCurrentPage(0);
+        setStoryLayout('grid');
         setCurrentView('storybook');
     };
 
@@ -184,80 +188,148 @@ const NeuralNarrative = () => {
                         {storybook.childName}'s Story
                     </h2>
                     <p className="text-gray-500 text-sm mt-1">{storybook.scenario}</p>
+                    <div className="mt-4 inline-flex rounded-2xl border border-gray-200 bg-white p-1 shadow-sm">
+                        <button
+                            onClick={() => setStoryLayout('storybook')}
+                            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                                storyLayout === 'storybook'
+                                    ? 'bg-purple-600 text-white shadow-sm'
+                                    : 'text-gray-600 hover:bg-gray-50'
+                            }`}
+                        >
+                            <BookText size={16} />
+                            Storybook
+                        </button>
+                        <button
+                            onClick={() => setStoryLayout('grid')}
+                            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                                storyLayout === 'grid'
+                                    ? 'bg-purple-600 text-white shadow-sm'
+                                    : 'text-gray-600 hover:bg-gray-50'
+                            }`}
+                        >
+                            <LayoutGrid size={16} />
+                            Grid
+                        </button>
+                    </div>
                 </div>
 
-                {/* Storybook Card */}
-                <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
-                    {/* Image Area */}
-                    {page && (
-                        <div className="relative">
-                            <div className="aspect-square bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center overflow-hidden">
-                                <img
-                                    src={page.imageUrl}
-                                    alt={`Page ${page.pageNumber}`}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                        e.target.style.display = 'none';
-                                        e.target.nextSibling.style.display = 'flex';
-                                    }}
-                                />
-                                <div className="hidden items-center justify-center w-full h-full text-gray-400">
-                                    <ImageIcon size={64} />
+                {storyLayout === 'grid' ? (
+                    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                        {pages.map((storyPage, idx) => (
+                            <button
+                                key={storyPage.pageNumber || idx}
+                                onClick={() => {
+                                    setCurrentPage(idx);
+                                    setStoryLayout('storybook');
+                                }}
+                                className="overflow-hidden rounded-3xl border border-gray-100 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                            >
+                                <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50">
+                                    <img
+                                        src={storyPage.imageUrl}
+                                        alt={`Page ${storyPage.pageNumber}`}
+                                        className="h-full w-full object-cover"
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.nextSibling.style.display = 'flex';
+                                        }}
+                                    />
+                                    <div className="hidden h-full w-full items-center justify-center text-gray-400">
+                                        <ImageIcon size={56} />
+                                    </div>
+                                    <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-purple-700 shadow-sm">
+                                        Page {storyPage.pageNumber}
+                                    </div>
+                                </div>
+                                <div className="space-y-3 p-4">
+                                    <p className="line-clamp-3 text-sm font-medium leading-6 text-gray-700">
+                                        {storyPage.caption}
+                                    </p>
+                                    <div className="flex items-center justify-between gap-3 text-xs">
+                                        <span className="rounded-full bg-purple-50 px-2.5 py-1 font-medium text-purple-700">
+                                            {storyPage.provider || 'story image'}
+                                        </span>
+                                        {storyPage.error && (
+                                            <span className="font-medium text-amber-600">Placeholder</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+                        {page && (
+                            <div className="relative">
+                                <div className="aspect-square bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center overflow-hidden">
+                                    <img
+                                        src={page.imageUrl}
+                                        alt={`Page ${page.pageNumber}`}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.nextSibling.style.display = 'flex';
+                                        }}
+                                    />
+                                    <div className="hidden items-center justify-center w-full h-full text-gray-400">
+                                        <ImageIcon size={64} />
+                                    </div>
+                                </div>
+
+                                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-sm text-sm font-semibold text-purple-700">
+                                    {currentPage + 1} / {totalPages}
                                 </div>
                             </div>
+                        )}
 
-                            {/* Page number badge */}
-                            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-sm text-sm font-semibold text-purple-700">
-                                {currentPage + 1} / {totalPages}
+                        <div className="p-6 lg:p-8 bg-gradient-to-r from-purple-50 to-pink-50">
+                            <p className="text-lg lg:text-xl text-gray-800 leading-relaxed font-medium text-center">
+                                {page?.caption || 'Loading...'}
+                            </p>
+                            {page?.provider && (
+                                <p className="mt-3 text-center text-xs font-medium uppercase tracking-[0.18em] text-purple-500">
+                                    Image provider: {page.provider}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="p-4 flex items-center justify-between border-t border-gray-100">
+                            <button
+                                onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                                disabled={currentPage === 0}
+                                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-medium text-sm"
+                            >
+                                <ChevronLeft size={18} />
+                                Previous
+                            </button>
+
+                            <div className="flex gap-2">
+                                {pages.map((_, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setCurrentPage(idx)}
+                                        className={`w-2.5 h-2.5 rounded-full transition-all ${idx === currentPage
+                                                ? 'bg-purple-600 scale-125'
+                                                : 'bg-gray-300 hover:bg-gray-400'
+                                            }`}
+                                    />
+                                ))}
                             </div>
+
+                            <button
+                                onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                                disabled={currentPage === totalPages - 1}
+                                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-medium text-sm"
+                            >
+                                Next
+                                <ChevronRight size={18} />
+                            </button>
                         </div>
-                    )}
-
-                    {/* Caption */}
-                    <div className="p-6 lg:p-8 bg-gradient-to-r from-purple-50 to-pink-50">
-                        <p className="text-lg lg:text-xl text-gray-800 leading-relaxed font-medium text-center">
-                            {page?.caption || 'Loading...'}
-                        </p>
                     </div>
+                )}
 
-                    {/* Navigation */}
-                    <div className="p-4 flex items-center justify-between border-t border-gray-100">
-                        <button
-                            onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                            disabled={currentPage === 0}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-medium text-sm"
-                        >
-                            <ChevronLeft size={18} />
-                            Previous
-                        </button>
-
-                        {/* Page dots */}
-                        <div className="flex gap-2">
-                            {pages.map((_, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => setCurrentPage(idx)}
-                                    className={`w-2.5 h-2.5 rounded-full transition-all ${idx === currentPage
-                                            ? 'bg-purple-600 scale-125'
-                                            : 'bg-gray-300 hover:bg-gray-400'
-                                        }`}
-                                />
-                            ))}
-                        </div>
-
-                        <button
-                            onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
-                            disabled={currentPage === totalPages - 1}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-medium text-sm"
-                        >
-                            Next
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Story completion encouragement */}
-                {currentPage === totalPages - 1 && (
+                {storyLayout === 'storybook' && currentPage === totalPages - 1 && (
                     <div className="mt-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-6 text-center border border-yellow-100">
                         <div className="flex justify-center gap-1 mb-3">
                             {[...Array(5)].map((_, i) => (

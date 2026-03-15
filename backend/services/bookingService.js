@@ -13,7 +13,14 @@ class BookingService {
    * Validate booking against all business rules
    */
   async validateBooking(bookingData) {
-    const { specialId, therapyType, date, timeSlot } = bookingData;
+    const { specialId, therapistId, therapyType, date, timeSlot } = bookingData;
+
+    if (!therapistId) {
+      return {
+        valid: false,
+        error: 'Please select a specific therapist for the booking.'
+      };
+    }
 
     // Ensure date is a Date object
     const bookingDate = new Date(date);
@@ -25,6 +32,15 @@ class BookingService {
       return {
         valid: false,
         error: 'Patient not found or inactive'
+      };
+    }
+
+    // 1b. Check if therapist exists and is active
+    const therapist = await Therapist.findOne({ _id: therapistId, isAvailable: true });
+    if (!therapist) {
+      return {
+        valid: false,
+        error: 'Selected therapist not found or currently unavailable'
       };
     }
 
@@ -66,10 +82,13 @@ class BookingService {
       };
     }
 
-    // 4. Check if slot is already booked for this therapy type
+    // 4. Check if slot is already booked for this specific therapist
+    const nextDay = new Date(bookingDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+
     const existingBooking = await Booking.findOne({
-      date: bookingDate,
-      therapyType,
+      date: { $gte: bookingDate, $lt: nextDay },
+      therapistId,
       timeSlot,
       status: { $in: ['confirmed', 'completed'] }
     });
@@ -77,14 +96,14 @@ class BookingService {
     if (existingBooking) {
       return {
         valid: false,
-        error: 'This time slot is already booked. Please select another time.'
+        error: 'This therapist is already booked for this time slot. Please select another time or therapist.'
       };
     }
 
-    // 5. Check if patient already has a booking at the same time
+    // 5. Check if patient already has a booking at the same time (with any therapist)
     const patientConflict = await Booking.findOne({
       specialId,
-      date: bookingDate,
+      date: { $gte: bookingDate, $lt: nextDay },
       timeSlot,
       status: { $in: ['confirmed', 'completed'] }
     });
@@ -98,7 +117,7 @@ class BookingService {
 
     return {
       valid: true,
-      therapistId: null // No therapist assignment in simple mode
+      therapistId: therapistId
     };
   }
 
@@ -136,9 +155,13 @@ class BookingService {
   }
 
   /**
-   * Get available slots for a specific date and therapy type
+   * Get available slots for a specific date and therapist
    */
-  async getAvailableSlots(date, therapyType) {
+  async getAvailableSlots(date, therapistId) {
+    if (!therapistId) {
+      throw new Error('Therapist ID is required to get available slots');
+    }
+
     const bookingDate = new Date(date);
     bookingDate.setHours(0, 0, 0, 0);
 
@@ -153,14 +176,17 @@ class BookingService {
       '4:00 PM - 5:00 PM'
     ];
 
-    // Get all bookings for this date and therapy type
+    // Get all bookings for this date and specific therapist (use date range for robustness)
+    const nextDay = new Date(bookingDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+
     const bookings = await Booking.find({
-      date: bookingDate,
-      therapyType,
+      date: { $gte: bookingDate, $lt: nextDay },
+      therapistId,
       status: { $in: ['confirmed', 'completed'] }
     });
 
-    // Calculate available slots (each slot has capacity of 1 in simple mode)
+    // Calculate available slots
     const availableSlots = timeSlots.map(slot => {
       const isBooked = bookings.some(b => b.timeSlot === slot);
       return {

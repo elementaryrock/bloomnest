@@ -30,7 +30,9 @@ const narrativeSchema = new mongoose.Schema({
     pages: [{
         pageNumber: { type: Number, required: true },
         caption: { type: String, required: true },
-        imageUrl: { type: String, required: true }
+        imageUrl: { type: String, required: true },
+        provider: { type: String, default: '' },
+        error: { type: Boolean, default: false }
     }],
     status: {
         type: String,

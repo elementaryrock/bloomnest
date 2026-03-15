@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { FiCheck, FiChevronLeft, FiChevronRight, FiUser, FiCalendar } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { getPhotoUrl } from '../../utils/photoUtils';
 
 // Patient Card Component (Left Panel)
 const PatientCard = ({ patient }) => {
@@ -14,7 +15,7 @@ const PatientCard = ({ patient }) => {
             <div className="flex items-center gap-4 mb-4">
                 <div className="w-16 h-16 rounded-xl bg-gray-200 overflow-hidden flex-shrink-0">
                     {patient?.photoUrl ? (
-                        <img src={patient.photoUrl} alt={patient.childName} className="w-full h-full object-cover" />
+                        <img src={getPhotoUrl(patient.photoUrl)} alt={patient.childName} className="w-full h-full object-cover" />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400 text-2xl font-bold">
                             {patient?.childName?.charAt(0) || 'C'}
@@ -229,25 +230,8 @@ const TherapistSelector = ({ therapists, selectedTherapist, onTherapistSelect, l
 
     return (
         <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="font-semibold text-gray-800 mb-4">Select Therapist (Optional)</h3>
+            <h3 className="font-semibold text-gray-800 mb-4">Select Therapist</h3>
             <div className="space-y-2">
-                {/* No Preference Option */}
-                <button
-                    onClick={() => onTherapistSelect(null)}
-                    className={`w-full p-4 rounded-lg flex items-center gap-3 transition ${selectedTherapist === null
-                        ? 'bg-primary-100 border-2 border-primary-600 text-primary-700'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-2 border-transparent'
-                        }`}
-                >
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <FiUser className="text-gray-500" />
-                    </div>
-                    <div className="text-left">
-                        <p className="font-medium">No Preference</p>
-                        <p className="text-xs text-gray-500">Any available therapist</p>
-                    </div>
-                </button>
-
                 {/* Therapist List */}
                 {therapists.map((therapist) => (
                     <button
@@ -265,14 +249,14 @@ const TherapistSelector = ({ therapists, selectedTherapist, onTherapistSelect, l
                         </div>
                         <div className="text-left">
                             <p className="font-medium">{therapist.name}</p>
-                            <p className="text-xs text-gray-500">{therapist.specialization || 'Therapist'}</p>
+                            <p className="text-xs text-gray-500">{(Array.isArray(therapist.specialization) ? therapist.specialization.join(', ') : therapist.specialization) || 'Therapist'}</p>
                         </div>
                     </button>
                 ))}
 
                 {therapists.length === 0 && (
                     <p className="text-sm text-gray-500 text-center py-2">
-                        No specific therapists configured - booking will be auto-assigned
+                        No therapists available for this therapy type.
                     </p>
                 )}
             </div>
@@ -286,10 +270,10 @@ const TimeSlotSelector = ({ slots, selectedSlot, onSlotSelect, loading }) => {
         { timeSlot: '9:00 AM - 10:00 AM', isAvailable: true },
         { timeSlot: '10:00 AM - 11:00 AM', isAvailable: true },
         { timeSlot: '11:00 AM - 12:00 PM', isAvailable: true },
-        { timeSlot: '12:00 PM - 1:00 PM', isAvailable: false },
+        { timeSlot: '12:00 PM - 1:00 PM', isAvailable: true },
         { timeSlot: '2:00 PM - 3:00 PM', isAvailable: true },
         { timeSlot: '3:00 PM - 4:00 PM', isAvailable: true },
-        { timeSlot: '4:00 PM - 5:00 PM', isAvailable: false },
+        { timeSlot: '4:00 PM - 5:00 PM', isAvailable: true },
     ];
 
     const displaySlots = slots.length > 0 ? slots : defaultSlots;
@@ -411,8 +395,10 @@ const BookingPage = () => {
     }, [selectedTherapy]);
 
     useEffect(() => {
-        if (selectedDate && selectedTherapy) {
+        if (selectedDate && selectedTherapy && selectedTherapist) {
             fetchAvailableSlots();
+        } else {
+            setAvailableSlots([]);
         }
     }, [selectedDate, selectedTherapy, selectedTherapist]);
 
@@ -482,7 +468,9 @@ const BookingPage = () => {
                 }
             });
             if (res.data.success) {
-                setAvailableSlots(res.data.data || []);
+                const data = res.data.data;
+                const slotsArray = data?.slots ? data.slots : (Array.isArray(data) ? data : []);
+                setAvailableSlots(slotsArray);
             }
         } catch (error) {
             console.log('Using default slots');
@@ -601,7 +589,7 @@ const BookingPage = () => {
                         />
                     )}
 
-                    {selectedDate && selectedTherapy && (
+                    {selectedDate && selectedTherapy && selectedTherapist && (
                         <TimeSlotSelector
                             slots={availableSlots}
                             selectedSlot={selectedSlot}
@@ -616,3 +604,7 @@ const BookingPage = () => {
 };
 
 export default BookingPage;
+
+
+
+

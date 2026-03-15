@@ -3,28 +3,28 @@ const bookingService = require('../services/bookingService');
 const { validationResult } = require('express-validator');
 
 class BookingController {
-  // Get available slots for a date and therapy type
+  // Get available slots for a date and therapist
   async getAvailableSlots(req, res) {
     try {
-      const { date, therapyType } = req.query;
+      const { date, therapistId } = req.query;
 
-      if (!date || !therapyType) {
+      if (!date || !therapistId) {
         return res.status(400).json({
           success: false,
           error: {
             code: 'MISSING_PARAMETERS',
-            message: 'Date and therapy type are required'
+            message: 'Date and therapist ID are required'
           }
         });
       }
 
-      const slots = await bookingService.getAvailableSlots(date, therapyType);
+      const slots = await bookingService.getAvailableSlots(date, therapistId);
 
       res.status(200).json({
         success: true,
         data: {
           date,
-          therapyType,
+          therapistId,
           slots
         }
       });
@@ -92,11 +92,12 @@ class BookingController {
         });
       }
 
-      const { specialId, therapyType, date, timeSlot } = req.body;
+      const { specialId, therapyType, therapistId, date, timeSlot } = req.body;
 
       // Validate booking
       const validation = await bookingService.validateBooking({
         specialId,
+        therapistId,
         therapyType,
         date,
         timeSlot
@@ -115,13 +116,17 @@ class BookingController {
       // Generate booking ID
       const bookingId = await bookingService.generateBookingId();
 
+      // Normalize date to midnight for consistent date matching
+      const normalizedDate = new Date(date);
+      normalizedDate.setHours(0, 0, 0, 0);
+
       // Create booking
       const booking = await Booking.create({
         bookingId,
         specialId,
         therapistId: validation.therapistId,
         therapyType,
-        date: new Date(date),
+        date: normalizedDate,
         timeSlot,
         status: 'confirmed',
         bookedAt: new Date()
@@ -177,11 +182,12 @@ class BookingController {
   // Create booking by receptionist/admin
   async createBookingByReceptionist(req, res) {
     try {
-      const { specialId, therapyType, date, timeSlot, therapistId } = req.body;
+      const { specialId, therapyType, therapistId, date, timeSlot } = req.body;
 
       // Validate booking
       const validation = await bookingService.validateBooking({
         specialId,
+        therapistId,
         therapyType,
         date,
         timeSlot
@@ -210,12 +216,16 @@ class BookingController {
       }
       const bookingId = `BK${String(nextBookingNum).padStart(8, '0')}`;
 
+      // Normalize date to midnight for consistent date matching
+      const normalizedDate = new Date(date);
+      normalizedDate.setHours(0, 0, 0, 0);
+
       // Create booking
       const booking = await Booking.create({
         bookingId,
         specialId,
         therapyType,
-        date: new Date(date),
+        date: normalizedDate,
         timeSlot,
         therapistId: therapistId || validation.therapistId,
         status: 'confirmed',

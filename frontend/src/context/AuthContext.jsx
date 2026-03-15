@@ -108,6 +108,14 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(false);
     };
 
+    // Update specific fields of the logged-in user
+    const updateUser = (updates) => {
+        if (!user) return;
+        const updatedUser = { ...user, ...updates };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+    };
+
     // Check if user has specific role
     const hasRole = (role) => {
         if (!user) return false;
@@ -125,7 +133,8 @@ export const AuthProvider = ({ children }) => {
         loginStaff,
         requestOTP,
         logout,
-        hasRole
+        hasRole,
+        updateUser
     };
 
     return (

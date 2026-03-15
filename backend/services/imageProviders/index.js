@@ -9,8 +9,8 @@ const aiHorde = require('./aiHordeProvider');
 const cloudflare = require('./cloudflareProvider');
 const imagen = require('./imagenProvider');
 
-// Priority order: Gemini Flash Image (free) > Pollinations (free) > AI Horde (free, community) > Cloudflare (free tier) > Imagen 4 (paid)
-const ALL_PROVIDERS = [geminiImage, pollinations, aiHorde, cloudflare, imagen];
+// Priority order: AI Horde (free, no card) > Gemini/Imagen when configured > other fallbacks.
+const ALL_PROVIDERS = [aiHorde, geminiImage, pollinations, cloudflare, imagen];
 
 /**
  * Get available providers in their priority order.

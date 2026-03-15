@@ -1,5 +1,6 @@
 const Narrative = require('../models/Narrative');
 const { generateStorybook } = require('../services/imageGenerationService');
+const { getEnabledProviders } = require('../services/imageProviders');
 
 let cloudinaryUpload = null;
 try {
@@ -26,10 +27,12 @@ const generateNarrative = async (req, res) => {
         }
 
         const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
+        const enabledProviders = getEnabledProviders();
+
+        if (!apiKey && enabledProviders.length === 0) {
             return res.status(503).json({
                 success: false,
-                error: { message: 'AI service is not configured. Please add GEMINI_API_KEY to your .env file.' }
+                error: { message: 'No story or image generation provider is configured.' }
             });
         }
 

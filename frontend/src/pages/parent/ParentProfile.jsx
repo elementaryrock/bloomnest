@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getPhotoUrl } from '../../utils/photoUtils';
 import {
     ArrowLeft,
     User,
@@ -20,7 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
 const ParentProfile = () => {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const navigate = useNavigate();
     const [patient, setPatient] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -209,7 +210,7 @@ const ParentProfile = () => {
                         onClick={handlePhotoClick}
                     >
                         {patient?.photoUrl ? (
-                            <img src={patient.photoUrl} alt={patient.childName} className="w-full h-full object-cover" />
+                            <img src={getPhotoUrl(patient.photoUrl)} alt={patient.childName} className="w-full h-full object-cover" />
                         ) : (
                             patient?.childName?.charAt(0) || 'C'
                         )}
@@ -302,3 +303,5 @@ const ParentProfile = () => {
 };
 
 export default ParentProfile;
+
+

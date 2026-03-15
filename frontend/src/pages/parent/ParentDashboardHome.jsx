@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getPhotoUrl } from '../../utils/photoUtils';
 import {
     CalendarDays,
     ClipboardList,
@@ -62,7 +63,7 @@ const ClinicalIdentityCard = ({ patient }) => {
             <div className="flex-shrink-0 relative">
                 <div className="w-24 h-24 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-3xl font-extrabold ring-4 ring-white shadow-soft group-hover:shadow-hover transition-premium overflow-hidden">
                     {patient?.photoUrl ? (
-                        <img src={patient.photoUrl} alt={patient.childName} className="w-full h-full object-cover" />
+                        <img src={getPhotoUrl(patient.photoUrl)} alt={patient.childName} className="w-full h-full object-cover" />
                     ) : (
                         patient?.childName?.charAt(0) || 'C'
                     )}

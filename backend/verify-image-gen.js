@@ -9,7 +9,8 @@ const { generateImageWithFallback } = require('./services/imageProviders');
 async function testGeneration() {
     console.log('--- NeuralNarrative Image Generation Test ---');
     console.log('Testing setup:');
-    console.log('- IMAGE_PROVIDER:', process.env.IMAGE_PROVIDER || 'pollinations (default)');
+    console.log('- IMAGE_PROVIDER:', process.env.IMAGE_PROVIDER || 'aihorde (default)');
+    console.log('- AI Horde Configured:', !!process.env.AIHORDE_API_KEY, '(anonymous mode still works without it)');
     console.log('- Cloudflare Configured:', !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_AI_TOKEN));
     console.log('- Imagen Configured:', !!process.env.GEMINI_API_KEY);
     console.log('-------------------------------------------');

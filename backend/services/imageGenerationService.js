@@ -99,6 +99,11 @@ function buildPagePrompt(childName, scenario, comfortObject, pageNumber, totalPa
  */
 async function generateStoryOutline(childName, scenario, comfortObject, apiKey) {
     const totalPages = 5;
+    if (!apiKey) {
+        console.log('[NeuralNarrative] GEMINI_API_KEY not set, using default story outline');
+        return getDefaultOutline(childName, scenario, comfortObject);
+    }
+
     const prompt = `You are a children's storybook writer specializing in social scripts for children who might be anxious or afraid.
 
 Create a short ${totalPages}-page storybook outline for a child named "${childName}" about the scenario: "${scenario}".
@@ -263,15 +268,15 @@ async function generateStorybook(childName, scenario, comfortObject, apiKey, clo
                 pageNumber: pageNum,
                 caption: page.caption,
                 imageUrl: imageUrl,
-                provider: imageResult.provider // Track which one worked
+                provider: imageResult.provider
             };
         } catch (imgError) {
             console.error(`[NeuralNarrative] Failed to generate image for page ${pageNum}:`, imgError.message);
-            // Use a placeholder for failed images
             return {
                 pageNumber: pageNum,
                 caption: page.caption,
                 imageUrl: `https://placehold.co/768x768/E8F5E9/2E7D32?text=Page+${pageNum}`,
+                provider: 'placeholder',
                 error: true
             };
         }

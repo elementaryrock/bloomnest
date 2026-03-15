@@ -179,13 +179,15 @@ class TherapistController {
         .sort({ specialization: 1 });
 
       // Format response with only needed fields for booking
-      const formattedTherapists = therapists.map(t => ({
-        _id: t._id,
-        therapistId: t.therapistId,
-        name: t.staffId?.name || 'Unknown',
-        specialization: t.specialization,
-        workingDays: t.workingDays
-      }));
+      const formattedTherapists = therapists
+        .filter(t => t.staffId && t.staffId.name)
+        .map(t => ({
+          _id: t._id,
+          therapistId: t.therapistId,
+          name: t.staffId.name,
+          specialization: t.specialization,
+          workingDays: t.workingDays
+        }));
 
       res.status(200).json({
         success: true,
@@ -222,9 +224,12 @@ class TherapistController {
         .populate('staffId', 'name email phone')
         .sort({ specialization: 1 });
 
+      // Filter out therapists with missing staff info
+      const validTherapists = therapists.filter(t => t.staffId && t.staffId.name);
+
       res.status(200).json({
         success: true,
-        data: therapists
+        data: validTherapists
       });
     } catch (error) {
       console.error('Get all therapists error:', error);

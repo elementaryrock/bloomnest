@@ -141,10 +141,12 @@ const BookingManagement = () => {
 
     // Fetch available slots when date and therapy type change
     useEffect(() => {
-        if (scheduleForm.date && scheduleForm.therapyType) {
+        if (scheduleForm.date && scheduleForm.therapyType && scheduleForm.therapistId) {
             fetchAvailableSlots();
+        } else {
+            setAvailableSlots([]);
         }
-    }, [scheduleForm.date, scheduleForm.therapyType]);
+    }, [scheduleForm.date, scheduleForm.therapyType, scheduleForm.therapistId]);
 
     const fetchAvailableSlots = async () => {
         setSlotsLoading(true);
@@ -152,11 +154,14 @@ const BookingManagement = () => {
             const res = await api.get('/bookings/available-slots', {
                 params: {
                     date: scheduleForm.date,
-                    therapyType: scheduleForm.therapyType
+                    therapyType: scheduleForm.therapyType,
+                    therapistId: scheduleForm.therapistId
                 }
             });
             if (res.data.success) {
-                setAvailableSlots(res.data.data.slots || []);
+                const data = res.data.data;
+                const slotsArray = data?.slots ? data.slots : (Array.isArray(data) ? data : []);
+                setAvailableSlots(slotsArray);
             }
         } catch (error) {
             console.error('Fetch slots error:', error);
@@ -168,8 +173,8 @@ const BookingManagement = () => {
 
     // Schedule booking
     const handleScheduleBooking = async () => {
-        if (!scheduleForm.therapyType || !scheduleForm.date || !scheduleForm.timeSlot) {
-            toast.error('Please fill all fields');
+        if (!scheduleForm.therapyType || !scheduleForm.date || !scheduleForm.timeSlot || !scheduleForm.therapistId) {
+            toast.error('Please fill all fields including therapist');
             return;
         }
 
@@ -225,8 +230,8 @@ const BookingManagement = () => {
 
     // Reschedule booking (cancel old, create new)
     const handleRescheduleBooking = async () => {
-        if (!scheduleForm.therapyType || !scheduleForm.date || !scheduleForm.timeSlot) {
-            toast.error('Please fill all fields');
+        if (!scheduleForm.therapyType || !scheduleForm.date || !scheduleForm.timeSlot || !scheduleForm.therapistId) {
+            toast.error('Please fill all fields including therapist');
             return;
         }
 
@@ -541,7 +546,7 @@ const BookingManagement = () => {
                             {/* Therapist */}
                             {scheduleForm.therapyType && (
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Therapist <span className="text-gray-400 font-normal">(Optional)</span></label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Therapist <span className="text-red-500">*</span></label>
                                     {therapistsLoading ? (
                                         <div className="flex justify-center py-3 bg-gray-50 border border-gray-100 rounded-xl">
                                             <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-green-600"></div>
@@ -552,10 +557,10 @@ const BookingManagement = () => {
                                             onChange={(e) => setScheduleForm({ ...scheduleForm, therapistId: e.target.value })}
                                             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm font-medium outline-none"
                                         >
-                                            <option value="">Auto-assign available therapist</option>
+                                            <option value="">Select a therapist</option>
                                             {therapists.map((therapist) => (
                                                 <option key={therapist._id} value={therapist._id}>
-                                                    {therapist.staffId?.name || therapist.name || 'Unknown'}
+                                                    {therapist.staffId?.name || therapist.name}
                                                 </option>
                                             ))}
                                         </select>
@@ -613,7 +618,7 @@ const BookingManagement = () => {
                                     )
                                 ) : (
                                     <div className="p-4 bg-gray-50 border border-gray-100 rounded-xl">
-                                        <p className="text-center text-sm text-gray-500">Select therapy type and date to view slots</p>
+                                        <p className="text-center text-sm text-gray-500">Select therapy type, therapist, and date to view slots</p>
                                     </div>
                                 )}
                             </div>

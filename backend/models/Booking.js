@@ -14,7 +14,7 @@ const bookingSchema = new mongoose.Schema({
   therapistId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Therapist',
-    required: false  // Optional - for simple mode without therapist assignment
+    required: true  // Required: a therapist must be selected
   },
   therapyType: {
     type: String,
@@ -56,14 +56,10 @@ const bookingSchema = new mongoose.Schema({
   }
 });
 
-// Compound index for preventing double booking by therapist (sparse for when therapistId is null)
-bookingSchema.index({ therapistId: 1, date: 1, timeSlot: 1 }, { unique: true, sparse: true });
+// Compound index for preventing double booking by therapist
+bookingSchema.index({ therapistId: 1, date: 1, timeSlot: 1 }, { unique: true });
 
 // Compound index for preventing double booking by patient
-bookingSchema.index({ specialId: 1, date: 1, timeSlot: 1 }, { unique: true });
-
-// Compound index for preventing double booking of same therapy slot
-bookingSchema.index({ therapyType: 1, date: 1, timeSlot: 1 }, { unique: true });
 
 bookingSchema.pre('save', function (next) {
   this.updatedAt = Date.now();

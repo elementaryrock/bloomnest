@@ -11,7 +11,7 @@ router.get(
   authenticate,
   [
     query('date').notEmpty().isISO8601().withMessage('Valid date is required'),
-    query('therapyType').isIn(['Psychology', 'OT', 'PT', 'Speech', 'EI']).withMessage('Valid therapy type is required')
+    query('therapistId').notEmpty().isMongoId().withMessage('Valid therapist ID is required')
   ],
   bookingController.getAvailableSlots
 );
@@ -35,6 +35,7 @@ router.post(
   checkRole('parent'),
   [
     body('specialId').notEmpty().withMessage('Special ID is required'),
+    body('therapistId').notEmpty().isMongoId().withMessage('Therapist ID is required'),
     body('therapyType').isIn(['Psychology', 'OT', 'PT', 'Speech', 'EI']).withMessage('Valid therapy type is required'),
     body('date').notEmpty().isISO8601().withMessage('Valid date is required'),
     body('timeSlot').notEmpty().withMessage('Time slot is required')
@@ -49,6 +50,7 @@ router.post(
   checkRole('receptionist', 'admin'),
   [
     body('specialId').notEmpty().withMessage('Special ID is required'),
+    body('therapistId').notEmpty().isMongoId().withMessage('Therapist ID is required'),
     body('therapyType').isIn(['Psychology', 'OT', 'PT', 'Speech', 'EI']).withMessage('Valid therapy type is required'),
     body('date').notEmpty().isISO8601().withMessage('Valid date is required'),
     body('timeSlot').notEmpty().withMessage('Time slot is required')
