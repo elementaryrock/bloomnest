@@ -105,7 +105,7 @@ const ClinicalIdentityCard = ({ patient }) => {
 };
 
 // 3. Elegant Session Row (List Item)
-const SessionRow = ({ appointment }) => {
+const SessionRow = ({ appointment, onClick }) => {
     const config = getTherapyConfig(appointment.therapyType);
     const IconComponent = config.icon;
 
@@ -117,7 +117,11 @@ const SessionRow = ({ appointment }) => {
     const isPending = appointment.status !== 'confirmed';
 
     return (
-        <div className="group flex items-center p-4 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-premium cursor-pointer -mx-4">
+        <button
+            type="button"
+            onClick={onClick}
+            className="group flex w-full items-center p-4 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-premium cursor-pointer -mx-4 text-left bg-transparent"
+        >
             {/* Date Box */}
             <div className="flex flex-col items-center justify-center w-14 h-14 bg-white rounded-lg border border-slate-200 shadow-sm flex-shrink-0">
                 <span className="text-xs font-bold text-slate-500 uppercase">{month}</span>
@@ -143,7 +147,7 @@ const SessionRow = ({ appointment }) => {
             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-premium ml-4 flex-shrink-0">
                 <ChevronRight size={16} strokeWidth={2.5} />
             </div>
-        </div>
+        </button>
     );
 };
 
@@ -153,44 +157,77 @@ const ParentDashboardHome = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [patient, setPatient] = useState(null);
-    const [stats, setStats] = useState({ completed: 0, upcoming: 0, lastAssessment: null });
+    const [stats, setStats] = useState({
+        upcoming: 0,
+        pendingDocuments: 0,
+        completedSessions: 0
+    });
     const [upcomingAppointments, setUpcomingAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchDashboardData();
-    }, []);
+        if (user?.specialId) {
+            fetchDashboardData();
+        }
+    }, [user?.specialId]);
 
     const fetchDashboardData = async () => {
         try {
-            if (user?.specialId) {
-                try {
-                    const res = await api.get(`/patients/${user.specialId}`);
-                    if (res.data.success) setPatient(res.data.data);
-                } catch (e) {
-                    setPatient({
-                        childName: user?.childName || 'Identity Missing',
-                        specialId: user?.specialId,
-                        age: 5, gender: 'Male', diagnosis: ['Developmental Delay'], severity: 'Moderate'
-                    });
-                }
+            const patientPromise = api.get(`/patients/${user.specialId}`);
+            const bookingsPromise = api.get('/bookings/my-bookings');
+            const sessionsPromise = api.get(`/sessions/patient/${user.specialId}/history`);
+            const assessmentsPromise = api.get(`/assessments/patient/${user.specialId}`);
+
+            const [patientResult, bookingsResult, sessionsResult, assessmentsResult] = await Promise.allSettled([
+                patientPromise,
+                bookingsPromise,
+                sessionsPromise,
+                assessmentsPromise
+            ]);
+
+            if (patientResult.status === 'fulfilled' && patientResult.value.data.success) {
+                setPatient(patientResult.value.data.data);
+            } else {
+                setPatient({
+                    childName: user?.childName || 'Identity Missing',
+                    specialId: user?.specialId,
+                    age: '-',
+                    gender: '-',
+                    diagnosis: [],
+                    severity: 'Pending'
+                });
             }
 
-            try {
-                const res = await api.get('/bookings/my-bookings');
-                if (res.data.success) {
-                    const all = res.data.data || [];
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
+            let upcoming = [];
+            if (bookingsResult.status === 'fulfilled' && bookingsResult.value.data.success) {
+                const allBookings = bookingsResult.value.data.data || [];
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
 
-                    const upcoming = all.filter(b => new Date(b.date) >= today && b.status === 'confirmed')
-                        .sort((a, b) => new Date(a.date) - new Date(b.date));
-                    const completed = all.filter(b => b.status === 'completed');
+                upcoming = allBookings
+                    .filter((booking) => new Date(booking.date) >= today && booking.status === 'confirmed')
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-                    setUpcomingAppointments(upcoming);
-                    setStats({ completed: completed.length, upcoming: upcoming.length, lastAssessment: null });
-                }
-            } catch (e) { }
+                setUpcomingAppointments(upcoming);
+            } else {
+                setUpcomingAppointments([]);
+            }
+
+            const completedSessions = sessionsResult.status === 'fulfilled' && sessionsResult.value.data.success
+                ? sessionsResult.value.data.data?.totalSessions || 0
+                : 0;
+
+            const pendingDocuments = assessmentsResult.status === 'fulfilled' && assessmentsResult.value.data.success
+                ? (assessmentsResult.value.data.data?.assessments || []).filter(
+                    (assessment) => assessment.status === 'completed' && !assessment.parentAccepted
+                ).length
+                : 0;
+
+            setStats({
+                upcoming: upcoming.length,
+                pendingDocuments,
+                completedSessions
+            });
         } finally {
             setLoading(false);
         }
@@ -233,19 +270,19 @@ const ParentDashboardHome = () => {
                 <MetricCard
                     label="Upcoming Appointments"
                     value={stats.upcoming}
-                    trend={{ value: 'Active', isPositive: true }}
+                    trend={{ value: stats.upcoming > 0 ? 'Scheduled' : 'None', isPositive: true }}
                 />
                 {/* Visual Anchor / Accent Card (Nanao Banana conceptual application) */}
                 <MetricCard
                     label="Pending Documentation"
-                    value="2"
-                    trend={{ value: 'Action Rqd', isPositive: false }}
+                    value={stats.pendingDocuments}
+                    trend={{ value: stats.pendingDocuments > 0 ? 'Needs Review' : 'Up to date', isPositive: stats.pendingDocuments === 0 }}
                     isAccent={true}
                 />
                 <MetricCard
                     label="Completed Sessions"
-                    value={stats.completed}
-                    trend={{ value: '+12% M/M', isPositive: true }}
+                    value={stats.completedSessions}
+                    trend={{ value: stats.completedSessions > 0 ? 'Recorded' : 'No history', isPositive: true }}
                 />
             </div>
 
@@ -266,7 +303,13 @@ const ParentDashboardHome = () => {
 
                     <div className="space-y-1">
                         {upcomingAppointments.length > 0 ? (
-                            upcomingAppointments.slice(0, 4).map(app => <SessionRow key={app.bookingId || app._id} appointment={app} />)
+                            upcomingAppointments.slice(0, 4).map(app => (
+                                <SessionRow
+                                    key={app.bookingId || app._id}
+                                    appointment={app}
+                                    onClick={() => navigate('/parent/history')}
+                                />
+                            ))
                         ) : (
                             <div className="py-12 bg-slate-50 border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-center">
                                 <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4 text-slate-300">
