@@ -23,7 +23,24 @@ export const AuthProvider = ({ children }) => {
 
         if (token && storedUser) {
             try {
-                setUser(JSON.parse(storedUser));
+                let parsedUser = JSON.parse(storedUser);
+                
+                // Patch missing id from token for backward compatibility
+                if (!parsedUser.id && !parsedUser._id) {
+                    try {
+                        const base64Url = token.split('.')[1];
+                        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                        const payload = JSON.parse(window.atob(base64));
+                        if (payload.userId) {
+                            parsedUser.id = payload.userId;
+                            localStorage.setItem('user', JSON.stringify(parsedUser));
+                        }
+                    } catch (err) {
+                        console.error('Failed to parse token payload:', err);
+                    }
+                }
+
+                setUser(parsedUser);
                 setIsAuthenticated(true);
             } catch (e) {
                 // Invalid stored user data

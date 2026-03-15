@@ -128,6 +128,7 @@ const ParentLayout = ({ children }) => {
         { path: '/parent/neural-narrative', icon: Sparkles, label: 'NeuralNarrative™' },
         { path: '/parent/skill-sprout', icon: Sprout, label: 'SkillSprout' },
         { path: '/parent/therapy-ripple', icon: Waves, label: 'TherapyRipple' },
+        { path: '/parent/chatroom', icon: MessageSquare, label: 'Parents Lounge' },
     ];
 
     return (
