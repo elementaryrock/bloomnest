@@ -2,12 +2,55 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import './skillsprout.css';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Sprout, Droplets, Trophy, Star, Plus, Flame, Zap,
     Leaf, ChevronRight, X, Check, BarChart3, Clock,
     Sparkles, Target, BookOpen, Puzzle, Edit2, Trash2,
-    Activity, MessageCircle, Heart, Shield, RefreshCw
+    Activity, MessageCircle, Heart, Shield, RefreshCw,
+    CloudRain, Sun, Wind, Snowflake
 } from 'lucide-react';
+
+// ─── Interactive Garden Particles ──────────────────────────
+const GardenParticles = ({ season }) => {
+    const config = {
+        spring: { emoji: ['🌸', '✨', '🌱'], count: 12 },
+        summer: { emoji: ['☀️', '🦋', '✨'], count: 8 },
+        autumn: { emoji: ['🍂', '🍁', '🍃'], count: 15 },
+        winter: { emoji: ['❄️', '⛄', '✨'], count: 10 },
+    };
+    const { emoji, count } = config[season] || config.spring;
+
+    return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+            {Array.from({ length: count }).map((_, i) => (
+                <motion.div
+                    key={i}
+                    initial={{
+                        x: `${Math.random() * 100}%`,
+                        y: season === 'autumn' ? '-10%' : '110%',
+                        opacity: 0,
+                        rotate: 0,
+                    }}
+                    animate={{
+                        y: season === 'autumn' ? '110%' : '-10%',
+                        opacity: [0, 1, 1, 0],
+                        rotate: 360,
+                        transition: {
+                            duration: Math.random() * 10 + 10,
+                            repeat: Infinity,
+                            delay: Math.random() * 20,
+                            ease: "linear",
+                        }
+                    }}
+                    className="absolute text-xl opacity-20"
+                >
+                    {emoji[i % emoji.length]}
+                </motion.div>
+            ))}
+        </div>
+    );
+};
 
 // ─── Constants ──────────────────────────────────────────────
 const GROWTH_STAGES = [
@@ -37,13 +80,13 @@ const SEASONS = {
     winter: { label: '❄️ Winter', bg: 'from-blue-50 via-slate-50 to-indigo-50', sky: 'from-blue-100 to-slate-100' },
 };
 
-// Auto-detect season from current month
-function getCurrentSeason() {
-    const m = new Date().getMonth();
-    if (m >= 2 && m <= 4) return 'spring';
-    if (m >= 5 && m <= 7) return 'summer';
-    if (m >= 8 && m <= 10) return 'autumn';
-    return 'winter';
+// Auto-detect season from XP and current month
+function getGardenTheme(xp, currentSeason) {
+    const level = xp?.level || 1;
+    if (level >= 15) return { ...SEASONS.winter, name: 'winter' };
+    if (level >= 10) return { ...SEASONS.autumn, name: 'autumn' };
+    if (level >= 5) return { ...SEASONS.summer, name: 'summer' };
+    return { ...SEASONS[currentSeason], name: currentSeason };
 }
 
 // ─── Confetti Component ──────────────────────────────────────
@@ -75,14 +118,19 @@ function Confetti({ active }) {
 
 // ─── XP Float Popup ──────────────────────────────────────────
 function XPPopup({ xp, onDone }) {
-    useEffect(() => { const t = setTimeout(onDone, 1600); return () => clearTimeout(t); }, [onDone]);
     return (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9998] pointer-events-none">
-            <div className="animate-xp-float text-4xl font-black text-yellow-500 drop-shadow-lg flex items-center gap-2">
-                <Zap size={32} className="text-yellow-400" />
+        <motion.div
+            initial={{ y: 0, opacity: 0, scale: 0.5 }}
+            animate={{ y: -100, opacity: 1, scale: 1.2 }}
+            exit={{ opacity: 0, scale: 1.5 }}
+            onAnimationComplete={() => setTimeout(onDone, 500)}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9998] pointer-events-none"
+        >
+            <div className="text-4xl font-black text-yellow-500 drop-shadow-xl flex items-center gap-2">
+                <Zap size={32} className="text-yellow-400 fill-yellow-400" />
                 +{xp} XP!
             </div>
-        </div>
+        </motion.div>
     );
 }
 
@@ -112,31 +160,77 @@ function CelebrationModal({ event, onClose }) {
         },
     };
     const cfg = messages[event.type] || messages.stage;
+
     return (
-        <div className="celebration-overlay" onClick={onClose}>
-            <div
-                className="animate-pop-in bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center"
-                onClick={e => e.stopPropagation()}
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="celebration-overlay overflow-hidden px-4"
+                onClick={onClose}
             >
-                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${cfg.bg} flex items-center justify-center mx-auto mb-4 text-4xl shadow-lg`}>
-                    {event.type === 'complete' ? '🌳' : event.type === 'watering' ? '💧' : event.type === 'forest' ? '🌲' : GROWTH_STAGES[event.stage]?.emoji}
+                {/* Background Sparkles */}
+                <div className="absolute inset-0 pointer-events-none">
+                    {Array.from({ length: 20 }).map((_, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: [0, 1.2, 0], opacity: [0, 1, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, delay: i * 0.1 }}
+                            className="absolute text-yellow-300"
+                            style={{
+                                left: `${Math.random() * 100}%`,
+                                top: `${Math.random() * 100}%`,
+                            }}
+                        >
+                            <Sparkles size={Math.random() * 20 + 10} />
+                        </motion.div>
+                    ))}
                 </div>
-                <h2 className="text-2xl font-black text-gray-900 mb-2">{cfg.title}</h2>
-                <p className="text-gray-600 text-lg mb-6">{cfg.subtitle}</p>
-                {event.xp && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-2xl py-3 px-5 mb-5 flex items-center justify-center gap-2">
-                        <Zap className="text-yellow-500" size={20} />
-                        <span className="font-bold text-yellow-700 text-lg">+{event.xp} XP earned!</span>
-                    </div>
-                )}
-                <button
-                    onClick={onClose}
-                    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-2xl text-lg hover:from-emerald-600 hover:to-teal-600 transition-all"
+
+                <motion.div
+                    initial={{ scale: 0.5, y: 100, rotate: -10 }}
+                    animate={{ scale: 1, y: 0, rotate: 0 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ type: "spring", damping: 15 }}
+                    className="bg-white rounded-[2rem] shadow-2xl p-8 max-w-sm w-full text-center relative z-10"
+                    onClick={e => e.stopPropagation()}
                 >
-                    Yay! Keep going! 🎉
-                </button>
-            </div>
-        </div>
+                    <motion.div
+                        animate={{ rotate: [0, -10, 10, 0] }}
+                        transition={{ duration: 4, repeat: Infinity }}
+                        className={`w-24 h-24 rounded-full bg-gradient-to-br ${cfg.bg} flex items-center justify-center mx-auto mb-6 text-5xl shadow-lg border-4 border-white`}
+                    >
+                        {event.type === 'complete' ? '🌳' : event.type === 'watering' ? '💧' : event.type === 'forest' ? '🌲' : GROWTH_STAGES[event.stage]?.emoji}
+                    </motion.div>
+
+                    <h2 className="text-3xl font-black text-gray-900 mb-2 leading-tight">{cfg.title}</h2>
+                    <p className="text-gray-600 text-lg mb-8 font-medium">{cfg.subtitle}</p>
+
+                    {event.xp > 0 && (
+                        <motion.div
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl py-4 px-5 mb-8 flex items-center justify-center gap-3"
+                        >
+                            <Zap className="text-yellow-500 fill-yellow-500" size={24} />
+                            <span className="font-black text-yellow-700 text-xl">+{event.xp} XP EARNED!</span>
+                        </motion.div>
+                    )}
+
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onClose}
+                        className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black rounded-2xl text-xl shadow-lg hover:shadow-emerald-200/50 transition-shadow"
+                    >
+                        Yay! Keep going! 🎉
+                    </motion.button>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
     );
 }
 
@@ -175,13 +269,34 @@ function PlantCard({ goal, onComplete, onWater, onEdit, onDelete, currentUserId,
     };
 
     return (
-        <div className={`plant-card bg-white rounded-3xl border-2 ${goal.isCompleted ? 'border-emerald-300' : cat.border} p-5 relative overflow-hidden`}>
+        <motion.div 
+            layout
+            variants={{
+                hidden: { y: 20, opacity: 0 },
+                visible: {
+                    y: 0,
+                    opacity: 1
+                }
+            }}
+            whileHover={{ y: -8, scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className={`plant-card bg-white/70 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 ${goal.isCompleted ? 'ring-2 ring-emerald-300' : ''} p-6 relative overflow-hidden group`}
+        >
+            {/* Top color accent */}
+            <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${stage.color} opacity-60`} />
+
             {/* Completed badge */}
-            {goal.isCompleted && (
-                <div className="absolute top-3 right-3 bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
-                    <Check size={10} /> Done!
-                </div>
-            )}
+            <AnimatePresence>
+                {goal.isCompleted && (
+                    <motion.div 
+                        initial={{ scale: 0, rotate: -20 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        className="absolute top-4 right-4 bg-emerald-500 text-white text-[10px] font-black tracking-widest px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm z-20"
+                    >
+                        <Check size={12} strokeWidth={3} /> COMPLETED
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Parent Goal Indicator */}
             {isParentGoal && (
@@ -192,18 +307,18 @@ function PlantCard({ goal, onComplete, onWater, onEdit, onDelete, currentUserId,
 
             {/* Edit/Delete for Parents */}
             {!goal.isCompleted && isOwner && (
-                <div className="absolute top-12 left-3 flex flex-col gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-14 left-4 flex flex-col gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                         onClick={() => onEdit(goal)}
-                        className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-blue-500 shadow-sm hover:bg-white transition-colors border border-blue-100"
+                        className="w-9 h-9 bg-white/90 backdrop-blur-md shadow-md rounded-xl flex items-center justify-center text-blue-500 hover:text-blue-600 transition-all border border-white"
                     >
-                        <Edit2 size={12} />
+                        <Edit2 size={16} />
                     </button>
                     <button
                         onClick={() => onDelete(goal._id)}
-                        className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-red-500 shadow-sm hover:bg-white transition-colors border border-red-100"
+                        className="w-9 h-9 bg-white/90 backdrop-blur-md shadow-md rounded-xl flex items-center justify-center text-red-500 hover:text-red-600 transition-all border border-white"
                     >
-                        <Trash2 size={12} />
+                        <Trash2 size={16} />
                     </button>
                 </div>
             )}
@@ -231,46 +346,56 @@ function PlantCard({ goal, onComplete, onWater, onEdit, onDelete, currentUserId,
             </div>
 
             {/* Progress bar */}
-            <div className="mb-3">
-                <div className="flex justify-between items-center text-xs text-gray-500 mb-1">
-                    <span>{goal.currentCompletions}/{goal.requiredCompletions} activities</span>
-                    <span className="font-semibold text-emerald-600">{progress}%</span>
+            <div className="mb-6 px-2">
+                <div className="flex justify-between items-end mb-2">
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Progress</span>
+                        <span className="text-xs font-bold text-gray-600">{goal.currentCompletions} <span className="text-gray-300">/</span> {goal.requiredCompletions}</span>
+                    </div>
+                    <span className="text-lg font-black text-emerald-600 leading-none">{progress}%</span>
                 </div>
-                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                        className={`h-full bg-gradient-to-r ${stage.color} progress-fill rounded-full`}
-                        style={{ width: `${progress}%` }}
+                <div className="h-4 bg-gray-100 rounded-full p-1 shadow-inner relative overflow-hidden">
+                    <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ type: "spring", stiffness: 50, damping: 20 }}
+                        className={`absolute top-0 bottom-0 left-0 bg-gradient-to-r ${stage.color} rounded-full shadow-sm shimmer-effect`}
                     />
                 </div>
             </div>
 
             {/* Soil ripple effect */}
             {showRipple && (
-                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-8 h-8 border-2 border-sky-400 soil-ripple" />
+                <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full border-2 border-sky-400 soil-ripple pointer-events-none" />
             )}
 
             {/* Action buttons */}
             {!goal.isCompleted && (
-                <div className="flex gap-2 mt-3">
-                    <button
+                <div className="flex gap-3 mt-4">
+                    <motion.button
+                        whileHover={!alreadyWatered ? { scale: 1.05 } : {}}
+                        whileTap={!alreadyWatered ? { scale: 0.95 } : {}}
                         onClick={handleWater}
                         disabled={alreadyWatered || watering}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${alreadyWatered
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'water-btn text-white shadow-sm'
+                        className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-md ${alreadyWatered
+                            ? 'bg-gray-100/50 text-gray-400 shadow-none border border-gray-200/50'
+                            : 'bg-gradient-to-r from-sky-400 to-blue-500 text-white hover:shadow-sky-200/50 border border-sky-400/50'
                             }`}
                     >
-                        <Droplets size={14} />
-                        {alreadyWatered ? 'Watered!' : watering ? '...' : 'Water'}
-                    </button>
-                    <button
+                        {alreadyWatered ? <RefreshCw size={14} /> : <Droplets size={14} className={watering ? "animate-spin" : ""} />}
+                        {alreadyWatered ? 'Watered' : watering ? '...' : 'Water'}
+                    </motion.button>
+                    
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={handleComplete}
                         disabled={completing}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 transition-all shadow-sm"
+                        className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-emerald-400 to-green-500 text-white shadow-md hover:shadow-emerald-200/50 transition-all border border-emerald-400/50"
                     >
-                        <Check size={14} />
-                        {completing ? '...' : 'Done!'}
-                    </button>
+                        <Check size={14} className={completing ? "animate-bounce" : ""} />
+                        {completing ? '...' : 'Log'}
+                    </motion.button>
                 </div>
             )}
 
@@ -279,28 +404,71 @@ function PlantCard({ goal, onComplete, onWater, onEdit, onDelete, currentUserId,
                     🌳 Moved to Forest!
                 </div>
             )}
-        </div>
+        </motion.div>
     );
 }
 
 // ─── Forest Tree ─────────────────────────────────────────────
-function ForestTree({ goal, season }) {
+function ForestTree({ goal, season, index }) {
     const cat = CATEGORY_CONFIG[goal.skillCategory] || CATEGORY_CONFIG.cognitive;
     const seasonLeaves = { spring: '🌸', summer: '🌿', autumn: '🍂', winter: '❄️' };
+
+    // Create pseudo-random visual variances purely based on ID or index
+    // so it's stable on re-renders, creating an organic forest look.
+    const randomSeed = (goal._id?.charCodeAt(0) || 0) + (index * 7);
+    const scale = 0.85 + (randomSeed % 30) / 100; // between 0.85 and 1.15
+    const yOffset = (randomSeed % 40) - 20; // between -20px and +20px
+    const delay = index * 0.1;
+
     return (
-        <div className="forest-tree text-center group relative">
-            {goal.goalOwnerType === 'parent' && (
-                <div className="absolute -top-1 -right-1 text-amber-500">
-                    <Star size={12} fill="currentColor" />
+        <motion.div
+            variants={{
+                hidden: { y: 20 + yOffset, opacity: 0, scale: scale * 0.8 },
+                visible: {
+                    y: yOffset,
+                    opacity: 1,
+                    scale: scale,
+                    transition: { type: "spring", stiffness: 300, damping: 20 }
+                }
+            }}
+            whileHover={{
+                scale: scale * 1.1,
+                y: yOffset - 10,
+                transition: { type: "spring", stiffness: 300 }
+            }}
+            className="forest-tree relative flex flex-col items-center justify-end z-10 group min-w-[100px] cursor-pointer"
+        >
+            {/* Tree Emoji */}
+            <div className="relative">
+                {goal.goalOwnerType === 'parent' && (
+                    <div className="absolute -top-3 -right-3 text-amber-500 bg-white shadow-sm rounded-full p-0.5 z-20">
+                        <Star size={14} fill="currentColor" />
+                    </div>
+                )}
+                <div className="text-6xl mb-1 group-hover:animate-tree-shake origin-bottom tree-glow">
+                    🌳
                 </div>
-            )}
-            <div className="text-5xl mb-1 group-hover:animate-tree-shake inline-block">🌳</div>
-            <div className="text-lg">{seasonLeaves[season]}</div>
-            <p className="text-xs font-bold text-gray-700 mt-1 leading-tight max-w-[80px] mx-auto">{goal.goalName}</p>
-            <span className={`mt-1 inline-block text-[10px] font-medium px-2 py-0.5 rounded-full ${cat.color}`}>{cat.label}</span>
-        </div>
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xl drop-shadow-md pointer-events-none">
+                    {seasonLeaves[season]}
+                </div>
+
+                {/* Ground Shadow built into tree */}
+                <div className="w-12 h-2 bg-black/10 rounded-[100%] mx-auto -mt-2 blur-[2px] scale-x-150" />
+            </div>
+
+            {/* Premium Glassmorphism Label */}
+            <div className="mt-3 bg-white/50 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-sm border border-white/60 text-center w-full min-w-[110px] transform translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                <p className="text-[11px] font-black text-gray-800 leading-tight uppercase tracking-wider mb-1 line-clamp-2">
+                    {goal.goalName}
+                </p>
+                <div className={`text-[9px] font-bold px-2 py-0.5 rounded-full inline-block ${cat.color}`}>
+                    {cat.label}
+                </div>
+            </div>
+        </motion.div>
     );
 }
+
 
 // ─── Edit Goal Modal (For Parents) ───────────────────────────
 function EditGoalModal({ goal, onUpdated, onClose }) {
@@ -615,8 +783,6 @@ function AnalyticsPanel({ patientId }) {
 export default function SkillSprout() {
     const { user } = useAuth();
     const patientId = user?.specialId;
-    const season = getCurrentSeason();
-    const seasonCfg = SEASONS[season];
 
     const [view, setView] = useState('garden'); // garden | forest | analytics
     const [goalFilter, setGoalFilter] = useState('all'); // all | therapist | parent
@@ -628,6 +794,15 @@ export default function SkillSprout() {
     const [celebration, setCelebration] = useState(null);
     const [confettiActive, setConfettiActive] = useState(false);
     const [xpPopup, setXPPopup] = useState(null);
+
+    const currentSeason = (() => {
+        const m = new Date().getMonth();
+        if (m >= 2 && m <= 4) return 'spring';
+        if (m >= 5 && m <= 7) return 'summer';
+        if (m >= 8 && m <= 10) return 'autumn';
+        return 'winter';
+    })();
+    const seasonCfg = getGardenTheme(xp, currentSeason);
 
     const fetchGarden = useCallback(async () => {
         if (!patientId) return;
@@ -723,7 +898,11 @@ export default function SkillSprout() {
     }
 
     return (
-        <div className={`min-h-screen bg-gradient-to-br ${seasonCfg.bg} -m-4 lg:-m-8 p-4 lg:p-8`}>
+        <div className={`min-h-screen bg-gradient-to-br ${seasonCfg.bg} -m-4 lg:-m-8 p-4 lg:p-8 relative overflow-hidden transition-colors duration-1000`}>
+            {/* Seasonal Atmosphere */}
+            <GardenParticles season={seasonCfg.name} />
+            <div className="garden-fog" />
+
             <Confetti active={confettiActive} />
             {xpPopup && <XPPopup xp={xpPopup} onDone={() => setXPPopup(null)} />}
             <CelebrationModal event={celebration} onClose={() => setCelebration(null)} />
@@ -775,7 +954,7 @@ export default function SkillSprout() {
 
                 {/* View tabs and Filters */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-5">
-                    <div className="flex gap-2 bg-white/60 backdrop-blur-sm p-1.5 rounded-2xl w-fit shadow-sm border border-white">
+                    <div className="flex gap-2 bg-white/40 backdrop-blur-xl p-2 rounded-[1.25rem] w-fit shadow-sm border border-white/60 relative">
                         {[
                             { id: 'garden', icon: Sprout, label: 'My Garden' },
                             { id: 'forest', icon: Leaf, label: 'Forest' },
@@ -784,12 +963,22 @@ export default function SkillSprout() {
                             <button
                                 key={tab.id}
                                 onClick={() => setView(tab.id)}
-                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${view === tab.id
-                                    ? 'bg-white shadow-md text-emerald-700'
-                                    : 'text-gray-600 hover:text-gray-800'
+                                className={`relative z-10 flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-colors ${view === tab.id
+                                    ? 'text-emerald-800'
+                                    : 'text-gray-600 hover:text-gray-900'
                                     }`}
                             >
-                                <tab.icon size={16} /> {tab.label}
+                                {view === tab.id && (
+                                    <motion.div
+                                        layoutId="activeTab"
+                                        className="absolute inset-0 bg-white rounded-xl shadow-sm border border-white"
+                                        initial={false}
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                    />
+                                )}
+                                <span className="relative z-10 flex items-center gap-2">
+                                    <tab.icon size={16} /> {tab.label}
+                                </span>
                             </button>
                         ))}
                     </div>
@@ -815,112 +1004,216 @@ export default function SkillSprout() {
                 </div>
             </div>
 
-            {/* ── Garden View ── */}
-            {view === 'garden' && (
-                <div>
-                    {activeGoals.length === 0 ? (
-                        <div className="text-center py-20">
-                            <div className="text-8xl mb-4 animate-bounce-gentle">🌱</div>
-                            <h3 className="text-2xl font-black text-gray-700 mb-2">Your garden is waiting!</h3>
-                            <p className="text-gray-500 mb-6">
-                                {user?.role === 'parent'
-                                    ? 'Plant a goal seed to start growing your child\'s skills'
-                                    : 'Ask your therapist to plant your first goal seed'}
-                            </p>
-                            {canAddGoals && (
-                                <button
-                                    onClick={() => setShowAddModal(true)}
-                                    className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all"
-                                >
-                                    <Plus size={20} /> Plant First Goal!
-                                </button>
+            {/* ── View Container ── */}
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={view}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="relative z-10"
+                >
+                    {/* ── Garden View ── */}
+                    {view === 'garden' && (
+                        <div>
+                            {activeGoals.length === 0 ? (
+                                <div className="text-center py-20">
+                                    <motion.div 
+                                        animate={{ y: [0, -20, 0] }}
+                                        transition={{ duration: 3, repeat: Infinity }}
+                                        className="text-8xl mb-4"
+                                    >🌱</motion.div>
+                                    <h3 className="text-2xl font-black text-gray-700 mb-2">Your garden is waiting!</h3>
+                                    <p className="text-gray-500 mb-6">
+                                        {user?.role === 'parent'
+                                            ? 'Plant a goal seed to start growing your child\'s skills'
+                                            : 'Ask your therapist to plant your first goal seed'}
+                                    </p>
+                                    {canAddGoals && (
+                                        <motion.button
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => setShowAddModal(true)}
+                                            className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all"
+                                        >
+                                            <Plus size={20} /> Plant First Goal!
+                                        </motion.button>
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    <motion.div 
+                                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
+                                        variants={{
+                                            hidden: { opacity: 0 },
+                                            visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                                        }}
+                                        initial="hidden"
+                                        animate="visible"
+                                    >
+                                        {activeGoals.map(goal => (
+                                            <PlantCard
+                                                key={goal._id}
+                                                goal={goal}
+                                                onComplete={handleComplete}
+                                                onWater={handleWater}
+                                                onEdit={setEditingGoal}
+                                                onDelete={handleDeleteGoal}
+                                                currentUserId={user?.userId}
+                                            />
+                                        ))}
+                                        {/* Add new plant slot */}
+                                        {canAddGoals && (
+                                            <motion.button
+                                                variants={{
+                                                    hidden: { y: 20, opacity: 0 },
+                                                    visible: { y: 0, opacity: 1 }
+                                                }}
+                                                whileHover={{ scale: 1.02, y: -8 }}
+                                                onClick={() => setShowAddModal(true)}
+                                                className="plant-card border-2 border-dashed border-emerald-300/50 bg-white/30 backdrop-blur-sm rounded-[2.5rem] flex flex-col items-center justify-center p-6 min-h-[260px] text-emerald-600 hover:border-emerald-400 hover:bg-white/60 transition-all group shadow-[0_8px_30px_rgb(0,0,0,0.02)]"
+                                            >
+                                                <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform group-hover:bg-emerald-50 group-hover:text-emerald-500">
+                                                    <Plus size={32} />
+                                                </div>
+                                                <span className="text-sm font-black uppercase tracking-wider">Plant a Goal</span>
+                                            </motion.button>
+                                        )}
+                                    </motion.div>
+                                    {/* Soil bar */}
+                                    <div className="mt-8 h-6 garden-soil opacity-60 mx-4" />
+                                </>
                             )}
                         </div>
-                    ) : (
-                        <>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                                {activeGoals.map(goal => (
-                                    <PlantCard
-                                        key={goal._id}
-                                        goal={goal}
-                                        onComplete={handleComplete}
-                                        onWater={handleWater}
-                                        onEdit={setEditingGoal}
-                                        onDelete={handleDeleteGoal}
-                                        currentUserId={user?.userId}
-                                    />
-                                ))}
-                                {/* Add new plant slot */}
-                                {canAddGoals && (
-                                    <button
-                                        onClick={() => setShowAddModal(true)}
-                                        className="plant-card border-2 border-dashed border-emerald-300 rounded-3xl flex flex-col items-center justify-center p-6 min-h-[220px] text-emerald-500 hover:border-emerald-400 hover:bg-emerald-50 transition-all"
-                                    >
-                                        <Plus size={40} className="mb-2" />
-                                        <span className="text-sm font-bold">Add New Goal</span>
-                                    </button>
-                                )}
-                            </div>
-                            {/* Soil bar */}
-                            <div className="mt-8 h-6 garden-soil opacity-60 mx-4" />
-                        </>
                     )}
-                </div>
-            )}
 
-            {/* ── Forest View ── */}
-            {view === 'forest' && (
-                <div className={`rounded-3xl bg-gradient-to-b ${seasonCfg.sky} p-6 min-h-64 border border-white shadow-inner`}>
-                    <h2 className="text-xl font-black text-gray-800 mb-6 flex items-center gap-2">
-                        <Leaf className="text-emerald-600" size={24} /> Your Achievement Forest
-                    </h2>
-                    {completedGoals.length === 0 ? (
-                        <div className="text-center py-12">
-                            <div className="text-7xl mb-4 animate-bounce-gentle">🌱</div>
-                            <p className="text-gray-600 font-semibold">Complete goals to grow your forest!</p>
-                        </div>
-                    ) : (
-                        <>
-                            <div className="flex flex-wrap gap-6 justify-center md:justify-start">
-                                {completedGoals.map(goal => (
-                                    <ForestTree key={goal._id} goal={goal} season={season} />
-                                ))}
-                            </div>
-                            {/* Ground */}
-                            <div className="mt-8 h-8 garden-soil opacity-80 rounded-xl" />
-                            {/* Milestone banners */}
-                            {xp?.forestMilestones?.length > 0 && (
-                                <div className="mt-6 space-y-2">
-                                    {xp.forestMilestones.map((m, i) => (
-                                        <div key={i} className="bg-white/80 backdrop-blur-sm rounded-2xl px-5 py-3 flex items-center gap-3 shadow-sm">
-                                            <Trophy className="text-amber-500" size={20} />
-                                            <span className="font-bold text-gray-800">{m.milestone}</span>
+                    {/* ── Forest View ── */}
+                    {view === 'forest' && (
+                        <div className={`rounded-[3rem] bg-gradient-to-b ${seasonCfg.sky} p-8 min-h-[60vh] border-4 border-white shadow-2xl relative overflow-hidden`}>
+                            {/* Forest Atmosphere - Light Rays and Distant Canopy */}
+                            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                                {/* Diagonal Sunbeams */}
+                                <div className="absolute -top-[20%] -left-[10%] w-[150%] h-[150%] bg-gradient-to-tr from-white/0 via-white/10 to-transparent rotate-45 transform origin-top-left animate-sunbeam" />
+                                <div className="absolute -top-[10%] left-[20%] w-[100%] h-[150%] bg-gradient-to-tr from-white/0 via-white/5 to-transparent rotate-45 transform origin-top-left animate-sunbeam delay-1000" />
+                                
+                                {/* Background Decorative Trees */}
+                                {Array.from({ length: 24 }).map((_, i) => {
+                                    const isPine = i % 3 === 0;
+                                    const scale = 0.4 + Math.random() * 0.4; // Small background trees
+                                    const left = Math.random() * 100;
+                                    const bottom = 20 + Math.random() * 30; // Placed higher up on the "hills"
+                                    const opacity = 0.2 + Math.random() * 0.3;
+                                    
+                                    return (
+                                        <div 
+                                            key={`bg-tree-${i}`}
+                                            className="absolute"
+                                            style={{
+                                                left: `${left}%`,
+                                                bottom: `${bottom}%`,
+                                                transform: `scale(${scale})`,
+                                                opacity: opacity,
+                                                filter: 'blur(1px) brightness(0.8) sepia(0.3)',
+                                            }}
+                                        >
+                                            <div className="text-6xl animate-sway">
+                                                {isPine ? '🌲' : '🌳'}
+                                            </div>
                                         </div>
-                                    ))}
+                                    );
+                                })}
+
+                                {/* Distant Rolling Hills Layer 1 */}
+                                <div className="absolute -bottom-[10%] -left-[20%] w-[150%] h-[40%] bg-emerald-900/10 rounded-[100%_100%_0_0] blur-sm transform rotate-[-2deg]" />
+                                {/* Distant Rolling Hills Layer 2 */}
+                                <div className="absolute -bottom-[5%] left-[10%] w-[120%] h-[35%] bg-emerald-800/20 rounded-[100%_100%_0_0] blur-sm transform rotate-[3deg]" />
+                            </div>
+
+                            <h2 className="text-3xl font-black text-gray-800 mb-10 flex items-center gap-3 relative z-10 drop-shadow-sm">
+                                <Leaf className="text-emerald-600 drop-shadow-md" size={32} /> Your Achievement Forest
+                            </h2>
+                            
+                            {completedGoals.length === 0 ? (
+                                <div className="text-center py-24 relative z-10">
+                                    <div className="text-8xl mb-6 animate-bounce-gentle">🌳</div>
+                                    <p className="text-xl text-gray-600 font-bold drop-shadow-sm">Complete goals to grow your forest!</p>
+                                    <p className="text-gray-500 mt-2 font-medium">Each completed goal becomes a lasting tree here.</p>
+                                </div>
+                            ) : (
+                                <div className="relative z-10 w-full">
+                                    {/* Forest Ground/Stage area */}
+                                    <div className="relative pt-12 pb-32 px-4 rounded-[3rem] overflow-hidden">
+                                        
+                                        {/* Main Trees */}
+                                        <motion.div 
+                                            className="flex flex-wrap gap-x-10 gap-y-16 justify-center max-w-5xl mx-auto items-end relative z-20"
+                                            variants={{
+                                                hidden: { opacity: 0 },
+                                                visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                                            }}
+                                            initial="hidden"
+                                            animate="visible"
+                                        >
+                                            {completedGoals.map((goal, idx) => (
+                                                <ForestTree key={goal._id} goal={goal} season={seasonCfg.name} index={idx} />
+                                            ))}
+                                        </motion.div>
+                                        
+                                        {/* Stylized Curved Ground (Foreground Hill) */}
+                                        <div className="absolute bottom-0 left-[-10%] w-[120%] h-56 bg-gradient-to-b from-[#8B4513] via-[#65320d] to-[#4A2509] rounded-[100%_100%_0_0] shadow-[inset_0_20px_40px_rgba(0,0,0,0.4)] z-10" />
+                                        {/* Sub-layer to ground for depth */}
+                                        <div className="absolute bottom-[-40px] left-[-20%] w-[140%] h-40 bg-[#3a1d07] rounded-[100%_100%_0_0] z-10 opacity-90 blur-md" />
+                                    </div>
+                                    
+                                    {/* Milestone banners */}
+                                    {xp?.forestMilestones?.length > 0 && (
+                                        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                                            {xp.forestMilestones.map((m, i) => (
+                                                <motion.div 
+                                                    key={i}
+                                                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    transition={{ delay: i * 0.1 + 0.3, type: "spring" }}
+                                                    className="bg-white/60 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white"
+                                                >
+                                                    <div className="w-14 h-14 bg-amber-100 rounded-[1.25rem] flex items-center justify-center text-amber-500 shadow-sm border border-white">
+                                                        <Trophy size={28} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none mb-2">Milestone Reached</p>
+                                                        <span className="font-bold text-gray-800 text-lg leading-tight block">{m.milestone}</span>
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                        </>
+                        </div>
                     )}
-                </div>
-            )}
 
-            {/* ── Analytics View ── */}
-            {view === 'analytics' && (
-                <div>
-                    <div className="flex items-center justify-between mb-5">
-                        <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                            <BarChart3 className="text-violet-500" size={24} /> Growth Analytics
-                        </h2>
-                        <button
-                            onClick={fetchGarden}
-                            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 bg-white px-4 py-2 rounded-xl border border-gray-200 transition-all"
-                        >
-                            <RefreshCw size={14} /> Refresh
-                        </button>
-                    </div>
-                    <AnalyticsPanel patientId={patientId} />
-                </div>
-            )}
+                    {/* ── Analytics View ── */}
+                    {view === 'analytics' && (
+                        <div className="bg-white/40 backdrop-blur-md rounded-[3rem] p-8 border-2 border-white shadow-xl">
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3">
+                                    <BarChart3 className="text-violet-500" size={28} /> Growth Analytics
+                                </h2>
+                                <motion.button
+                                    whileHover={{ rotate: 180 }}
+                                    transition={{ duration: 0.5 }}
+                                    onClick={fetchGarden}
+                                    className="p-3 bg-white rounded-2xl border border-gray-100 shadow-sm text-gray-500 hover:text-emerald-500 transition-colors"
+                                >
+                                    <RefreshCw size={20} />
+                                </motion.button>
+                            </div>
+                            <AnalyticsPanel patientId={patientId} />
+                        </div>
+                    )}
+                </motion.div>
+            </AnimatePresence>
         </div>
     );
 }
