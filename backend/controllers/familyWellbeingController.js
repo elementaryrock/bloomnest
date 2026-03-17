@@ -180,6 +180,22 @@ const getRippleAnalysis = async (req, res) => {
                 trend = 'inverse';
                 insight = 'The data shows some variability. This is common in early therapy stages — keep going!';
             }
+        } else if (wellbeingEntries.length >= 2) {
+            // Fallback insight based purely on stress logs if we lack session data
+            const recent = wellbeingEntries.slice(-2);
+            const currentStress = recent[1].stressLevel;
+            const prevStress = recent[0].stressLevel;
+
+            if (currentStress < prevStress) {
+                trend = 'positive';
+                insight = 'Family stress has decreased recently! Keep logging to see how this correlates with therapy progress.';
+            } else if (currentStress > prevStress) {
+                trend = 'inverse';
+                insight = 'Family stress has increased recently. This is normal during challenging weeks — keep going!';
+            } else {
+                trend = 'neutral';
+                insight = 'Family stress levels are steady. Remember to continue logging each week to uncover longer-term patterns.';
+            }
         }
 
         // Compute ripple scores for visualization rings
@@ -309,6 +325,22 @@ const generateProgressPDF = async (req, res) => {
             else if (correlationValue > 0.2) { trend = 'moderate'; insight = 'Moderate positive connection between family wellbeing and therapy progress.'; }
             else if (correlationValue > -0.2) { trend = 'neutral'; insight = 'Family stress and child progress appear independent right now.'; }
             else { trend = 'inverse'; insight = 'The data shows some variability — common in early therapy stages.'; }
+        } else if (wellbeingEntries.length >= 2) {
+            // wellbeingEntries is sorted by weekStart: -1 (descending, so index 0 is newest)
+            const recent = wellbeingEntries.slice(0, 2);
+            const currentStress = recent[0].stressLevel;
+            const prevStress = recent[1].stressLevel;
+
+            if (currentStress < prevStress) {
+                trend = 'positive';
+                insight = 'Family stress has decreased recently! Keep logging to see how this correlates with therapy progress.';
+            } else if (currentStress > prevStress) {
+                trend = 'inverse';
+                insight = 'Family stress has increased recently. This is normal during challenging weeks — keep going!';
+            } else {
+                trend = 'neutral';
+                insight = 'Family stress levels are steady. Remember to continue logging each week to uncover longer-term patterns.';
+            }
         }
 
         // ── Build PDF ──

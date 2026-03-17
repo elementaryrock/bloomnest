@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Waves, Heart, Smile, Frown, Meh, AlertTriangle, Zap,
     Plus, TrendingUp, TrendingDown, Minus, BarChart3, Users,
@@ -32,62 +33,188 @@ const STRESS_COLORS = [
 const FEELING_EMOJI = { happy: '😊', neutral: '😐', anxious: '😰', frustrated: '😤', sad: '😢' };
 const HEATMAP_COLORS = ['#10b981', '#6ee7b7', '#fbbf24', '#f97316', '#ef4444'];
 
-// ─── Animated Ripple SVG ───
+// ─── Ripple Visualization ───
 const RippleVisualization = ({ scores }) => {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), 50);
+        return () => clearTimeout(timer);
+    }, []);
+
     const rings = [
-        { label: 'Child', score: scores?.child ?? 0, radius: 50, color: '#8b5cf6' },
-        { label: 'Parent', score: scores?.parent ?? 0, radius: 95, color: '#3b82f6' },
-        { label: 'Siblings', score: scores?.siblings, radius: 140, color: '#10b981' },
+        { label: 'Child Progress', score: scores?.child ?? 0, radius: 54, width: 14, colors: ['#a78bfa', '#7c3aed'], glow: 'rgba(139,92,246,0.25)' },
+        { label: 'Parent Wellbeing', score: scores?.parent ?? 0, radius: 80, width: 14, colors: ['#60a5fa', '#2563eb'], glow: 'rgba(59,130,246,0.2)' },
+        { label: 'Sibling Mood', score: scores?.siblings, radius: 106, width: 14, colors: ['#34d399', '#059669'], glow: 'rgba(16,185,129,0.2)' },
     ].filter(r => r.score !== null && r.score !== undefined);
 
     const overallScore = scores?.overall ?? 0;
 
     return (
-        <div className="relative flex flex-col items-center justify-center">
-            <svg viewBox="-180 -180 360 360" className="w-full max-w-xs mx-auto" style={{ filter: 'drop-shadow(0 4px 20px rgba(139,92,246,.15))' }}>
-                <defs>
-                    {rings.map((ring, i) => (
-                        <radialGradient key={`g${i}`} id={`rg${i}`} cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stopColor={ring.color} stopOpacity="0.25" />
-                            <stop offset="100%" stopColor={ring.color} stopOpacity="0.05" />
-                        </radialGradient>
+        <div className="flex flex-col items-center">
+            <div className="relative">
+                <svg viewBox="-130 -130 260 260" className="w-64 h-64 mx-auto"
+                    style={{ filter: 'drop-shadow(0 2px 16px rgba(139,92,246,0.12))' }}
+                >
+                    <defs>
+                        {rings.map((ring, i) => (
+                            <React.Fragment key={`defs-${i}`}>
+                                <linearGradient id={`ringGrad${i}`} x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stopColor={ring.colors[0]} />
+                                    <stop offset="100%" stopColor={ring.colors[1]} />
+                                </linearGradient>
+                                {/* Soft glow filter for each ring */}
+                                <filter id={`softGlow${i}`} x="-30%" y="-30%" width="160%" height="160%">
+                                    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+                                    <feMerge>
+                                        <feMergeNode in="blur" />
+                                        <feMergeNode in="SourceGraphic" />
+                                    </feMerge>
+                                </filter>
+                            </React.Fragment>
+                        ))}
+                        {/* Rotating shimmer gradient */}
+                        <linearGradient id="shimmer" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="white" stopOpacity="0" />
+                            <stop offset="45%" stopColor="white" stopOpacity="0" />
+                            <stop offset="50%" stopColor="white" stopOpacity="0.35" />
+                            <stop offset="55%" stopColor="white" stopOpacity="0" />
+                            <stop offset="100%" stopColor="white" stopOpacity="0" />
+                        </linearGradient>
+                    </defs>
+
+                    {/* Water ripple waves emanating from center */}
+                    {[0, 1, 2].map(i => (
+                        <circle
+                            key={`ripple-${i}`}
+                            cx="0" cy="0" r="30"
+                            fill="none"
+                            stroke="#c4b5fd"
+                            strokeWidth="1.5"
+                            className="water-ripple"
+                            style={{ animationDelay: `${i * 2}s` }}
+                        />
                     ))}
-                </defs>
 
-                {[...rings].reverse().map((ring, i) => {
-                    const actualIndex = rings.length - 1 - i;
-                    const dashLen = 2 * Math.PI * ring.radius;
-                    const filled = (ring.score / 100) * dashLen;
-                    return (
-                        <g key={ring.label}>
-                            <circle cx="0" cy="0" r={ring.radius} fill={`url(#rg${actualIndex})`}
-                                stroke={ring.color} strokeWidth="2" strokeOpacity="0.15" />
-                            <circle cx="0" cy="0" r={ring.radius} fill="none"
-                                stroke={ring.color} strokeWidth="4" strokeLinecap="round"
-                                strokeDasharray={`${filled} ${dashLen - filled}`}
-                                strokeDashoffset={dashLen * 0.25}
-                                className="transition-all duration-1000 ease-out"
-                                style={{ animation: `ripplePulse${actualIndex} 3s ease-in-out infinite` }}
-                            />
-                            <text x="0" y={-ring.radius - 8} textAnchor="middle" fill={ring.color}
-                                fontSize="10" fontWeight="600" className="select-none">
-                                {ring.label} {ring.score}%
-                            </text>
-                        </g>
-                    );
-                })}
+                    {/* Render rings from outer to inner */}
+                    {[...rings].reverse().map((ring, i) => {
+                        const actualIdx = rings.length - 1 - i;
+                        const circumference = 2 * Math.PI * ring.radius;
+                        const progress = (ring.score / 100) * circumference;
+                        return (
+                            <g key={ring.label}>
+                                {/* Track */}
+                                <circle
+                                    cx="0" cy="0" r={ring.radius}
+                                    fill="none"
+                                    stroke="#f0f0f3"
+                                    strokeWidth={ring.width}
+                                />
+                                {/* Soft glow behind the progress arc */}
+                                <circle
+                                    cx="0" cy="0" r={ring.radius}
+                                    fill="none"
+                                    stroke={ring.glow}
+                                    strokeWidth={ring.width + 6}
+                                    strokeLinecap="round"
+                                    strokeDasharray={circumference}
+                                    strokeDashoffset={mounted ? circumference - progress : circumference}
+                                    transform="rotate(-90)"
+                                    opacity={mounted ? 0.6 : 0}
+                                    style={{
+                                        transition: `stroke-dashoffset 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${actualIdx * 0.15}s, opacity 0.8s ease ${actualIdx * 0.15}s`,
+                                        filter: 'blur(4px)',
+                                    }}
+                                />
+                                {/* Progress arc */}
+                                <circle
+                                    cx="0" cy="0" r={ring.radius}
+                                    fill="none"
+                                    stroke={`url(#ringGrad${actualIdx})`}
+                                    strokeWidth={ring.width}
+                                    strokeLinecap="round"
+                                    strokeDasharray={circumference}
+                                    strokeDashoffset={mounted ? circumference - progress : circumference}
+                                    transform="rotate(-90)"
+                                    style={{
+                                        transition: `stroke-dashoffset 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${actualIdx * 0.15}s`,
+                                    }}
+                                />
+                                {/* Shimmer highlight rotating on loop */}
+                                <circle
+                                    cx="0" cy="0" r={ring.radius}
+                                    fill="none"
+                                    stroke="url(#shimmer)"
+                                    strokeWidth={ring.width - 2}
+                                    strokeLinecap="round"
+                                    strokeDasharray={circumference}
+                                    strokeDashoffset={mounted ? circumference - progress : circumference}
+                                    opacity={mounted ? 1 : 0}
+                                    className="ripple-shimmer"
+                                    style={{
+                                        transformOrigin: '0 0',
+                                        animationDelay: `${actualIdx * 0.6}s`,
+                                    }}
+                                />
+                            </g>
+                        );
+                    })}
 
-                <circle cx="0" cy="0" r="28" fill="white" stroke="#8b5cf6" strokeWidth="2" />
-                <text x="0" y="2" textAnchor="middle" dominantBaseline="middle" fontSize="20">💜</text>
-                <text x="0" y="18" textAnchor="middle" fontSize="7" fill="#6b7280" fontWeight="600">
-                    {overallScore}%
-                </text>
-            </svg>
+                    {/* Center circle */}
+                    <circle cx="0" cy="0" r="38" fill="white" className="ripple-center" />
+                    <text x="0" y="-6" textAnchor="middle" dominantBaseline="middle"
+                        fontSize="24" fontWeight="800" fill="#1f2937" className="ripple-center"
+                    >
+                        {overallScore}
+                    </text>
+                    <text x="0" y="12" textAnchor="middle"
+                        fontSize="9" fontWeight="600" fill="#9ca3af" letterSpacing="0.5"
+                    >
+                        OVERALL
+                    </text>
+                </svg>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-center gap-5 mt-4">
+                {rings.map((ring) => (
+                    <div key={ring.label} className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full shadow-sm"
+                            style={{ background: `linear-gradient(135deg, ${ring.colors[0]}, ${ring.colors[1]})` }}
+                        />
+                        <div className="flex flex-col">
+                            <span className="text-[11px] font-semibold text-gray-700">{ring.score}%</span>
+                            <span className="text-[9px] text-gray-400 leading-tight">{ring.label}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
 
             <style>{`
-                @keyframes ripplePulse0 { 0%,100%{opacity:1} 50%{opacity:.75} }
-                @keyframes ripplePulse1 { 0%,100%{opacity:1} 50%{opacity:.7} }
-                @keyframes ripplePulse2 { 0%,100%{opacity:1} 50%{opacity:.65} }
+                .ripple-center {
+                    animation: centerBreath 4s ease-in-out infinite;
+                }
+                @keyframes centerBreath {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.03); }
+                }
+                .ripple-shimmer {
+                    animation: shimmerRotate 6s linear infinite;
+                }
+                @keyframes shimmerRotate {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                .water-ripple {
+                    animation: waterRippleEmit 6s ease-out infinite;
+                    opacity: 0;
+                    transform-origin: 0 0;
+                }
+                @keyframes waterRippleEmit {
+                    0% { transform: scale(0.8); opacity: 0.5; stroke-width: 2px; }
+                    50% { opacity: 0.2; }
+                    100% { transform: scale(4.5); opacity: 0; stroke-width: 0.1px; }
+                }
             `}</style>
         </div>
     );
@@ -118,20 +245,36 @@ const Sparkline = ({ data, color = '#8b5cf6', height = 48 }) => {
     const min = Math.min(...data, 1);
     const range = max - min || 1;
     const w = 200;
-    const points = data.map((v, i) => `${(i / (data.length - 1)) * w},${height - ((v - min) / range) * (height - 8)}`).join(' ');
+    const pts = data.map((v, i) => ({ x: (i / (data.length - 1)) * w, y: height - ((v - min) / range) * (height - 8) }));
+    const points = pts.map(p => `${p.x},${p.y}`).join(' ');
+    // Area fill path
+    const areaPath = `M${pts[0].x},${height} ` + pts.map(p => `L${p.x},${p.y}`).join(' ') + ` L${pts[pts.length - 1].x},${height} Z`;
     return (
         <svg viewBox={`0 0 ${w} ${height}`} className="w-full" style={{ height }}>
+            <defs>
+                <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+                    <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+                </linearGradient>
+            </defs>
+            <path d={areaPath} fill="url(#sparkFill)" />
             <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             {data.map((v, i) => (
-                <circle key={i} cx={(i / (data.length - 1)) * w} cy={height - ((v - min) / range) * (height - 8)} r="3" fill="white" stroke={color} strokeWidth="2" />
+                <circle key={i} cx={pts[i].x} cy={pts[i].y} r="3.5" fill="white" stroke={color} strokeWidth="2" className="drop-shadow-sm" />
             ))}
         </svg>
     );
 };
 
 // ─── Summary Stat Card ───
-const StatCard = ({ icon: Icon, label, value, color, subtext }) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+const StatCard = ({ icon: Icon, label, value, color, subtext, delay = 0 }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay }}
+        whileHover={{ y: -4, boxShadow: '0 8px 25px -5px rgba(0,0,0,0.1)' }}
+        className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-3 transition-shadow cursor-default"
+    >
         <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center text-white flex-shrink-0`}>
             <Icon size={18} />
         </div>
@@ -140,16 +283,21 @@ const StatCard = ({ icon: Icon, label, value, color, subtext }) => (
             <p className="text-xs text-gray-500 truncate">{label}</p>
             {subtext && <p className="text-[10px] text-gray-400 truncate">{subtext}</p>}
         </div>
-    </div>
+    </motion.div>
 );
 
-// ─── NEW: Stress Heatmap Calendar ───
+// ─── Stress Heatmap Calendar ───
 const StressHeatmap = ({ history }) => {
-    const weeks = history.slice(0, 12).reverse(); // oldest first for left-to-right
+    const weeks = history.slice(0, 12).reverse();
     if (weeks.length < 2) return null;
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.25 }}
+            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+        >
             <h2 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
                 <CalendarDays size={18} className="text-teal-500" /> Stress Calendar
             </h2>
@@ -159,21 +307,28 @@ const StressHeatmap = ({ history }) => {
                     const d = new Date(w.weekStart);
                     const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     const colorIdx = w.stressLevel - 1;
+                    const barHeight = 16 + (w.stressLevel / 5) * 40;
                     return (
-                        <div key={i} className="flex flex-col items-center gap-1 group relative">
+                        <motion.div
+                            key={i}
+                            initial={{ scaleY: 0 }}
+                            animate={{ scaleY: 1 }}
+                            transition={{ duration: 0.4, delay: i * 0.04 }}
+                            style={{ originY: 1 }}
+                            className="flex flex-col items-center gap-1 group relative"
+                        >
                             <div
-                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-md transition-transform hover:scale-110 cursor-default border border-black/5"
-                                style={{ backgroundColor: HEATMAP_COLORS[colorIdx] }}
+                                className="w-7 sm:w-8 rounded-t-md rounded-b-sm transition-all hover:brightness-110 cursor-default border border-black/5"
+                                style={{ backgroundColor: HEATMAP_COLORS[colorIdx], height: barHeight }}
                                 title={`${label}: ${STRESS_LABELS[colorIdx]}`}
                             />
                             <span className="text-[8px] text-gray-400 leading-none">
                                 {d.toLocaleDateString('en-US', { month: 'narrow', day: 'numeric' })}
                             </span>
-                            {/* Tooltip */}
                             <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                                 {label}: {STRESS_LABELS[colorIdx]}
                             </div>
-                        </div>
+                        </motion.div>
                     );
                 })}
             </div>
@@ -184,7 +339,7 @@ const StressHeatmap = ({ history }) => {
                 ))}
                 <span className="text-[9px] text-gray-400">High</span>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -203,24 +358,38 @@ const WeekComparison = ({ history }) => {
     const deltaLabel = stressDelta < 0 ? 'Improved' : stressDelta > 0 ? 'Increased' : 'No Change';
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="bg-gradient-to-br from-white via-indigo-50/30 to-violet-50/40 rounded-2xl shadow-sm border border-indigo-100/60 p-6"
+        >
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <BarChart3 size={18} className="text-indigo-500" /> Week Comparison
             </h2>
             <div className="grid grid-cols-3 gap-3 text-center">
                 {/* Last Week */}
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                     <p className="text-[10px] uppercase tracking-wider text-gray-400">Last Week</p>
-                    <div className={`w-12 h-12 mx-auto rounded-xl bg-gradient-to-br ${STRESS_COLORS[lastWeek.stressLevel - 1]} flex items-center justify-center text-white text-lg font-bold shadow-sm`}>
+                    <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${STRESS_COLORS[lastWeek.stressLevel - 1]} flex items-center justify-center text-white text-xl font-bold shadow-md`}
+                    >
                         {STRESS_EMOJIS[lastWeek.stressLevel - 1]}
-                    </div>
+                    </motion.div>
                     <p className="text-xs text-gray-600 font-medium">{STRESS_LABELS[lastWeek.stressLevel - 1]}</p>
                     {lastWeekSibCount > 0 && <p className="text-[10px] text-gray-400">{lastWeekSibCount} sibling(s)</p>}
                 </div>
 
                 {/* Delta Arrow */}
                 <div className="flex flex-col items-center justify-center">
-                    <DeltaIcon size={28} className={`${deltaColor} transition-all`} />
+                    <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 200, delay: 0.3 }}
+                    >
+                        <DeltaIcon size={32} className={`${deltaColor} transition-all`} />
+                    </motion.div>
                     <p className={`text-xs font-semibold mt-1 ${deltaColor}`}>{deltaLabel}</p>
                     {stressDelta !== 0 && (
                         <p className="text-[10px] text-gray-400 mt-0.5">
@@ -230,16 +399,19 @@ const WeekComparison = ({ history }) => {
                 </div>
 
                 {/* This Week */}
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                     <p className="text-[10px] uppercase tracking-wider text-gray-400">This Week</p>
-                    <div className={`w-12 h-12 mx-auto rounded-xl bg-gradient-to-br ${STRESS_COLORS[thisWeek.stressLevel - 1]} flex items-center justify-center text-white text-lg font-bold shadow-sm`}>
+                    <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${STRESS_COLORS[thisWeek.stressLevel - 1]} flex items-center justify-center text-white text-xl font-bold shadow-md`}
+                    >
                         {STRESS_EMOJIS[thisWeek.stressLevel - 1]}
-                    </div>
+                    </motion.div>
                     <p className="text-xs text-gray-600 font-medium">{STRESS_LABELS[thisWeek.stressLevel - 1]}</p>
                     {thisWeekSibCount > 0 && <p className="text-[10px] text-gray-400">{thisWeekSibCount} sibling(s)</p>}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -303,7 +475,7 @@ const SiblingMoodTimeline = ({ history }) => {
     );
 };
 
-// ─── NEW: Smart Recommendations ───
+// ─── Smart Recommendations ───
 const SmartRecommendations = ({ history, analysis, streak }) => {
     const tips = useMemo(() => {
         const result = [];
@@ -312,104 +484,118 @@ const SmartRecommendations = ({ history, analysis, streak }) => {
         const recent3 = history.slice(0, 3);
         const avgRecent = recent3.reduce((s, h) => s + h.stressLevel, 0) / recent3.length;
 
-        // Stress-based tips
         if (avgRecent >= 4) {
             result.push({
                 emoji: '🧘',
                 title: 'High stress detected',
                 text: 'Your recent stress levels are elevated. Consider trying a 10-minute family relaxation activity like deep breathing or a short walk together.',
-                color: 'border-l-red-400 bg-red-50/50'
+                gradient: 'from-red-50 to-orange-50',
+                border: 'border-l-red-400'
             });
         } else if (avgRecent <= 2) {
             result.push({
                 emoji: '🎉',
                 title: 'Great progress!',
                 text: 'Your family stress has been consistently low. Keep up the positive habits that are working for your family!',
-                color: 'border-l-emerald-400 bg-emerald-50/50'
+                gradient: 'from-emerald-50 to-teal-50',
+                border: 'border-l-emerald-400'
             });
         }
 
-        // Streak-based tips
         if (streak >= 4) {
             result.push({
                 emoji: '🔥',
                 title: `${streak}-week streak!`,
                 text: 'Amazing consistency! Regular tracking helps identify patterns faster. Your commitment is making a real difference.',
-                color: 'border-l-orange-400 bg-orange-50/50'
+                gradient: 'from-orange-50 to-amber-50',
+                border: 'border-l-orange-400'
             });
         } else if (streak === 0 && history.length > 0) {
             result.push({
                 emoji: '📝',
                 title: 'Resume your logging',
                 text: 'Your logging streak has paused. Even a quick 1-minute check-in helps maintain the bigger picture.',
-                color: 'border-l-amber-400 bg-amber-50/50'
+                gradient: 'from-amber-50 to-yellow-50',
+                border: 'border-l-amber-400'
             });
         }
 
-        // Sibling data tips
         const recentWithSiblings = history.slice(0, 4).filter(h => h.siblingEntries?.length > 0).length;
         if (recentWithSiblings === 0 && history.length >= 3) {
             result.push({
                 emoji: '👥',
                 title: 'Track sibling feelings',
                 text: 'You haven\'t logged sibling emotions recently. Tracking siblings helps paint a fuller picture of the therapy ripple effect.',
-                color: 'border-l-blue-400 bg-blue-50/50'
+                gradient: 'from-blue-50 to-indigo-50',
+                border: 'border-l-blue-400'
             });
         }
 
-        // Correlation-based tips
         const trend = analysis?.correlation?.trend;
         if (trend === 'positive') {
             result.push({
                 emoji: '🌟',
                 title: 'Positive family connection',
                 text: 'Your family wellbeing is positively connected to therapy progress. The whole family is healing together — keep going!',
-                color: 'border-l-violet-400 bg-violet-50/50'
+                gradient: 'from-violet-50 to-purple-50',
+                border: 'border-l-violet-400'
             });
         } else if (trend === 'inverse') {
             result.push({
                 emoji: '💪',
                 title: 'Stay the course',
                 text: 'Some variability in the data is normal, especially in early therapy stages. Consistency is key — patterns will emerge with more data.',
-                color: 'border-l-indigo-400 bg-indigo-50/50'
+                gradient: 'from-indigo-50 to-blue-50',
+                border: 'border-l-indigo-400'
             });
         }
 
-        // Notes engagement
         const recentWithNotes = history.slice(0, 4).filter(h => h.notes && h.notes.trim()).length;
         if (recentWithNotes === 0 && history.length >= 3) {
             result.push({
                 emoji: '✍️',
                 title: 'Add weekly notes',
                 text: 'Adding notes to your logs helps you remember context later. Even a sentence about the week makes progress reports richer.',
-                color: 'border-l-teal-400 bg-teal-50/50'
+                gradient: 'from-teal-50 to-cyan-50',
+                border: 'border-l-teal-400'
             });
         }
 
-        return result.slice(0, 3); // Show max 3 tips
+        return result.slice(0, 3);
     }, [history, analysis, streak]);
 
     if (tips.length === 0) return null;
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+        >
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Lightbulb size={18} className="text-amber-500" /> Smart Tips
             </h2>
             <div className="space-y-2.5">
                 {tips.map((tip, i) => (
-                    <div key={i} className={`rounded-xl border-l-4 p-3 ${tip.color}`}>
-                        <div className="flex items-start gap-2">
-                            <span className="text-lg flex-shrink-0">{tip.emoji}</span>
+                    <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -15 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.35, delay: 0.1 * i }}
+                        className={`rounded-xl border-l-4 p-3.5 bg-gradient-to-r ${tip.gradient} ${tip.border}`}
+                    >
+                        <div className="flex items-start gap-2.5">
+                            <span className="text-xl flex-shrink-0 mt-0.5">{tip.emoji}</span>
                             <div>
                                 <p className="text-sm font-semibold text-gray-800">{tip.title}</p>
                                 <p className="text-xs text-gray-600 leading-relaxed mt-0.5">{tip.text}</p>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
                 ))}
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -542,10 +728,21 @@ const TherapyRipple = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
-                    <p className="text-sm text-gray-500">Loading family wellness data…</p>
-                </div>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center gap-4"
+                >
+                    <div className="relative w-20 h-20">
+                        <div className="absolute inset-0 border-4 border-violet-100 rounded-full" />
+                        <div className="absolute inset-0 border-4 border-transparent border-t-violet-600 rounded-full animate-spin" />
+                        <div className="absolute inset-3 border-4 border-transparent border-t-indigo-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <Waves size={20} className="text-violet-500" />
+                        </div>
+                    </div>
+                    <p className="text-sm text-gray-500 font-medium">Loading family wellness data…</p>
+                </motion.div>
             </div>
         );
     }
@@ -578,7 +775,12 @@ const TherapyRipple = () => {
     // Empty / onboarding state
     if (!analysis && history.length === 0) {
         return (
-            <div className="max-w-2xl mx-auto py-16 text-center space-y-6">
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="max-w-2xl mx-auto py-16 text-center space-y-6"
+            >
                 <div className="w-20 h-20 mx-auto bg-violet-100 rounded-full flex items-center justify-center">
                     <Waves size={36} className="text-violet-500" />
                 </div>
@@ -609,24 +811,40 @@ const TherapyRipple = () => {
                         showSiblings={showSiblings} setShowSiblings={setShowSiblings}
                         siblingEntries={siblingEntries} addSibling={addSibling}
                         removeSibling={removeSibling} updateSibling={updateSibling}
+                        setSiblingEntries={setSiblingEntries}
                         notes={notes} setNotes={setNotes}
                         submitting={submitting} handleSubmit={handleSubmit}
+                        history={history}
                     />
                 </div>
-            </div>
+            </motion.div>
         );
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 pb-12">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="max-w-5xl mx-auto space-y-8 pb-12"
+        >
             {/* ─── Header ─── */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white p-6 lg:p-8 shadow-xl">
-                <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-xl" />
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white p-6 lg:p-8 shadow-xl"
+            >
+                {/* Animated background orbs */}
+                <div className="absolute -top-16 -right-16 w-56 h-56 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
+                <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-indigo-400/15 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl" />
                 <div className="relative z-10 flex items-start justify-between flex-wrap gap-4">
                     <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <Waves size={28} />
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                                <Waves size={22} />
+                            </div>
                             <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Therapy Ripple</h1>
                         </div>
                         <p className="text-violet-100 text-sm lg:text-base max-w-lg leading-relaxed">
@@ -636,14 +854,22 @@ const TherapyRipple = () => {
                     <div className="flex items-center gap-3 flex-wrap">
                         {/* Streak Badge */}
                         {streak > 0 && (
-                            <div className={`flex items-center gap-1.5 bg-white/15 backdrop-blur-md rounded-xl px-3 py-2.5 border border-white/20 ${isMilestone ? 'animate-pulse' : ''}`}>
-                                <Flame size={16} className="text-orange-300" />
-                                <span className="text-sm font-bold">{streak}</span>
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 200, delay: 0.3 }}
+                                className={`flex items-center gap-1.5 bg-white/15 backdrop-blur-md rounded-xl px-4 py-2.5 border border-white/20 ${isMilestone ? 'ring-2 ring-orange-300/50 ring-offset-1 ring-offset-transparent' : ''}`}
+                            >
+                                <Flame size={18} className="text-orange-300" />
+                                <span className="text-lg font-bold">{streak}</span>
                                 <span className="text-[10px] text-violet-200">week{streak !== 1 ? 's' : ''}</span>
-                            </div>
+                                {isMilestone && <span className="text-xs ml-0.5">🎉</span>}
+                            </motion.div>
                         )}
                         {/* PDF Download Button */}
-                        <button
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={handleDownloadPdf}
                             disabled={downloadingPdf}
                             className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md rounded-xl px-4 py-2.5 border border-white/20 transition-all duration-200 text-sm font-medium disabled:opacity-60"
@@ -655,8 +881,8 @@ const TherapyRipple = () => {
                                 <Download size={16} />
                             )}
                             <span className="hidden sm:inline">{downloadingPdf ? 'Generating…' : 'Download PDF'}</span>
-                        </button>
-                        <div className="hidden md:flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-xl px-4 py-3 border border-white/20">
+                        </motion.button>
+                        <div className="hidden md:flex items-center gap-4 bg-white/10 backdrop-blur-md rounded-xl px-5 py-3 border border-white/20">
                             <div className="text-center">
                                 <p className="text-2xl font-bold">{totalLogs || 0}</p>
                                 <p className="text-[10px] uppercase tracking-wider text-violet-200">Logs</p>
@@ -669,16 +895,16 @@ const TherapyRipple = () => {
                         </div>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* ─── Summary Stat Cards ─── */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                <StatCard icon={Activity} label="Avg Stress" value={avgStress} color="bg-gradient-to-br from-violet-500 to-purple-600" />
-                <StatCard icon={Award} label="Best Week" value={bestWeekLabel} color="bg-gradient-to-br from-emerald-500 to-teal-600"
+                <StatCard icon={Activity} label="Avg Stress" value={avgStress} color="bg-gradient-to-br from-violet-500 to-purple-600" delay={0} />
+                <StatCard icon={Award} label="Best Week" value={bestWeekLabel} color="bg-gradient-to-br from-emerald-500 to-teal-600" delay={0.05}
                     subtext={bestWeek ? `Stress: ${STRESS_LABELS[bestWeek.stressLevel - 1]}` : undefined} />
-                <StatCard icon={FileText} label="Total Logs" value={String(totalLogs || 0)} color="bg-gradient-to-br from-blue-500 to-indigo-600" />
-                <StatCard icon={TrendingUp} label="Trend" value={improvementText || 'Gathering…'} color="bg-gradient-to-br from-amber-500 to-orange-600" />
-                <StatCard icon={Flame} label="Streak" value={streak > 0 ? `${streak} week${streak !== 1 ? 's' : ''}` : 'Start now!'} color="bg-gradient-to-br from-red-500 to-orange-500"
+                <StatCard icon={FileText} label="Total Logs" value={String(totalLogs || 0)} color="bg-gradient-to-br from-blue-500 to-indigo-600" delay={0.1} />
+                <StatCard icon={TrendingUp} label="Trend" value={improvementText || 'Gathering…'} color="bg-gradient-to-br from-amber-500 to-orange-600" delay={0.15} />
+                <StatCard icon={Flame} label="Streak" value={streak > 0 ? `${streak} week${streak !== 1 ? 's' : ''}` : 'Start now!'} color="bg-gradient-to-br from-red-500 to-orange-500" delay={0.2}
                     subtext={isMilestone ? '🎉 Milestone!' : streak > 0 ? 'Keep going!' : undefined} />
             </div>
 
@@ -696,21 +922,26 @@ const TherapyRipple = () => {
                     </div>
 
                     {/* Correlation Insight Card */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <motion.div
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="bg-gradient-to-br from-indigo-50 via-violet-50 to-purple-50 rounded-2xl shadow-sm border border-indigo-100 p-6"
+                    >
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                                 <Brain size={18} className="text-indigo-500" /> AI Insight
                             </h2>
                             <TrendBadge trend={correlation?.trend || 'insufficient_data'} />
                         </div>
-                        <p className="text-sm text-gray-600 leading-relaxed">{correlation?.insight}</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">{correlation?.insight}</p>
                         {correlation?.value !== null && correlation?.value !== undefined && (
-                            <div className="mt-4 flex items-center gap-3 text-xs text-gray-400">
-                                <span className="font-mono bg-gray-50 px-2 py-1 rounded">r = {correlation.value}</span>
+                            <div className="mt-4 flex items-center gap-3 text-xs text-gray-500">
+                                <span className="font-mono bg-white/70 px-2 py-1 rounded border border-indigo-100">r = {correlation.value}</span>
                                 <span>{correlation.dataPoints} data point{correlation.dataPoints !== 1 ? 's' : ''}</span>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
 
                     {/* Stress Trend Sparkline */}
                     {stressData.length >= 2 && (
@@ -742,8 +973,10 @@ const TherapyRipple = () => {
                         showSiblings={showSiblings} setShowSiblings={setShowSiblings}
                         siblingEntries={siblingEntries} addSibling={addSibling}
                         removeSibling={removeSibling} updateSibling={updateSibling}
+                        setSiblingEntries={setSiblingEntries}
                         notes={notes} setNotes={setNotes}
                         submitting={submitting} handleSubmit={handleSubmit}
+                        history={history}
                     />
 
                     {/* NEW: Smart Recommendations */}
@@ -751,7 +984,12 @@ const TherapyRipple = () => {
 
                     {/* Recent Logs — Expandable */}
                     {history.length > 0 && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.3 }}
+                            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+                        >
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                                     <Sparkles size={18} className="text-amber-500" /> Recent Logs
@@ -765,7 +1003,9 @@ const TherapyRipple = () => {
                                     const isExpanded = expandedLogIdx === idx;
                                     return (
                                         <div key={idx} className="group">
-                                            <button
+                                            <motion.button
+                                                whileHover={{ scale: 1.01 }}
+                                                whileTap={{ scale: 0.99 }}
                                                 onClick={() => setExpandedLogIdx(isExpanded ? null : idx)}
                                                 className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 text-left ${isExpanded
                                                     ? 'bg-violet-50 border-violet-200 shadow-sm'
@@ -783,43 +1023,52 @@ const TherapyRipple = () => {
                                                 <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${STRESS_COLORS[entry.stressLevel - 1]} flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
                                                     {entry.stressLevel}
                                                 </div>
-                                                <ChevronDown size={14} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                                            </button>
+                                                <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                                            </motion.button>
 
-                                            {isExpanded && (
-                                                <div className="mt-1 mx-2 p-3 bg-white rounded-lg border border-violet-100 space-y-2 animate-in slide-in-from-top-1">
-                                                    {entry.notes && (
-                                                        <div>
-                                                            <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-0.5">Notes</p>
-                                                            <p className="text-sm text-gray-700">{entry.notes}</p>
+                                            <AnimatePresence>
+                                                {isExpanded && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        <div className="mt-1 mx-2 p-3 bg-white rounded-lg border border-violet-100 space-y-2">
+                                                            {entry.notes && (
+                                                                <div>
+                                                                    <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-0.5">Notes</p>
+                                                                    <p className="text-sm text-gray-700">{entry.notes}</p>
+                                                                </div>
+                                                            )}
+                                                            {entry.siblingEntries?.length > 0 && (
+                                                                <div>
+                                                                    <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Sibling Feelings</p>
+                                                                    <div className="flex flex-wrap gap-1.5">
+                                                                        {entry.siblingEntries.map((sib, si) => (
+                                                                            <span key={si} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 rounded-md border border-gray-100 text-xs text-gray-700">
+                                                                                {FEELING_EMOJI[sib.feeling] || '😐'} <strong>{sib.name}</strong>: {FEELINGS.find(f => f.key === sib.feeling)?.label || sib.feeling}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {!entry.notes && (!entry.siblingEntries || entry.siblingEntries.length === 0) && (
+                                                                <p className="text-xs text-gray-400 italic">No additional details for this log.</p>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                    {entry.siblingEntries?.length > 0 && (
-                                                        <div>
-                                                            <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Sibling Feelings</p>
-                                                            <div className="flex flex-wrap gap-1.5">
-                                                                {entry.siblingEntries.map((sib, si) => (
-                                                                    <span key={si} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 rounded-md border border-gray-100 text-xs text-gray-700">
-                                                                        {FEELING_EMOJI[sib.feeling] || '😐'} <strong>{sib.name}</strong>: {FEELINGS.find(f => f.key === sib.feeling)?.label || sib.feeling}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {!entry.notes && (!entry.siblingEntries || entry.siblingEntries.length === 0) && (
-                                                        <p className="text-xs text-gray-400 italic">No additional details for this log.</p>
-                                                    )}
-                                                </div>
-                                            )}
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
                                     );
                                 })}
                             </div>
-                        </div>
+                        </motion.div>
                     )}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -827,10 +1076,33 @@ const TherapyRipple = () => {
 const FormCard = ({
     stressLevel, setStressLevel,
     showSiblings, setShowSiblings,
-    siblingEntries, addSibling, removeSibling, updateSibling,
+    siblingEntries, addSibling, removeSibling, updateSibling, setSiblingEntries,
     notes, setNotes,
-    submitting, handleSubmit
-}) => (
+    submitting, handleSubmit,
+    history
+}) => {
+    const handleCopyLastWeek = () => {
+        if (history && history.length > 0) {
+            const lastWeek = history[0]; // Assuming history[0] is the most recent past week
+            if (lastWeek.siblingEntries && lastWeek.siblingEntries.length > 0) {
+                const copied = lastWeek.siblingEntries.map(s => ({
+                    name: s.name,
+                    feeling: s.feeling,
+                    note: s.note || ''
+                }));
+                // Only overwrite if current entries are empty or exact default
+                setSiblingEntries(copied);
+                setShowSiblings(true);
+                toast.info('Copied siblings from last week! 👯‍♀️');
+            } else {
+                toast.error('No siblings logged last week.');
+            }
+        }
+    };
+
+    const hasPastSiblings = history && history.length > 0 && history[0].siblingEntries && history[0].siblingEntries.length > 0;
+
+    return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
             <Calendar size={18} className="text-teal-500" /> Weekly Check-in
@@ -842,77 +1114,101 @@ const FormCard = ({
             <label className="block text-sm font-medium text-gray-700 mb-3">Your Stress Level</label>
             <div className="flex items-stretch gap-2">
                 {[1, 2, 3, 4, 5].map(level => (
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         key={level}
                         onClick={() => setStressLevel(level)}
                         className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all duration-200 ${stressLevel === level
-                            ? `bg-gradient-to-b ${STRESS_COLORS[level - 1]} text-white border-transparent shadow-lg scale-105`
+                            ? `bg-gradient-to-b ${STRESS_COLORS[level - 1]} text-white border-transparent shadow-lg`
                             : 'bg-white border-gray-200 hover:border-gray-300 text-gray-600'
                             }`}
                     >
                         <span className="text-2xl">{STRESS_EMOJIS[level - 1]}</span>
                         <span className="text-[10px] font-semibold">{STRESS_LABELS[level - 1]}</span>
-                    </button>
+                    </motion.button>
                 ))}
             </div>
         </div>
 
-        {/* Sibling Section */}
         <div className="mb-6">
-            <button
-                onClick={() => setShowSiblings(!showSiblings)}
-                className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-violet-600 transition-colors w-full"
-            >
-                <Users size={16} />
-                <span>Sibling Feelings</span>
-                <span className="text-[10px] text-gray-400 ml-1">(optional)</span>
-                <span className="ml-auto">
+            <div className="flex items-center justify-between w-full mb-3">
+                <button
+                    onClick={() => setShowSiblings(!showSiblings)}
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-violet-600 transition-colors"
+                >
+                    <Users size={16} />
+                    <span>Sibling Feelings</span>
+                    <span className="text-[10px] text-gray-400 ml-1">(optional)</span>
                     {showSiblings ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </span>
-            </button>
-
-            {showSiblings && (
-                <div className="mt-3 space-y-3">
-                    {siblingEntries.map((entry, idx) => (
-                        <div key={idx} className="bg-gray-50 rounded-xl p-4 border border-gray-100 relative">
-                            <button onClick={() => removeSibling(idx)}
-                                className="absolute top-2 right-2 text-gray-300 hover:text-red-400 transition-colors">
-                                <X size={14} />
-                            </button>
-                            <input
-                                type="text"
-                                placeholder="Sibling's name"
-                                value={entry.name}
-                                onChange={e => updateSibling(idx, 'name', e.target.value)}
-                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3 focus:ring-2 focus:ring-violet-300 focus:border-violet-400 outline-none"
-                            />
-                            <div className="flex flex-wrap gap-1.5">
-                                {FEELINGS.map(f => {
-                                    const FIcon = f.icon;
-                                    return (
-                                        <button
-                                            key={f.key}
-                                            onClick={() => updateSibling(idx, 'feeling', f.key)}
-                                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all ${entry.feeling === f.key
-                                                ? `${f.bg} ${f.color} ${f.border} ring-2 ${f.ring} ring-offset-1`
-                                                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                                                }`}
-                                        >
-                                            <FIcon size={13} /> {f.label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ))}
+                </button>
+                {hasPastSiblings && showSiblings && (
                     <button
-                        onClick={addSibling}
-                        className="flex items-center gap-1.5 text-sm text-violet-600 hover:text-violet-700 font-medium"
+                        onClick={handleCopyLastWeek}
+                        className="text-xs text-violet-600 font-medium hover:text-violet-700 bg-violet-50 px-2.5 py-1 rounded border border-violet-100 transition-colors"
                     >
-                        <Plus size={15} /> Add Sibling
+                        Copy last week
                     </button>
-                </div>
-            )}
+                )}
+            </div>
+
+            <AnimatePresence>
+                {showSiblings && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-3 overflow-hidden"
+                    >
+                        <AnimatePresence>
+                            {siblingEntries.map((entry, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="bg-gray-50 rounded-xl p-4 border border-gray-100 relative"
+                                >
+                                    <button onClick={() => removeSibling(idx)}
+                                        className="absolute top-2 right-2 text-gray-300 hover:text-red-400 transition-colors">
+                                        <X size={14} />
+                                    </button>
+                                    <input
+                                        type="text"
+                                        placeholder="Sibling's name"
+                                        value={entry.name}
+                                        onChange={e => updateSibling(idx, 'name', e.target.value)}
+                                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3 focus:ring-2 focus:ring-violet-300 focus:border-violet-400 outline-none"
+                                    />
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {FEELINGS.map(f => {
+                                            const FIcon = f.icon;
+                                            return (
+                                                <button
+                                                    key={f.key}
+                                                    onClick={() => updateSibling(idx, 'feeling', f.key)}
+                                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all ${entry.feeling === f.key
+                                                        ? `${f.bg} ${f.color} ${f.border} ring-2 ${f.ring} ring-offset-1`
+                                                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                                                        }`}
+                                                >
+                                                    <FIcon size={13} /> {f.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                        <button
+                            onClick={addSibling}
+                            className="flex items-center gap-1.5 text-sm text-violet-600 hover:text-violet-700 font-medium pt-1"
+                        >
+                            <Plus size={15} /> Add Sibling
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
 
         {/* Notes */}
@@ -928,7 +1224,9 @@ const FormCard = ({
         </div>
 
         {/* Submit */}
-        <button
+        <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleSubmit}
             disabled={submitting}
             className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-violet-200 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
@@ -938,8 +1236,9 @@ const FormCard = ({
             ) : (
                 <><Send size={16} /> Log This Week</>
             )}
-        </button>
+        </motion.button>
     </div>
-);
+    );
+};
 
 export default TherapyRipple;
