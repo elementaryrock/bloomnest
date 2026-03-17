@@ -1,6 +1,8 @@
 require('./utils/discordLogger'); // Send all logs to Discord webhook
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
 const connectDB = require('./config/database');
@@ -11,6 +13,15 @@ const { enforceHttps, securityHeaders } = require('./middleware/security');
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 
 // Security Middleware
@@ -47,6 +58,7 @@ const uploadRoutes = require('./routes/upload.routes');
 const narrativeRoutes = require('./routes/narrative.routes');
 const skillSproutRoutes = require('./routes/skillsprout.routes');
 const familyWellbeingRoutes = require('./routes/familyWellbeing.routes');
+const chatRoutes = require('./routes/chat.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
@@ -59,6 +71,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/narrative', narrativeRoutes);
 app.use('/api/skillsprout', skillSproutRoutes);
 app.use('/api/family-wellbeing', familyWellbeingRoutes);
+app.use('/api/chat', chatRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -159,7 +172,48 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+// Socket.IO Connection Handling
+io.on('connection', (socket) => {
+  console.log('A user connected to the chat:', socket.id);
+
+  // Users can join the global parent room
+  socket.on('join_parent_lounge', () => {
+    socket.join('parents_lounge');
+    console.log(`User ${socket.id} joined parents_lounge`);
+  });
+
+  socket.on('send_message', async (data) => {
+    try {
+      // data should contain { sender: patientId, content: "text", senderName: "Name", childName: "Name" }
+      const Message = require('./models/Message');
+      const newMessage = new Message({
+        sender: data.sender,
+        content: data.content
+      });
+      await newMessage.save();
+
+      // Broadcast to everyone in the lounge, including sender (or use socket.to().emit)
+      io.to('parents_lounge').emit('receive_message', {
+        _id: newMessage._id,
+        content: newMessage.content,
+        sender: {
+          _id: data.sender,
+          parentName: data.senderName,
+          childName: data.childName
+        },
+        createdAt: newMessage.createdAt
+      });
+    } catch (error) {
+      console.error('Socket message error:', error);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected from chat:', socket.id);
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

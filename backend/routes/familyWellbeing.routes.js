@@ -5,7 +5,8 @@ const checkRole = require('../middleware/roleCheck');
 const {
     logWellbeing,
     getWellbeingHistory,
-    getRippleAnalysis
+    getRippleAnalysis,
+    generateProgressPDF
 } = require('../controllers/familyWellbeingController');
 
 // All routes require parent authentication
@@ -21,4 +22,8 @@ router.get('/history', getWellbeingHistory);
 // GET /api/family-wellbeing/ripple-analysis - Get AI correlation analysis
 router.get('/ripple-analysis', getRippleAnalysis);
 
+// GET /api/family-wellbeing/progress-pdf - Download progress report as PDF
+router.get('/progress-pdf', generateProgressPDF);
+
 module.exports = router;
+

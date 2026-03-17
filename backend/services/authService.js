@@ -101,9 +101,11 @@ class AuthService {
       success: true,
       token,
       user: {
+        id: patient._id,
         specialId: patient.specialId,
         childName: patient.childName,
         parentName: patient.parentName,
+        name: patient.parentName,
         role: 'parent'
       }
     };
@@ -147,6 +149,7 @@ class AuthService {
       success: true,
       token,
       user: {
+        id: staff._id,
         staffId: staff.staffId,
         name: staff.name,
         email: staff.email,

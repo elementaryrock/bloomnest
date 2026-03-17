@@ -191,28 +191,92 @@
   animation: soil-ripple 0.6s ease-out forwards;
 }
 
-/* ── Seasonal themes ── */
-.season-spring { background: linear-gradient(135deg, #f0fdf4, #dcfce7, #bbf7d0); }
-.season-summer { background: linear-gradient(135deg, #fefce8, #fef9c3, #fde047); }
-.season-autumn { background: linear-gradient(135deg, #fff7ed, #fed7aa, #fb923c20); }
-.season-winter { background: linear-gradient(135deg, #f0f9ff, #e0f2fe, #bae6fd); }
+/* ── Enhanced Garden Themes ── */
+.season-spring { 
+    background: linear-gradient(180deg, #F0FDF4 0%, #D1FAE5 100%); 
+}
+.season-summer { 
+    background: linear-gradient(180deg, #FFFBEB 0%, #FEF3C7 100%); 
+}
+.season-autumn { 
+    background: linear-gradient(180deg, #FFF7ED 0%, #FFEDD5 100%); 
+}
+.season-winter { 
+    background: linear-gradient(180deg, #F0F9FF 0%, #E0F2FE 100%); 
+}
 
-/* ── Glow effects for completed trees ── */
+/* ── UI Enhancements ── */
+.shadow-hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
 .tree-glow {
-  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.6));
+    filter: drop-shadow(0 0 15px rgba(52, 211, 153, 0.6)) drop-shadow(0 0 5px rgba(52, 211, 153, 0.4));
 }
 
-/* ── Child-friendly large emoji plant stages ── */
-.plant-stage-emoji {
-  font-size: 3rem;
-  line-height: 1;
-  display: block;
-  text-align: center;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
-  transition: all 0.3s ease;
+.progress-fill {
+    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.plant-stage-emoji:hover {
-  transform: scale(1.1);
-  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.2));
+/* ── Custom Scrollbar ── */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+/* ── Atmosphere Effects ── */
+@keyframes fogMove {
+    0% { transform: translateX(-10%); }
+    100% { transform: translateX(10%); }
+}
+
+.garden-fog {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 300px;
+    background: linear-gradient(to top, rgba(255,255,255,0.4), transparent);
+    pointer-events: none;
+    z-index: 1;
+    filter: blur(40px);
+    animation: fogMove 20s ease-in-out infinite alternate;
+}
+
+/* ── Premium Micro-Animations ── */
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+}
+
+.shimmer-effect::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255,255,255, 0) 0%,
+        rgba(255,255,255, 0.4) 50%,
+        rgba(255,255,255, 0) 100%
+    );
+    animation: shimmer 2s infinite linear;
+    pointer-events: none;
+}
+
+@keyframes sunbeam {
+    0%, 100% { opacity: 0.3; transform: rotate(45deg) translateY(-2%); }
+    50%      { opacity: 0.6; transform: rotate(45deg) translateY(2%); }
+}
+
+.animate-sunbeam {
+    animation: sunbeam 8s ease-in-out infinite;
 }

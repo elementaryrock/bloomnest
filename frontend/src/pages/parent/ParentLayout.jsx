@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -26,6 +26,7 @@ import {
     ClipboardList
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 
 const ParentLayout = ({ children }) => {
     const { user, logout } = useAuth();
@@ -56,14 +57,44 @@ const ParentLayout = ({ children }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const sessionData = [
-        { id: 1, title: 'Speech Therapy', therapist: 'Dr. Sarah Johnson', date: '2024-03-05', time: '10:00 AM', type: 'upcoming', status: 'confirmed' },
-        { id: 2, title: 'Occupational Therapy', therapist: 'Dr. Michael Chen', date: '2024-03-07', time: '2:00 PM', type: 'upcoming', status: 'confirmed' },
-        { id: 3, title: 'Physical Therapy', therapist: 'Dr. Emily Davis', date: '2024-03-10', time: '11:00 AM', type: 'upcoming', status: 'pending' },
-        { id: 4, title: 'Speech Therapy', therapist: 'Dr. Sarah Johnson', date: '2024-02-28', time: '10:00 AM', type: 'completed', status: 'completed' },
-        { id: 5, title: 'Behavioral Therapy', therapist: 'Dr. Lisa Brown', date: '2024-02-25', time: '3:00 PM', type: 'completed', status: 'completed' },
-        { id: 6, title: 'Occupational Therapy', therapist: 'Dr. Michael Chen', date: '2024-02-20', time: '9:00 AM', type: 'completed', status: 'completed' },
-    ];
+    const [sessionData, setSessionData] = useState([]);
+
+    useEffect(() => {
+        const fetchSessions = async () => {
+            try {
+                const res = await api.get('/bookings/my-bookings');
+                if (res.data.success) {
+                    const bookings = res.data.data || [];
+                    const formattedSessions = bookings.map(b => {
+                        const isUpcoming = b.status === 'confirmed' || b.status === 'pending';
+                        const therapistName = b.therapistId?.name 
+                            ? `Dr. ${b.therapistId.name}` 
+                            : 'Assigned Therapist';
+                            
+                        const dateObj = new Date(b.date);
+                        const dateStr = dateObj.toLocaleDateString('en-CA');
+                        
+                        return {
+                            id: b.bookingId || b._id,
+                            title: b.therapyType,
+                            therapist: therapistName,
+                            date: dateStr,
+                            time: b.timeSlot,
+                            type: isUpcoming ? 'upcoming' : 'completed',
+                            status: b.status
+                        };
+                    });
+                    setSessionData(formattedSessions);
+                }
+            } catch (error) {
+                console.error('Failed to fetch sessions for search:', error);
+            }
+        };
+
+        if (user) {
+            fetchSessions();
+        }
+    }, [user]);
 
     const filteredSessions = searchQuery.trim() === ''
         ? []
@@ -97,6 +128,7 @@ const ParentLayout = ({ children }) => {
         { path: '/parent/neural-narrative', icon: Sparkles, label: 'NeuralNarrative™' },
         { path: '/parent/skill-sprout', icon: Sprout, label: 'SkillSprout' },
         { path: '/parent/therapy-ripple', icon: Waves, label: 'TherapyRipple' },
+        { path: '/parent/chatroom', icon: MessageSquare, label: 'Parents Lounge' },
     ];
 
     return (

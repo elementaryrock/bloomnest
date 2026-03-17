@@ -11,6 +11,7 @@ import ParentLayout from './ParentLayout';
 import ParentProfile from './ParentProfile';
 import ParentAssessments from './ParentAssessments';
 import ParentAssessmentDetail from './ParentAssessmentDetail';
+import ParentChatroom from './ParentChatroom';
 import ContactSupport from './ContactSupport';
 
 
@@ -26,6 +27,7 @@ const ParentDashboard = () => {
                 <Route path="neural-narrative" element={<NeuralNarrative />} />
                 <Route path="skill-sprout" element={<SkillSprout />} />
                 <Route path="therapy-ripple" element={<TherapyRipple />} />
+                <Route path="chatroom" element={<ParentChatroom />} />
                 <Route path="profile" element={<ParentProfile />} />
                 <Route path="assessments" element={<ParentAssessments />} />
                 <Route path="assessment/:assessmentId" element={<ParentAssessmentDetail />} />
