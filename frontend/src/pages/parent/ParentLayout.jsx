@@ -65,9 +65,9 @@ const ParentLayout = ({ children }) => {
         { id: 6, title: 'Occupational Therapy', therapist: 'Dr. Michael Chen', date: '2024-02-20', time: '9:00 AM', type: 'completed', status: 'completed' },
     ];
 
-    const filteredSessions = searchQuery.trim() === '' 
-        ? [] 
-        : sessionData.filter(session => 
+    const filteredSessions = searchQuery.trim() === ''
+        ? []
+        : sessionData.filter(session =>
             session.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             session.therapist.toLowerCase().includes(searchQuery.toLowerCase()) ||
             session.date.includes(searchQuery)
@@ -308,11 +308,20 @@ const ParentLayout = ({ children }) => {
                                             <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Help & Support</p>
                                         </div>
                                         {[
-                                            { icon: FileText, label: 'Documentation & Guides' },
-                                            { icon: MessageSquare, label: 'Contact Support' },
-                                            { icon: ExternalLink, label: 'Bloomnest Community' }
+                                            { icon: FileText, label: 'Documentation & Guides', path: '#' },
+                                            { icon: MessageSquare, label: 'Contact Support', path: '/parent/contact-support' },
+                                            { icon: ExternalLink, label: 'Bloomnest Community', path: '#' }
                                         ].map((item, idx) => (
-                                            <button key={idx} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors text-left group border-none bg-transparent">
+                                            <button
+                                                key={idx}
+                                                onClick={() => {
+                                                    if (item.path !== '#') {
+                                                        navigate(item.path);
+                                                        setHelpOpen(false);
+                                                    }
+                                                }}
+                                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors text-left group border-none bg-transparent"
+                                            >
                                                 <item.icon size={16} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
                                                 <span className="text-sm font-semibold">{item.label}</span>
                                             </button>
