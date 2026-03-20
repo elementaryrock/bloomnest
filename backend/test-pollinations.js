@@ -1,3 +1,5 @@
+require('dotenv').config();
+process.env.POLLINATIONS_API_KEY = ''; // Bypass the key for testing
 const pollinations = require('./services/imageProviders/pollinationsProvider');
 
 async function test() {

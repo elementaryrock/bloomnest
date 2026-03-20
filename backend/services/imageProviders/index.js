@@ -1,66 +1,29 @@
 /**
  * Image Provider Factory and Orchestrator
- * Manages multiple image generation providers with automatic failover.
+ * Uses Pollinations.ai (Flux model) exclusively for image generation.
  */
 
-const geminiImage = require('./geminiImageProvider');
 const pollinations = require('./pollinationsProvider');
-const aiHorde = require('./aiHordeProvider');
-const cloudflare = require('./cloudflareProvider');
-const imagen = require('./imagenProvider');
-
-// Priority order: AI Horde (free, no card) > Gemini/Imagen when configured > other fallbacks.
-const ALL_PROVIDERS = [aiHorde, geminiImage, pollinations, cloudflare, imagen];
 
 /**
- * Get available providers in their priority order.
- * Priority: Configured in env, then fallback list.
+ * Get available providers - Pollinations only.
  */
 function getEnabledProviders() {
-    const preferredProviderName = process.env.IMAGE_PROVIDER;
-
-    // Sort providers based on preference and whether they are configured
-    let providers = [...ALL_PROVIDERS];
-
-    if (preferredProviderName) {
-        const preferred = providers.find(p => p.name === preferredProviderName);
-        if (preferred) {
-            providers = [preferred, ...providers.filter(p => p.name !== preferredProviderName)];
-        }
-    }
-
-    // Filter to only those that can run (configured)
-    return providers.filter(p => !p.isConfigured || p.isConfigured());
+    return [pollinations];
 }
 
 /**
- * Generate an image with automatic provider failover.
+ * Generate an image using Pollinations.ai.
+ * Keeps retrying until successful.
  */
 async function generateImageWithFallback(prompt, options = {}) {
-    const enabledProviders = getEnabledProviders();
-    let lastError;
-
-    if (enabledProviders.length === 0) {
-        throw new Error('No image generation providers are configured');
-    }
-
-    for (const provider of enabledProviders) {
-        try {
-            console.log(`[NeuralNarrative] Attempting image generation with provider: ${provider.name}`);
-            const result = await provider.generateImage(prompt, options);
-            console.log(`[NeuralNarrative] Successfully generated image with ${provider.name}`);
-            return {
-                ...result,
-                provider: provider.name
-            };
-        } catch (error) {
-            console.warn(`[NeuralNarrative] Provider ${provider.name} failed: ${error.message}`);
-            lastError = error;
-            // Continue to the next provider
-        }
-    }
-
-    throw new Error(`All image providers failed. Last error: ${lastError?.message}`);
+    console.log(`[NeuralNarrative] Generating image using Pollinations (Flux)...`);
+    const result = await pollinations.generateImage(prompt, options);
+    console.log(`[NeuralNarrative] Image generated successfully with Pollinations`);
+    return {
+        ...result,
+        provider: 'pollinations'
+    };
 }
 
 module.exports = {

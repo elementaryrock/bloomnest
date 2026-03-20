@@ -1,70 +1,90 @@
 /**
  * Pollinations.ai Image Provider
- * Free, no signup, high-quality image generation using the FLUX model.
+ * Uses FLUX model for image generation.
+ * Requires API key from enter.pollinations.ai
  */
 
 /**
+ * Check if Pollinations is configured.
+ */
+function isConfigured() {
+    return !!process.env.POLLINATIONS_API_KEY && process.env.POLLINATIONS_API_KEY !== 'your-api-key-here';
+}
+
+/**
  * Generate an image using Pollinations.ai.
+ * No timeout - keeps trying until image is generated.
  */
 async function generateImage(prompt, options = {}) {
     const {
         width = 768,
         height = 768,
         seed = Math.floor(Math.random() * 1000000),
-        model = 'flux-schnell', // User specifically requested flux-schnell
-        nologo = true
+        nologo = true,
+        retries = 5
     } = options;
 
+    const apiKey = process.env.POLLINATIONS_API_KEY;
     const encodedPrompt = encodeURIComponent(prompt);
 
-    // We'll try flux-schnell first, then flux as fallback if needed
-    const modelsToTry = [model, 'flux'];
     let lastError;
-
-    for (const currentModel of modelsToTry) {
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
         try {
-            // Pollinations GET endpoint
-            const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${currentModel}${nologo ? '&nologo=true' : ''}&safe=true`;
+            console.log(`[Pollinations] Attempt ${attempt}/${retries} - Generating image with Flux...`);
 
-            console.log(`[NeuralNarrative] Requesting Pollinations (${currentModel}) image...`);
+            const url = `https://gen.pollinations.ai/image/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=flux&nologo=${!!nologo}&safe=true`;
 
             const headers = {
-                'Content-Type': 'application/json'
+                'accept': 'image/jpeg, image/png'
             };
-            if (process.env.POLLINATIONS_API_KEY) {
-                headers['Authorization'] = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
+
+            if (apiKey) {
+                headers['Authorization'] = `Bearer ${apiKey}`;
             }
 
             const response = await fetch(url, {
                 method: 'GET',
-                headers,
-                signal: AbortSignal.timeout(60000)
+                headers
             });
 
             if (!response.ok) {
-                const errorText = await response.text().catch(() => 'No error text');
-                throw new Error(`Status ${response.status}: ${errorText.substring(0, 50)}`);
+                const errorBody = await response.json().catch(() => ({}));
+                throw new Error(`Pollinations API error (${response.status}): ${errorBody.error?.message || response.statusText}`);
             }
 
             const contentType = response.headers.get('content-type') || 'image/png';
+            
+            if (!contentType.includes('image')) {
+                throw new Error(`Unexpected content type: ${contentType}`);
+            }
+
             const buffer = await response.arrayBuffer();
             const base64 = Buffer.from(buffer).toString('base64');
+
+            console.log(`[Pollinations] Image generated! (${buffer.length} bytes)`);
 
             return {
                 base64,
                 mimeType: contentType
             };
         } catch (error) {
-            console.warn(`[NeuralNarrative] Pollinations model ${currentModel} failed: ${error.message}`);
+            console.warn(`[Pollinations] Attempt ${attempt} failed: ${error.message}`);
             lastError = error;
-            // Continue to fallback model
+            
+            if (attempt < retries) {
+                const waitTime = attempt * 2000;
+                console.log(`[Pollinations] Waiting ${waitTime}ms before retry...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+            }
         }
     }
 
-    throw new Error(`Pollinations API failed for all models. Last error: ${lastError.message}`);
+    throw new Error(`Pollinations failed after ${retries} attempts. Last error: ${lastError?.message}`);
 }
 
 module.exports = {
     name: 'pollinations',
-    generateImage
+    generateImage,
+    isConfigured
 };

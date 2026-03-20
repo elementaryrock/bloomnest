@@ -1,180 +1,89 @@
-import React, { useState, useEffect } from 'react';
-import {
-    BookOpen,
-    Sparkles,
-    ChevronLeft,
-    ChevronRight,
-    Loader2,
-    Image as ImageIcon,
-    Star,
-    Heart,
-    Wand2,
-    History,
-    ArrowLeft,
-    Shield,
-    Smile,
-    LayoutGrid,
-    BookText
+import React, { useState } from 'react';
+import { 
+    Sparkles, Loader2, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Star,
+    ArrowLeft, BookText, LayoutGrid, ImageIcon, Wand2, AlertCircle
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { toast } from 'react-toastify';
-
-const PRESET_SCENARIOS = [
-    { label: '🦷 Going to the Dentist', value: 'Going to the dentist for a checkup' },
-    { label: '💇 Getting a Haircut', value: 'Getting a haircut at the salon' },
-    { label: '🏥 Visiting the Doctor', value: 'Visiting the doctor for a checkup' },
-    { label: '🏫 First Day of School', value: 'First day at a new school' },
-    { label: '✈️ Taking an Airplane', value: 'Taking an airplane for the first time' },
-    { label: '🏊 Going Swimming', value: 'Going to the swimming pool' },
-    { label: '🐕 Meeting a Dog', value: 'Meeting a friendly dog for the first time' },
-    { label: '🌙 Sleeping Alone', value: 'Sleeping alone in their own room' },
-];
-
-const COMFORT_OBJECTS = [
-    '🧸 Teddy Bear', '🦸 Superhero', '🧚 Fairy', '🐶 Puppy',
-    '🦄 Unicorn', '🐱 Kitty', '🤖 Robot', '🧙 Wizard'
-];
 
 const NeuralNarrative = () => {
-    const { user } = useAuth();
-    const [currentView, setCurrentView] = useState('form'); // 'form', 'generating', 'storybook', 'history'
-    const [childName, setChildName] = useState(user?.childName || '');
-    const [scenario, setScenario] = useState('');
-    const [customScenario, setCustomScenario] = useState('');
-    const [comfortObject, setComfortObject] = useState('');
-    const [customComfort, setCustomComfort] = useState('');
-    const [currentPage, setCurrentPage] = useState(0);
-    const [storybook, setStorybook] = useState(null);
+    // Inputs
+    const [childContext, setChildContext] = useState('');
+    const [favoriteContext, setFavoriteContext] = useState('');
+    const [theme, setTheme] = useState('');
+
+    // Status
     const [isGenerating, setIsGenerating] = useState(false);
-    const [history, setHistory] = useState([]);
-    const [loadingHistory, setLoadingHistory] = useState(false);
-    const [generationProgress, setGenerationProgress] = useState('');
-    const [storyLayout, setStoryLayout] = useState('storybook');
+    const [progress, setProgress] = useState('');
+    const [error, setError] = useState('');
+
+    // Output
+    const [story, setStory] = useState(null);
+
+    // UI
+    const [currentPage, setCurrentPage] = useState(0);
+    const [storyLayout, setStoryLayout] = useState('grid');
 
     const handleGenerate = async () => {
-        const finalScenario = scenario === 'custom' ? customScenario : scenario;
-        const finalComfort = comfortObject === 'custom' ? customComfort : comfortObject.replace(/^[^\s]+\s/, '');
-
-        if (!childName.trim()) {
-            toast.error("Please enter your child's name");
+        if (!childContext.trim()) {
+            setError("Please describe your child.");
             return;
         }
-        if (!finalScenario.trim()) {
-            toast.error('Please select or enter a scenario');
+        if (!favoriteContext.trim()) {
+            setError("Please describe your child's favorite things.");
             return;
         }
 
         setIsGenerating(true);
-        setCurrentView('generating');
-        setGenerationProgress('Creating your personalized story...');
+        setError('');
+        setStory(null);
+        setProgress('Connecting to magical story server...');
 
         try {
-            const progressMessages = [
-                'Writing the story outline...',
-                'Designing the illustrations...',
-                'Adding magical details...',
-                'Bringing the story to life...',
-                'Almost there! Finishing touches...'
-            ];
-            let msgIndex = 0;
-            const progressInterval = setInterval(() => {
-                msgIndex = (msgIndex + 1) % progressMessages.length;
-                setGenerationProgress(progressMessages[msgIndex]);
-            }, 8000);
-
+            // Call the backend API to generate the full storybook
             const response = await api.post('/narrative/generate', {
-                childName: childName.trim(),
-                scenario: finalScenario.trim(),
-                comfortObject: finalComfort.trim()
-            }, { timeout: 120000 });
-
-            clearInterval(progressInterval);
+                childName: childContext.trim(),
+                scenario: `Based on: ${favoriteContext.trim()}. ${theme.trim() ? `Themes: ${theme.trim()}` : ''}`,
+                comfortObject: favoriteContext.split(',')[0].trim(), // Use first favorite thing as comfort object
+            });
 
             if (response.data.success) {
-                setStorybook(response.data.data);
+                const narrativeData = response.data.data;
+                
+                // Align backend data with frontend story state
+                const storyWithImages = {
+                    title: `${childContext.trim()}'s Big Adventure`, // Backend doesn't return a title yet, so we'll generate one
+                    pages: narrativeData.pages.map(page => ({
+                        narrativeText: page.caption,
+                        imageUrl: page.imageUrl
+                    }))
+                };
+                
+                setStory(storyWithImages);
+                setProgress('');
                 setCurrentPage(0);
                 setStoryLayout('grid');
-                setCurrentView('storybook');
-                toast.success('Your storybook is ready! 🎉');
             } else {
-                throw new Error(response.data.error?.message || 'Generation failed');
+                throw new Error(response.data.error?.message || 'Failed to generate story');
             }
-        } catch (error) {
-            console.error('Generation error:', error);
-            toast.error(error.response?.data?.error?.message || 'Failed to generate storybook. Please try again.');
-            setCurrentView('form');
+
+        } catch (err) {
+            console.error('Generation error:', err);
+            setError(err.response?.data?.error?.message || err.message || 'Failed to generate story. Please try again.');
         } finally {
             setIsGenerating(false);
         }
     };
 
-    const fetchHistory = async () => {
-        setLoadingHistory(true);
-        try {
-            const response = await api.get('/narrative/history');
-            if (response.data.success) {
-                setHistory(response.data.data);
-            }
-        } catch (error) {
-            console.error('History error:', error);
-            toast.error('Failed to load history');
-        } finally {
-            setLoadingHistory(false);
-        }
-    };
-
-    const openFromHistory = (narrative) => {
-        setStorybook(narrative);
-        setCurrentPage(0);
-        setStoryLayout('grid');
-        setCurrentView('storybook');
-    };
-
-    // --- Render: Generating View ---
-    if (currentView === 'generating') {
-        return (
-            <div className="min-h-[80vh] flex items-center justify-center">
-                <div className="text-center max-w-md mx-auto p-8">
-                    <div className="relative mb-8">
-                        <div className="w-24 h-24 mx-auto bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl flex items-center justify-center shadow-lg shadow-purple-200 animate-pulse">
-                            <Wand2 className="text-white" size={40} />
-                        </div>
-                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center animate-bounce">
-                            <Sparkles className="text-white" size={16} />
-                        </div>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-3">Creating Magic ✨</h2>
-                    <p className="text-gray-500 mb-6">{generationProgress}</p>
-                    <div className="flex justify-center gap-1.5">
-                        {[0, 1, 2, 3, 4].map((i) => (
-                            <div
-                                key={i}
-                                className="w-3 h-3 rounded-full bg-purple-400"
-                                style={{
-                                    animation: `pulse 1.4s ease-in-out ${i * 0.2}s infinite`,
-                                    opacity: 0.4
-                                }}
-                            />
-                        ))}
-                    </div>
-                    <p className="text-xs text-gray-400 mt-6">This may take up to 2 minutes</p>
-                </div>
-            </div>
-        );
-    }
-
     // --- Render: Storybook View ---
-    if (currentView === 'storybook' && storybook) {
-        const pages = storybook.pages || [];
+    if (story && !isGenerating) {
+        const pages = story.pages || [];
         const page = pages[currentPage];
         const totalPages = pages.length;
 
         return (
             <div className="max-w-4xl mx-auto">
-                {/* Back button */}
                 <button
-                    onClick={() => setCurrentView('form')}
+                    onClick={() => setStory(null)}
                     className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-6 transition-colors"
                 >
                     <ArrowLeft size={18} />
@@ -185,9 +94,8 @@ const NeuralNarrative = () => {
                 <div className="text-center mb-6">
                     <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center gap-2">
                         <BookOpen className="text-purple-600" size={24} />
-                        {storybook.childName}'s Story
+                        {story.title}
                     </h2>
-                    <p className="text-gray-500 text-sm mt-1">{storybook.scenario}</p>
                     <div className="mt-4 inline-flex rounded-2xl border border-gray-200 bg-white p-1 shadow-sm">
                         <button
                             onClick={() => setStoryLayout('storybook')}
@@ -218,7 +126,7 @@ const NeuralNarrative = () => {
                     <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                         {pages.map((storyPage, idx) => (
                             <button
-                                key={storyPage.pageNumber || idx}
+                                key={idx}
                                 onClick={() => {
                                     setCurrentPage(idx);
                                     setStoryLayout('storybook');
@@ -226,34 +134,25 @@ const NeuralNarrative = () => {
                                 className="overflow-hidden rounded-3xl border border-gray-100 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
                             >
                                 <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50">
-                                    <img
-                                        src={storyPage.imageUrl}
-                                        alt={`Page ${storyPage.pageNumber}`}
-                                        className="h-full w-full object-cover"
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                            e.target.nextSibling.style.display = 'flex';
-                                        }}
-                                    />
-                                    <div className="hidden h-full w-full items-center justify-center text-gray-400">
-                                        <ImageIcon size={56} />
-                                    </div>
+                                    {storyPage.imageUrl ? (
+                                        <img
+                                            src={storyPage.imageUrl}
+                                            alt={`Page ${idx + 1}`}
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center text-gray-400">
+                                            <ImageIcon size={56} />
+                                        </div>
+                                    )}
                                     <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-purple-700 shadow-sm">
-                                        Page {storyPage.pageNumber}
+                                        Page {idx + 1}
                                     </div>
                                 </div>
-                                <div className="space-y-3 p-4">
+                                <div className="p-4">
                                     <p className="line-clamp-3 text-sm font-medium leading-6 text-gray-700">
-                                        {storyPage.caption}
+                                        {storyPage.narrativeText}
                                     </p>
-                                    <div className="flex items-center justify-between gap-3 text-xs">
-                                        <span className="rounded-full bg-purple-50 px-2.5 py-1 font-medium text-purple-700">
-                                            {storyPage.provider || 'story image'}
-                                        </span>
-                                        {storyPage.error && (
-                                            <span className="font-medium text-amber-600">Placeholder</span>
-                                        )}
-                                    </div>
                                 </div>
                             </button>
                         ))}
@@ -263,20 +162,18 @@ const NeuralNarrative = () => {
                         {page && (
                             <div className="relative">
                                 <div className="aspect-square bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center overflow-hidden">
-                                    <img
-                                        src={page.imageUrl}
-                                        alt={`Page ${page.pageNumber}`}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                            e.target.nextSibling.style.display = 'flex';
-                                        }}
-                                    />
-                                    <div className="hidden items-center justify-center w-full h-full text-gray-400">
-                                        <ImageIcon size={64} />
-                                    </div>
+                                    {page.imageUrl ? (
+                                        <img
+                                            src={page.imageUrl}
+                                            alt={`Page ${currentPage + 1}`}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="flex items-center justify-center w-full h-full text-gray-400">
+                                            <ImageIcon size={64} />
+                                        </div>
+                                    )}
                                 </div>
-
                                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-sm text-sm font-semibold text-purple-700">
                                     {currentPage + 1} / {totalPages}
                                 </div>
@@ -285,13 +182,8 @@ const NeuralNarrative = () => {
 
                         <div className="p-6 lg:p-8 bg-gradient-to-r from-purple-50 to-pink-50">
                             <p className="text-lg lg:text-xl text-gray-800 leading-relaxed font-medium text-center">
-                                {page?.caption || 'Loading...'}
+                                {page?.narrativeText || 'Loading...'}
                             </p>
-                            {page?.provider && (
-                                <p className="mt-3 text-center text-xs font-medium uppercase tracking-[0.18em] text-purple-500">
-                                    Image provider: {page.provider}
-                                </p>
-                            )}
                         </div>
 
                         <div className="p-4 flex items-center justify-between border-t border-gray-100">
@@ -309,10 +201,11 @@ const NeuralNarrative = () => {
                                     <button
                                         key={idx}
                                         onClick={() => setCurrentPage(idx)}
-                                        className={`w-2.5 h-2.5 rounded-full transition-all ${idx === currentPage
+                                        className={`w-2.5 h-2.5 rounded-full transition-all ${
+                                            idx === currentPage
                                                 ? 'bg-purple-600 scale-125'
                                                 : 'bg-gray-300 hover:bg-gray-400'
-                                            }`}
+                                        }`}
                                     />
                                 ))}
                             </div>
@@ -336,82 +229,71 @@ const NeuralNarrative = () => {
                                 <Star key={i} className="text-yellow-400" size={20} fill="currentColor" />
                             ))}
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">The End! 🎉</h3>
-                        <p className="text-gray-600 text-sm">What a wonderful story! {storybook.childName} is so brave!</p>
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">The End!</h3>
+                        <p className="text-gray-600 text-sm">What a wonderful story!</p>
                     </div>
                 )}
             </div>
         );
     }
 
-    // --- Render: History View ---
-    if (currentView === 'history') {
+    // --- Render: Generating View ---
+    if (isGenerating) {
         return (
-            <div className="max-w-4xl mx-auto">
-                <button
-                    onClick={() => setCurrentView('form')}
-                    className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-6 transition-colors"
-                >
-                    <ArrowLeft size={18} />
-                    <span className="text-sm font-medium">Back to Create</span>
-                </button>
-
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <History className="text-purple-600" size={24} />
-                    Story History
-                </h2>
-
-                {loadingHistory ? (
-                    <div className="flex justify-center py-12">
-                        <Loader2 className="animate-spin text-purple-500" size={32} />
+            <div className="min-h-[80vh] flex items-center justify-center">
+                <div className="text-center max-w-md mx-auto p-8">
+                    <div className="relative mb-8">
+                        <div className="w-24 h-24 mx-auto bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl flex items-center justify-center shadow-lg shadow-purple-200 animate-pulse">
+                            <Wand2 className="text-white" size={40} />
+                        </div>
+                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center animate-bounce">
+                            <Sparkles className="text-white" size={16} />
+                        </div>
                     </div>
-                ) : history.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                        <BookOpen size={48} className="mx-auto mb-3 opacity-50" />
-                        <p>No stories yet. Create your first one!</p>
-                    </div>
-                ) : (
-                    <div className="grid gap-4">
-                        {history.map((item) => (
-                            <button
-                                key={item._id}
-                                onClick={() => openFromHistory(item)}
-                                className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:border-purple-200 transition-all text-left group"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center flex-shrink-0">
-                                        {item.pages?.[0]?.imageUrl ? (
-                                            <img
-                                                src={item.pages[0].imageUrl}
-                                                alt=""
-                                                className="w-full h-full object-cover rounded-xl"
-                                            />
-                                        ) : (
-                                            <BookOpen className="text-purple-400" size={24} />
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-gray-900 truncate group-hover:text-purple-700 transition-colors">
-                                            {item.childName}'s Story
-                                        </h3>
-                                        <p className="text-sm text-gray-500 truncate">{item.scenario}</p>
-                                        <p className="text-xs text-gray-400 mt-1">
-                                            {new Date(item.createdAt).toLocaleDateString('en-US', {
-                                                month: 'short', day: 'numeric', year: 'numeric'
-                                            })}
-                                            {' · '}
-                                            {item.pages?.length || 0} pages
-                                            {item.status === 'failed' && (
-                                                <span className="ml-2 text-red-400">· Failed</span>
-                                            )}
-                                        </p>
-                                    </div>
-                                    <ChevronRight className="text-gray-300 group-hover:text-purple-400 transition-colors" size={20} />
-                                </div>
-                            </button>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-3">Creating Magic</h2>
+                    <p className="text-gray-500 mb-6">{progress}</p>
+                    <div className="flex justify-center gap-1.5">
+                        {[0, 1, 2, 3, 4].map((i) => (
+                            <div
+                                key={i}
+                                className="w-3 h-3 rounded-full bg-purple-400"
+                                style={{
+                                    animation: `nnpulse 1.4s ease-in-out ${i * 0.2}s infinite`,
+                                    opacity: 0.4
+                                }}
+                            />
                         ))}
                     </div>
-                )}
+                    <p className="text-xs text-gray-400 mt-6">This may take a couple of minutes</p>
+
+                    {/* Show story preview while images are generating */}
+                    {story && (
+                        <div className="mt-8 text-left bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                            <h3 className="font-semibold text-gray-900 mb-3 text-center">{story.title}</h3>
+                            <div className="space-y-2">
+                                {story.pages.map((p, i) => (
+                                    <div key={i} className="flex items-center gap-3 text-sm">
+                                        {p.imageUrl ? (
+                                            <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                                                <span className="text-green-600 text-xs">&#10003;</span>
+                                            </div>
+                                        ) : (
+                                            <Loader2 className="animate-spin text-purple-400 flex-shrink-0" size={16} />
+                                        )}
+                                        <span className="text-gray-600 truncate">Page {i + 1}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <style>{`
+                        @keyframes nnpulse {
+                            0%, 100% { opacity: 0.4; transform: scale(1); }
+                            50% { opacity: 1; transform: scale(1.2); }
+                        }
+                    `}</style>
+                </div>
             </div>
         );
     }
@@ -421,161 +303,94 @@ const NeuralNarrative = () => {
         <div className="max-w-2xl mx-auto">
             {/* Header */}
             <div className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-sm">
-                                <Sparkles className="text-white" size={20} />
-                            </div>
-                            NeuralNarrative
-                        </h1>
-                        <p className="text-gray-500 mt-2 text-sm">
-                            Create a personalized visual story to help your child prepare for new experiences
-                        </p>
-                    </div>
-                    <button
-                        onClick={() => { setCurrentView('history'); fetchHistory(); }}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium"
-                    >
-                        <History size={16} />
-                        History
-                    </button>
+                <div className="mb-4">
+                    <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-sm">
+                            <Sparkles className="text-white" size={20} />
+                        </div>
+                        Neural Narrative
+                    </h1>
+                    <p className="text-gray-500 mt-2 text-sm">
+                        Create a personalized AI-illustrated storybook for your child
+                    </p>
                 </div>
 
-                {/* Info banner */}
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100 flex items-start gap-3">
-                    <Shield className="text-purple-500 flex-shrink-0 mt-0.5" size={18} />
+                    <Sparkles className="text-purple-500 flex-shrink-0 mt-0.5" size={18} />
                     <p className="text-sm text-purple-800 leading-relaxed">
-                        <span className="font-semibold">See it to be it!</span> AI generates friendly cartoon scenes where your child is the hero, helping them visualize success in challenging situations.
+                        <span className="font-semibold">How it works:</span> Describe your child, their favorite things, and an optional theme. AI will write a 5-page story and illustrate every page.
                     </p>
                 </div>
             </div>
 
+            {/* Error */}
+            {error && (
+                <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
+                    <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
+                    <p className="text-sm text-red-700">{error}</p>
+                </div>
+            )}
+
             {/* Form */}
             <div className="space-y-6">
-                {/* Child's Name */}
+                {/* Child Description */}
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                        <Smile size={16} className="text-purple-500" />
-                        Child's Name
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1">
+                        <BookOpen size={16} className="text-purple-500" />
+                        About the Child
                     </label>
-                    <input
-                        type="text"
-                        value={childName}
-                        onChange={(e) => setChildName(e.target.value)}
-                        placeholder="Enter your child's name"
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none transition-all text-gray-800 placeholder:text-gray-400"
+                    <p className="text-xs text-gray-400 mb-3">Describe your child — name, age, personality, appearance, etc.</p>
+                    <textarea
+                        value={childContext}
+                        onChange={(e) => setChildContext(e.target.value)}
+                        placeholder="e.g., A cheerful 5-year-old girl named Aria with curly brown hair and big brown eyes. She's shy but very curious..."
+                        rows={3}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none transition-all text-gray-800 placeholder:text-gray-400 resize-none"
                     />
                 </div>
 
-                {/* Scenario Selection */}
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                        <BookOpen size={16} className="text-purple-500" />
-                        What's the situation?
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                        {PRESET_SCENARIOS.map((s) => (
-                            <button
-                                key={s.value}
-                                onClick={() => setScenario(s.value)}
-                                className={`px-3 py-2.5 rounded-xl text-sm text-left transition-all border ${scenario === s.value
-                                        ? 'bg-purple-50 border-purple-300 text-purple-700 font-medium shadow-sm'
-                                        : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100 hover:border-gray-200'
-                                    }`}
-                            >
-                                {s.label}
-                            </button>
-                        ))}
-                    </div>
-                    <button
-                        onClick={() => setScenario('custom')}
-                        className={`w-full px-3 py-2.5 rounded-xl text-sm text-left transition-all border ${scenario === 'custom'
-                                ? 'bg-purple-50 border-purple-300 text-purple-700 font-medium'
-                                : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100'
-                            }`}
-                    >
-                        ✏️ Write your own scenario...
-                    </button>
-                    {scenario === 'custom' && (
-                        <input
-                            type="text"
-                            value={customScenario}
-                            onChange={(e) => setCustomScenario(e.target.value)}
-                            placeholder="e.g., Taking medicine, Going to the hospital..."
-                            className="w-full mt-3 px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none transition-all text-gray-800 placeholder:text-gray-400"
-                        />
-                    )}
-                </div>
-
-                {/* Comfort Object */}
+                {/* Favorite Things */}
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                     <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1">
-                        <Heart size={16} className="text-pink-500" />
-                        Comfort Object / Hero
+                        <Star size={16} className="text-pink-500" />
+                        Favorite Things
                     </label>
-                    <p className="text-xs text-gray-400 mb-3">Optional — a character or object that supports your child in the story</p>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                        {COMFORT_OBJECTS.map((obj) => (
-                            <button
-                                key={obj}
-                                onClick={() => setComfortObject(comfortObject === obj ? '' : obj)}
-                                className={`px-3 py-2 rounded-xl text-sm transition-all border ${comfortObject === obj
-                                        ? 'bg-pink-50 border-pink-300 text-pink-700 font-medium shadow-sm'
-                                        : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100'
-                                    }`}
-                            >
-                                {obj}
-                            </button>
-                        ))}
-                    </div>
-                    <button
-                        onClick={() => setComfortObject(comfortObject === 'custom' ? '' : 'custom')}
-                        className={`w-full px-3 py-2 rounded-xl text-sm text-left transition-all border ${comfortObject === 'custom'
-                                ? 'bg-pink-50 border-pink-300 text-pink-700 font-medium'
-                                : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100'
-                            }`}
-                    >
-                        ✏️ Custom comfort object...
-                    </button>
-                    {comfortObject === 'custom' && (
-                        <input
-                            type="text"
-                            value={customComfort}
-                            onChange={(e) => setCustomComfort(e.target.value)}
-                            placeholder="e.g., My blankie, Spider-Man, My pet rabbit..."
-                            className="w-full mt-3 px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 outline-none transition-all text-gray-800 placeholder:text-gray-400"
-                        />
-                    )}
+                    <p className="text-xs text-gray-400 mb-3">What does your child love? Animals, toys, characters, activities...</p>
+                    <textarea
+                        value={favoriteContext}
+                        onChange={(e) => setFavoriteContext(e.target.value)}
+                        placeholder="e.g., Loves butterflies, painting, her stuffed bunny named Mochi, and strawberry ice cream..."
+                        rows={3}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 outline-none transition-all text-gray-800 placeholder:text-gray-400 resize-none"
+                    />
+                </div>
+
+                {/* Theme / Learning Goal */}
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1">
+                        <Wand2 size={16} className="text-purple-500" />
+                        Theme / Learning Goal
+                    </label>
+                    <p className="text-xs text-gray-400 mb-3">Optional — a lesson or theme for the story</p>
+                    <input
+                        type="text"
+                        value={theme}
+                        onChange={(e) => setTheme(e.target.value)}
+                        placeholder="e.g., Overcoming fear of the dark, making new friends, sharing..."
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none transition-all text-gray-800 placeholder:text-gray-400"
+                    />
                 </div>
 
                 {/* Generate Button */}
                 <button
                     onClick={handleGenerate}
-                    disabled={isGenerating || !childName.trim() || (!scenario || (scenario === 'custom' && !customScenario.trim()))}
+                    disabled={isGenerating || !childContext.trim() || !favoriteContext.trim()}
                     className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-semibold text-lg shadow-lg shadow-purple-200 hover:shadow-xl hover:shadow-purple-300 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all flex items-center justify-center gap-3"
                 >
-                    {isGenerating ? (
-                        <>
-                            <Loader2 className="animate-spin" size={22} />
-                            Generating...
-                        </>
-                    ) : (
-                        <>
-                            <Wand2 size={22} />
-                            Create Story
-                        </>
-                    )}
+                    <Wand2 size={22} />
+                    Create Story
                 </button>
             </div>
-
-            {/* Keyframe animation style */}
-            <style>{`
-                @keyframes pulse {
-                    0%, 100% { opacity: 0.4; transform: scale(1); }
-                    50% { opacity: 1; transform: scale(1.2); }
-                }
-            `}</style>
         </div>
     );
 };
