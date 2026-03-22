@@ -163,6 +163,7 @@ const ParentDashboardHome = () => {
         completedSessions: 0
     });
     const [upcomingAppointments, setUpcomingAppointments] = useState([]);
+    const [inbox, setInbox] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -177,12 +178,14 @@ const ParentDashboardHome = () => {
             const bookingsPromise = api.get('/bookings/my-bookings');
             const sessionsPromise = api.get(`/sessions/patient/${user.specialId}/history`);
             const assessmentsPromise = api.get(`/assessments/patient/${user.specialId}`);
+            const inboxPromise = api.get('/chat/dm/inbox').catch(() => ({ data: { success: false, data: [] } }));
 
-            const [patientResult, bookingsResult, sessionsResult, assessmentsResult] = await Promise.allSettled([
+            const [patientResult, bookingsResult, sessionsResult, assessmentsResult, inboxResult] = await Promise.allSettled([
                 patientPromise,
                 bookingsPromise,
                 sessionsPromise,
-                assessmentsPromise
+                assessmentsPromise,
+                inboxPromise
             ]);
 
             if (patientResult.status === 'fulfilled' && patientResult.value.data.success) {
@@ -211,6 +214,10 @@ const ParentDashboardHome = () => {
                 setUpcomingAppointments(upcoming);
             } else {
                 setUpcomingAppointments([]);
+            }
+
+            if (inboxResult.status === 'fulfilled' && inboxResult.value.data.success) {
+                setInbox(inboxResult.value.data.data || []);
             }
 
             const completedSessions = sessionsResult.status === 'fulfilled' && sessionsResult.value.data.success
@@ -318,6 +325,58 @@ const ParentDashboardHome = () => {
                                 <h4 className="font-bold text-slate-900 mb-1">Clear Schedule</h4>
                                 <p className="text-sm font-medium text-slate-400 max-w-xs mb-4">You have no upcoming clinical therapy sessions scheduled.</p>
                                 <button onClick={() => navigate('/parent/book')} className="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">Schedule a session &rarr;</button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Direct Messages Inbox */}
+                    <div className="mt-8 flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-extrabold text-slate-900 tracking-tight-premium flex items-center gap-2">
+                            <MessageCircle className="text-blue-600" size={20} strokeWidth={2.5} />
+                            Recent Messages
+                        </h3>
+                        {inbox.length > 0 && (
+                            <button onClick={() => navigate('/parent/chatroom')} className="text-xs font-bold text-blue-600 uppercase tracking-wider hover:text-blue-800 transition-colors">
+                            Parents Lounge
+                        </button>
+                        )}
+                    </div>
+
+                    <div className="space-y-3">
+                        {inbox.length > 0 ? (
+                            inbox.slice(0, 3).map(chat => (
+                                <div
+                                    key={chat.partnerId}
+                                    onClick={() => navigate('/parent/chatroom')}
+                                    className="group flex w-full items-center p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-soft transition-premium cursor-pointer bg-white"
+                                >
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center flex-shrink-0 text-blue-600 font-bold text-lg ring-2 ring-blue-50">
+                                        {chat.partnerName?.charAt(0)?.toUpperCase() || 'P'}
+                                    </div>
+                                    <div className="ml-4 flex-1 min-w-0">
+                                        <div className="flex justify-between items-baseline mb-1">
+                                            <h4 className="font-bold text-slate-900 text-sm truncate">{chat.partnerName}</h4>
+                                            <span className="text-[10px] font-semibold text-slate-400">
+                                                {new Date(chat.lastMessageAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-slate-500 truncate pr-4">
+                                            {chat.isLastFromMe ? 'You: ' : ''}{chat.lastMessage}
+                                        </p>
+                                    </div>
+                                    {chat.unreadCount > 0 && (
+                                        <div className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center ml-2 flex-shrink-0 shadow-sm">
+                                            {chat.unreadCount}
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-center">
+                                <MessageCircle size={24} className="text-slate-300 mb-2" />
+                                <h4 className="font-bold text-slate-900 mb-1 text-sm">No Messages Yet</h4>
+                                <p className="text-xs font-medium text-slate-500 max-w-xs mb-3">Connect with other parents in the Parents Lounge.</p>
+                                <button onClick={() => navigate('/parent/chatroom')} className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors">Find Matches &rarr;</button>
                             </div>
                         )}
                     </div>

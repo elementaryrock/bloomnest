@@ -1,9 +1,11 @@
 const mongoose = require('mongoose');
 
+const VALID_ROOMS = ['general', 'speech', 'ot', 'pt', 'psychology', 'ei'];
+
 const messageSchema = new mongoose.Schema({
   sender: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Patient', // Note: 'Patient' acts as the parent object containing parentName
+    ref: 'Patient',
     required: true
   },
   content: {
@@ -12,14 +14,19 @@ const messageSchema = new mongoose.Schema({
     trim: true,
     maxlength: 1000
   },
-  // In a multi-room setup this would be: room: { type: String, required: true }, but here we have just one global room
+  room: {
+    type: String,
+    enum: VALID_ROOMS,
+    default: 'general',
+    index: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
-// Optimize for fetching latest messages
-messageSchema.index({ createdAt: -1 });
+// Optimize for fetching latest messages per room
+messageSchema.index({ room: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Message', messageSchema);

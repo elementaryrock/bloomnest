@@ -176,33 +176,59 @@ app.use((err, req, res, next) => {
 io.on('connection', (socket) => {
   console.log('A user connected to the chat:', socket.id);
 
-  // Users can join the global parent room
+  // Legacy: join the global parent lounge room
   socket.on('join_parent_lounge', () => {
     socket.join('parents_lounge');
     console.log(`User ${socket.id} joined parents_lounge`);
   });
 
+  // Join a specific therapy-based room
+  socket.on('join_room', (room) => {
+    const validRooms = ['general', 'speech', 'ot', 'pt', 'psychology', 'ei'];
+    if (validRooms.includes(room)) {
+      socket.join(`lounge_${room}`);
+      console.log(`User ${socket.id} joined lounge_${room}`);
+    }
+  });
+
+  // Leave a specific therapy-based room
+  socket.on('leave_room', (room) => {
+    socket.leave(`lounge_${room}`);
+    console.log(`User ${socket.id} left lounge_${room}`);
+  });
+
   socket.on('send_message', async (data) => {
     try {
-      // data should contain { sender: patientId, content: "text", senderName: "Name", childName: "Name" }
+      // data: { sender, content, senderName, childName, room? }
       const Message = require('./models/Message');
+      const room = data.room || 'general';
+
       const newMessage = new Message({
         sender: data.sender,
-        content: data.content
+        content: data.content,
+        room: room
       });
       await newMessage.save();
 
-      // Broadcast to everyone in the lounge, including sender (or use socket.to().emit)
-      io.to('parents_lounge').emit('receive_message', {
+      const messagePayload = {
         _id: newMessage._id,
         content: newMessage.content,
+        room: room,
         sender: {
           _id: data.sender,
           parentName: data.senderName,
           childName: data.childName
         },
         createdAt: newMessage.createdAt
-      });
+      };
+
+      // Emit to the specific room channel
+      io.to(`lounge_${room}`).emit('receive_message', messagePayload);
+
+      // Also emit to legacy global room for backward compat
+      if (room === 'general') {
+        io.to('parents_lounge').emit('receive_message', messagePayload);
+      }
     } catch (error) {
       console.error('Socket message error:', error);
     }
