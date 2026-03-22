@@ -75,11 +75,11 @@ async function apiCallWithRetry(url, body, apiKey, maxRetries = 3) {
 /**
  * Build a rich prompt for a single storybook page.
  */
-function buildPagePrompt(childName, scenario, comfortObject, pageNumber, totalPages, pageDescription) {
+function buildPagePrompt(childName, scenario, comfortObject, pageNumber, totalPages, pageDescription, theme) {
     let prompt = `Create a warm, friendly, cartoon-style illustration for a children's storybook. `;
     prompt += `This is page ${pageNumber} of ${totalPages}. `;
     prompt += `The main character is a cheerful child named "${childName}". `;
-    prompt += `The story is about: "${scenario}". `;
+    prompt += `The story involves: "${scenario}"${theme ? ` with a focus on ${theme}` : ''}. `;
     prompt += `Scene for this page: ${pageDescription}. `;
 
     if (comfortObject) {
@@ -97,37 +97,48 @@ function buildPagePrompt(childName, scenario, comfortObject, pageNumber, totalPa
  * Generate a story outline using Gemini text generation.
  * Tries multiple models as fallback if one is rate-limited.
  */
-async function generateStoryOutline(childName, scenario, comfortObject, apiKey) {
+async function generateStoryOutline(childName, scenario, comfortObject, apiKey, theme) {
     const totalPages = 5;
     if (!apiKey) {
         console.log('[NeuralNarrative] GEMINI_API_KEY not set, using default story outline');
-        return getDefaultOutline(childName, scenario, comfortObject);
+        return getDefaultOutline(childName, scenario, comfortObject, theme);
     }
 
-    const prompt = `You are a children's storybook writer specializing in social scripts for children who might be anxious or afraid.
+    const prompt = `You are an elite children's author and child psychologist. 
+Your task is to write a deeply personal, empowering, and cinematic 5-page story for a child named "${childName}".
 
-Create a short ${totalPages}-page storybook outline for a child named "${childName}" about the scenario: "${scenario}".
-${comfortObject ? `The child's favorite comfort object or hero is "${comfortObject}" and it should appear as support.` : ''}
+CONTEXT:
+- The Hero: ${childName}
+- The Hero's Strengths/Interests: ${scenario}
+- The Challenge/Fear: ${theme || "A new adventure"}
+- The Sidekick/Power Item: ${comfortObject || "Their inner courage"}
 
-The story should:
-1. Start with preparation and feeling ready
-2. Show the child arriving and being greeted warmly
-3. Show the child going through the experience calmly, step by step
-4. Show a moment of bravery or accomplishment
-5. End with the child feeling proud and getting a reward/celebration
+STORY ARCHITECTURE (The Hero's Journey):
+1. Page 1: Introduction. Establish ${childName} as a curious and capable hero. Introduce the challenge (${theme}) and the initial feeling of hesitation.
+2. Page 2: The Spark. ${childName} discovers or uses their ${comfortObject}. This item represents their strength or a happy memory that gives them a "superpower" of calm.
+3. Page 3: The Approach. ${childName} takes the first step toward the challenge. Describe the environment as magical and welcoming rather than scary.
+4. Page 4: The Heroic Moment. ${childName} faces the heart of ${theme}. They use their ${comfortObject} or a skill from ${scenario} to succeed. This is the peak of motivation.
+5. Page 5: The Victory. ${childName} feels a surge of pride. They realized they were brave all along. End with a celebration or a warm, peaceful moment.
+
+CRITICAL CONSTRAINTS:
+- DO NOT use any template text like "Hamza is getting ready" or " Hamza arrives".
+- DO NOT use meta-text like "Based on", "Theme:", or "Scenario:".
+- Write in a warm, evocative, and rhythmic style (like a high-end picture book).
+- Each caption should be 2-3 sentences long.
+- The tone must be MOTIVATIONAL. ${childName} is the hero of their own life.
 
 For each page, provide:
-- A short caption (1-2 sentences, written for a child aged 3-8)
-- A scene description for an illustrator (1-2 sentences describing the visual)
+- "caption": The actual text of the storybook page.
+- "sceneDescription": A vivid, detailed visual description for a high-end illustrator (mention lighting, colors, and the heroic pose of the child).
 
-Format your response EXACTLY as a JSON array with ${totalPages} objects, each having "caption" and "sceneDescription" keys. 
-Return ONLY the JSON array, no other text.`;
+Format your response EXACTLY as a JSON array with ${totalPages} objects. Return ONLY the JSON array.`;
 
     const requestBody = {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-            temperature: 0.8,
-            maxOutputTokens: 1024
+            temperature: 0.9,
+            maxOutputTokens: 1500,
+            topP: 0.95
         }
     };
 
@@ -160,7 +171,7 @@ Return ONLY the JSON array, no other text.`;
                 return outline.slice(0, totalPages);
             } catch (parseError) {
                 console.error('[NeuralNarrative] Failed to parse story outline, using default');
-                return getDefaultOutline(childName, scenario, comfortObject);
+                return getDefaultOutline(childName, scenario, comfortObject, theme);
             }
         } catch (error) {
             console.warn(`[NeuralNarrative] Model ${model} failed: ${error.message?.substring(0, 100)}`);
@@ -171,17 +182,25 @@ Return ONLY the JSON array, no other text.`;
 
     // All models failed — use default outline instead of crashing
     console.warn('[NeuralNarrative] All text models failed, using default outline');
-    return getDefaultOutline(childName, scenario, comfortObject);
+    return getDefaultOutline(childName, scenario, comfortObject, theme);
 }
 
 /**
  * Default fallback outline when AI generation fails.
  */
-function getDefaultOutline(childName, scenario, comfortObject) {
+function getDefaultOutline(childName, scenario, comfortObject, theme) {
+    const mainInterest = scenario.split(',')[0].trim();
     const comfortText = comfortObject ? ` ${childName} brings their friend ${comfortObject} along.` : '';
+    
+    // Create a story context from favorites and theme
+    let storyContext = mainInterest;
+    if (theme) {
+        storyContext += ` and ${theme.toLowerCase()}`;
+    }
+
     return [
         {
-            caption: `${childName} is getting ready for a big day! It's time for ${scenario}.${comfortText}`,
+            caption: `${childName} is getting ready for a big day! It's time for ${storyContext}.${comfortText}`,
             sceneDescription: `A cheerful child at home, looking in a mirror and smiling, preparing to go out.${comfortObject ? ` A ${comfortObject} is nearby.` : ''}`
         },
         {
@@ -227,11 +246,11 @@ async function uploadImageToCloudinary(base64Data, mimeType, cloudinaryUtil) {
  * Generate the full storybook: outline + images for each page.
  * Includes a delay between image requests to avoid rate limits.
  */
-async function generateStorybook(childName, scenario, comfortObject, apiKey, cloudinaryUpload) {
-    console.log(`[NeuralNarrative] Generating storybook for "${childName}" - scenario: "${scenario}"`);
+async function generateStorybook(childName, scenario, comfortObject, apiKey, cloudinaryUpload, theme) {
+    console.log(`[NeuralNarrative] Generating storybook for "${childName}" - scenario: "${scenario}"${theme ? `, theme: "${theme}"` : ''}`);
 
     // Step 1: Generate the story outline
-    const outline = await generateStoryOutline(childName, scenario, comfortObject, apiKey);
+    const outline = await generateStoryOutline(childName, scenario, comfortObject, apiKey, theme);
     console.log(`[NeuralNarrative] Generated ${outline.length}-page outline`);
 
     // Step 2: Generate images for each page in PARALLEL (with a bit of control)
@@ -249,7 +268,8 @@ async function generateStorybook(childName, scenario, comfortObject, apiKey, clo
             comfortObject,
             pageNum,
             outline.length,
-            page.sceneDescription
+            page.sceneDescription,
+            theme
         );
 
         try {

@@ -16,13 +16,13 @@ try {
  */
 const generateNarrative = async (req, res) => {
     try {
-        const { childName, scenario, comfortObject, childPhotoUrl } = req.body;
+        const { childName, scenario, theme, comfortObject, childPhotoUrl } = req.body;
 
         // Validation
         if (!childName || !scenario) {
             return res.status(400).json({
                 success: false,
-                error: { message: 'childName and scenario are required' }
+                error: { message: 'childName and scenario (favorites) are required' }
             });
         }
 
@@ -41,7 +41,7 @@ const generateNarrative = async (req, res) => {
             userId: req.user.userId,
             patientId: req.user.specialId || req.user.userId,
             childName,
-            scenario,
+            scenario: `${scenario}${theme ? ` (Theme: ${theme})` : ''}`, // Keep for history/reference
             comfortObject: comfortObject || '',
             childPhotoUrl: childPhotoUrl || '',
             status: 'generating',
@@ -56,7 +56,8 @@ const generateNarrative = async (req, res) => {
                 scenario,
                 comfortObject || '',
                 apiKey,
-                cloudinaryUpload
+                cloudinaryUpload,
+                theme // Pass theme separately
             );
 
             narrative.pages = pages;
