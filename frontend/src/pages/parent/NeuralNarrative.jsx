@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
     Sparkles, Loader2, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Star,
-    ArrowLeft, BookText, LayoutGrid, ImageIcon, Wand2, AlertCircle
+    ArrowLeft, BookText, LayoutGrid, ImageIcon, Wand2, AlertCircle, History
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -22,6 +22,39 @@ const NeuralNarrative = () => {
     // UI
     const [currentPage, setCurrentPage] = useState(0);
     const [storyLayout, setStoryLayout] = useState('grid');
+
+    // History
+    const [showHistory, setShowHistory] = useState(false);
+    const [history, setHistory] = useState([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+
+    const fetchHistory = async () => {
+        setLoadingHistory(true);
+        try {
+            const response = await api.get('/narrative/history');
+            if (response.data.success) {
+                setHistory(response.data.data);
+            }
+        } catch (error) {
+            console.error('History error:', error);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
+    const openFromHistory = (narrative) => {
+        const storyWithImages = {
+            title: `${narrative.childName}'s Story`,
+            pages: narrative.pages.map(page => ({
+                narrativeText: page.caption,
+                imageUrl: page.imageUrl
+            }))
+        };
+        setStory(storyWithImages);
+        setCurrentPage(0);
+        setStoryLayout('grid');
+        setShowHistory(false);
+    };
 
     const handleGenerate = async () => {
         if (!childContext.trim()) {
@@ -73,6 +106,78 @@ const NeuralNarrative = () => {
             setIsGenerating(false);
         }
     };
+
+    // --- Render: History View ---
+    if (showHistory) {
+        return (
+            <div className="max-w-4xl mx-auto">
+                <button
+                    onClick={() => setShowHistory(false)}
+                    className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-6 transition-colors"
+                >
+                    <ArrowLeft size={18} />
+                    <span className="text-sm font-medium">Back to Create</span>
+                </button>
+
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    <History className="text-purple-600" size={24} />
+                    Story History
+                </h2>
+
+                {loadingHistory ? (
+                    <div className="flex justify-center py-12">
+                        <Loader2 className="animate-spin text-purple-500" size={32} />
+                    </div>
+                ) : history.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">
+                        <BookOpen size={48} className="mx-auto mb-3 opacity-50" />
+                        <p>No stories yet. Create your first one!</p>
+                    </div>
+                ) : (
+                    <div className="grid gap-4">
+                        {history.map((item) => (
+                            <button
+                                key={item._id}
+                                onClick={() => openFromHistory(item)}
+                                className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:border-purple-200 transition-all text-left group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                        {item.pages?.[0]?.imageUrl ? (
+                                            <img
+                                                src={item.pages[0].imageUrl}
+                                                alt=""
+                                                className="w-full h-full object-cover rounded-xl"
+                                            />
+                                        ) : (
+                                            <BookOpen className="text-purple-400" size={24} />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-gray-900 truncate group-hover:text-purple-700 transition-colors">
+                                            {item.childName}'s Story
+                                        </h3>
+                                        <p className="text-sm text-gray-500 truncate">{item.scenario}</p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            {new Date(item.createdAt).toLocaleDateString('en-US', {
+                                                month: 'short', day: 'numeric', year: 'numeric'
+                                            })}
+                                            {' · '}
+                                            {item.pages?.length || 0} pages
+                                            {item.status === 'failed' && (
+                                                <span className="ml-2 text-red-400">· Failed</span>
+                                            )}
+                                        </p>
+                                    </div>
+                                    <ChevronRight className="text-gray-300 group-hover:text-purple-400 transition-colors" size={20} />
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     // --- Render: Storybook View ---
     if (story && !isGenerating) {
@@ -303,16 +408,25 @@ const NeuralNarrative = () => {
         <div className="max-w-2xl mx-auto">
             {/* Header */}
             <div className="mb-8">
-                <div className="mb-4">
-                    <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-sm">
-                            <Sparkles className="text-white" size={20} />
-                        </div>
-                        Neural Narrative
-                    </h1>
-                    <p className="text-gray-500 mt-2 text-sm">
-                        Create a personalized AI-illustrated storybook for your child
-                    </p>
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-sm">
+                                <Sparkles className="text-white" size={20} />
+                            </div>
+                            Neural Narrative
+                        </h1>
+                        <p className="text-gray-500 mt-2 text-sm">
+                            Create a personalized AI-illustrated storybook for your child
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => { setShowHistory(true); fetchHistory(); }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium"
+                    >
+                        <History size={16} />
+                        History
+                    </button>
                 </div>
 
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100 flex items-start gap-3">
