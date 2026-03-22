@@ -32,6 +32,7 @@ import {
   ArrowDownRight,
   Equal,
   CalendarDays,
+  RefreshCcw,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
@@ -1360,19 +1361,25 @@ const TherapyRipple = () => {
 
               {/* PDF Download Button */}
               <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleDownloadPdf}
                 disabled={downloadingPdf}
-                className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md rounded-xl px-4 py-2.5 border border-white/20 transition-all duration-200 text-sm font-semibold disabled:opacity-60"
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-2xl px-5 py-2.5 border border-white/20 transition-all shadow-sm text-sm font-bold shadow-[0_4px_12px_rgba(0,0,0,0.05)] disabled:opacity-60"
                 title="Download progress report as PDF"
               >
                 {downloadingPdf ? (
-                  <Loader2 size={16} className="animate-spin" />
+                  <Loader2 size={16} className="animate-spin text-white" />
                 ) : (
-                  <Download size={16} />
+                  <Download
+                    size={16}
+                    strokeWidth={2.5}
+                    className="text-white"
+                  />
                 )}
-                <span>{downloadingPdf ? "Generating…" : "Download PDF"}</span>
+                <span className="text-white drop-shadow-sm">
+                  {downloadingPdf ? "Generating…" : "Download PDF"}
+                </span>
               </motion.button>
             </div>
           </div>
@@ -1766,7 +1773,7 @@ const FormCard = ({
             key={num}
             type="button"
             onClick={() => goToStep(num)}
-            className={`h-9 w-9 rounded-full text-xs font-bold border transition-colors ${step === num ? "bg-violet-600 text-white border-violet-600" : "bg-white text-gray-500 border-gray-200 hover:border-violet-300"}`}
+            className={`h-8 w-8 rounded-full text-[11px] font-bold border transition-all duration-300 ${step === num ? "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-200/50 scale-105" : "bg-white text-gray-400 border-gray-100 hover:border-violet-300 hover:text-violet-500"}`}
             aria-label={`Go to step ${num}`}
           >
             {num}
@@ -1788,24 +1795,28 @@ const FormCard = ({
       {/* Stress Level Selector */}
       {step === 1 && (
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 ml-1">
             Your Stress Level
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-5 items-stretch gap-2">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-gray-50/50 p-2 rounded-2xl border border-gray-100">
             {[1, 2, 3, 4, 5].map((level) => (
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 key={level}
                 onClick={() => setStressLevel(level)}
-                className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all duration-200 ${
+                className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border transition-all duration-300 ${
                   stressLevel === level
-                    ? `bg-gradient-to-b ${STRESS_COLORS[level - 1]} text-white border-transparent shadow-lg`
-                    : "bg-white border-gray-200 hover:border-gray-300 text-gray-600"
+                    ? `bg-gradient-to-b ${STRESS_COLORS[level - 1]} text-white border-transparent shadow-md ring-2 ring-white ring-offset-2 ring-offset-gray-50`
+                    : "bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50 text-gray-500 shadow-sm"
                 }`}
               >
-                <span className="text-2xl">{STRESS_EMOJIS[level - 1]}</span>
-                <span className="text-[11px] font-semibold leading-tight px-1 text-center">
+                <span className="text-xl drop-shadow-sm">
+                  {STRESS_EMOJIS[level - 1]}
+                </span>
+                <span
+                  className={`text-[10px] font-bold leading-tight px-1 text-center ${stressLevel === level ? "text-white/90" : "text-gray-400"}`}
+                >
                   {STRESS_LABELS[level - 1]}
                 </span>
               </motion.button>
@@ -1821,29 +1832,35 @@ const FormCard = ({
 
       {step === 2 && (
         <div className="mb-6">
-          <div className="flex items-center justify-between w-full mb-3">
+          <div className="flex items-center justify-between w-full mb-3 px-1">
             <button
               type="button"
               onClick={() => setShowSiblings(!showSiblings)}
-              className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-violet-600 transition-colors"
+              className="flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-violet-600 transition-colors group"
             >
-              <Users size={16} />
-              <span>Sibling Feelings</span>
-              <span className="text-[11px] text-gray-400 ml-1">(optional)</span>
+              <div className="w-6 h-6 rounded-full bg-violet-50 flex items-center justify-center text-violet-500 group-hover:bg-violet-100 transition-colors">
+                <Users size={14} />
+              </div>
+              <span>Sibling feelings</span>
+              <span className="text-[10px] uppercase font-semibold text-gray-400 ml-1 tracking-wider">
+                (optional)
+              </span>
               {showSiblings ? (
-                <ChevronUp size={16} />
+                <ChevronUp size={16} className="text-gray-400" />
               ) : (
-                <ChevronDown size={16} />
+                <ChevronDown size={16} className="text-gray-400" />
               )}
             </button>
             {hasPastSiblings && showSiblings && (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={handleCopyLastWeek}
-                className="text-xs text-violet-600 font-medium hover:text-violet-700 bg-violet-50 px-2.5 py-1 rounded border border-violet-100 transition-colors"
+                className="text-[11px] font-bold text-violet-600 bg-violet-50/80 px-3 py-1.5 rounded-full border border-violet-100/50 hover:bg-violet-100 transition-colors shadow-sm flex items-center gap-1.5"
               >
-                Copy last week
-              </button>
+                <RefreshCcw size={12} /> Copy last week
+              </motion.button>
             )}
           </div>
 
@@ -1881,7 +1898,7 @@ const FormCard = ({
                         }
                         className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3 focus:ring-2 focus:ring-violet-300 focus:border-violet-400 outline-none"
                       />
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-2">
                         {FEELINGS.map((f) => {
                           const FIcon = f.icon;
                           return (
@@ -1891,13 +1908,13 @@ const FormCard = ({
                               onClick={() =>
                                 updateSibling(idx, "feeling", f.key)
                               }
-                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-bold transition-all duration-200 ${
                                 entry.feeling === f.key
-                                  ? `${f.bg} ${f.color} ${f.border} ring-2 ${f.ring} ring-offset-1`
-                                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+                                  ? `${f.bg} ${f.color} border-transparent shadow-sm ring-2 ${f.ring} ring-offset-1`
+                                  : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-sm"
                               }`}
                             >
-                              <FIcon size={13} /> {f.label}
+                              <FIcon size={13} strokeWidth={2.5} /> {f.label}
                             </button>
                           );
                         })}
@@ -1905,13 +1922,17 @@ const FormCard = ({
                     </motion.div>
                   ))}
                 </AnimatePresence>
-                <button
-                  type="button"
-                  onClick={addSibling}
-                  className="flex items-center gap-1.5 text-sm text-violet-600 hover:text-violet-700 font-medium pt-1"
-                >
-                  <Plus size={15} /> Add Sibling
-                </button>
+                <div className="pt-2">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    onClick={addSibling}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-100 transition-colors shadow-sm"
+                  >
+                    <Plus size={14} strokeWidth={3} /> Add Sibling
+                  </motion.button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1927,64 +1948,87 @@ const FormCard = ({
       {/* Notes */}
       {step === 3 && (
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Notes <span className="text-gray-400 font-normal">(optional)</span>
+          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 ml-1">
+            Notes{" "}
+            <span className="text-gray-400 font-medium normal-case tracking-normal">
+              (optional)
+            </span>
           </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="How was your week overall? Any observations about the family…"
-            rows={3}
-            maxLength={1000}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-violet-300 focus:border-violet-400 outline-none resize-none"
-          />
-          <p className="mt-1 text-[11px] text-gray-400 text-right">
-            {notesLength}/1000
-          </p>
+          <div className="relative">
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="How was your week overall? Any observations about the family…"
+              rows={3}
+              maxLength={1000}
+              className="w-full bg-gray-50/50 border border-gray-200 rounded-2xl px-4 py-3.5 text-sm focus:bg-white focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 outline-none resize-none transition-all shadow-sm"
+            />
+            <p className="absolute bottom-3 right-4 text-[10px] font-bold text-gray-400">
+              {notesLength}/1000
+            </p>
+          </div>
         </div>
       )}
 
-      <div className="mb-5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
-        <p className="text-xs text-gray-500">Preview</p>
-        <p className="text-sm text-gray-700 mt-1">
-          Stress: <strong>{STRESS_LABELS[stressLevel - 1]}</strong> • Siblings
-          logged: <strong>{siblingCount}</strong>
-        </p>
+      <div className="mb-6 rounded-2xl border border-indigo-50/50 bg-gradient-to-r from-gray-50 to-slate-50 px-4 py-3 shadow-sm flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            Current Week Preview
+          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-sm font-bold text-gray-700 bg-white px-2 py-0.5 rounded-md border border-gray-100 shadow-sm">
+              Level {stressLevel}: {STRESS_LABELS[stressLevel - 1]}
+            </span>
+            <span className="text-gray-300">•</span>
+            <span className="text-sm font-bold text-gray-700 bg-white px-2 py-0.5 rounded-md border border-gray-100 shadow-sm">
+              {siblingCount} Sibling{siblingCount !== 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
         {step > 1 && (
-          <button
-            type="button"
-            onClick={() => goToStep(step - 1)}
-            className="flex-1 border border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-          >
-            Back
-          </button>
-        )}
-
-        {step < 3 ? (
-          <button
-            type="button"
-            onClick={() => goToStep(step + 1)}
-            disabled={step === 1 && !canContinueStep1}
-            className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3 rounded-xl font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            Continue
-          </button>
-        ) : (
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            type="button"
+            onClick={() => goToStep(step - 1)}
+            className="flex-1 bg-white border-2 border-gray-100 text-gray-600 py-3 rounded-2xl font-bold text-sm hover:border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
+          >
+            ← Back
+          </motion.button>
+        )}
+
+        {step < 3 ? (
+          <motion.button
+            whileHover={
+              !(!canContinueStep1 && step === 1) ? { scale: 1.02 } : {}
+            }
+            whileTap={!(!canContinueStep1 && step === 1) ? { scale: 0.98 } : {}}
+            type="button"
+            onClick={() => goToStep(step + 1)}
+            disabled={step === 1 && !canContinueStep1}
+            className="flex-[2] bg-gray-900 text-white py-3 rounded-2xl font-bold text-sm hover:bg-black transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed group"
+          >
+            Continue{" "}
+            <span className="inline-block group-hover:translate-x-1 transition-transform ml-1">
+              →
+            </span>
+          </motion.button>
+        ) : (
+          <motion.button
+            whileHover={canSubmit ? { scale: 1.02 } : {}}
+            whileTap={canSubmit ? { scale: 0.98 } : {}}
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-violet-200 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
+            className="flex-[2] bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold py-3 rounded-2xl shadow-lg shadow-violet-200 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-violet-300"
           >
             {submitting ? (
               <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                <Send size={16} /> Log This Week
+                <Send size={16} strokeWidth={2.5} /> Log This Week
               </>
             )}
           </motion.button>
