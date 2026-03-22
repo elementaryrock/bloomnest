@@ -280,10 +280,11 @@ function PlantCard({ goal, onComplete, onWater, onEdit, onDelete, currentUserId,
             }}
             whileHover={{ y: -8, scale: 1.02 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className={`plant-card bg-white/70 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 ${goal.isCompleted ? 'ring-2 ring-emerald-300' : ''} p-6 relative overflow-hidden group`}
+            className={`plant-card bg-white/78 backdrop-blur-xl rounded-[2.25rem] border border-white/80 shadow-[0_14px_40px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_48px_rgba(15,23,42,0.12)] transition-all duration-300 ${goal.isCompleted ? 'ring-2 ring-emerald-300' : ''} p-5 relative overflow-hidden group`}
         >
             {/* Top color accent */}
-            <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${stage.color} opacity-60`} />
+            <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${stage.color} opacity-80`} />
+            <div className="absolute inset-x-4 top-4 h-20 rounded-[1.75rem] bg-gradient-to-b from-white/70 to-white/0 pointer-events-none" />
 
             {/* Completed badge */}
             <AnimatePresence>
@@ -311,12 +312,16 @@ function PlantCard({ goal, onComplete, onWater, onEdit, onDelete, currentUserId,
                     <button
                         onClick={() => onEdit(goal)}
                         className="w-9 h-9 bg-white/90 backdrop-blur-md shadow-md rounded-xl flex items-center justify-center text-blue-500 hover:text-blue-600 transition-all border border-white"
+                        aria-label={`Edit goal ${goal.goalName}`}
+                        type="button"
                     >
                         <Edit2 size={16} />
                     </button>
                     <button
                         onClick={() => onDelete(goal._id)}
                         className="w-9 h-9 bg-white/90 backdrop-blur-md shadow-md rounded-xl flex items-center justify-center text-red-500 hover:text-red-600 transition-all border border-white"
+                        aria-label={`Delete goal ${goal.goalName}`}
+                        type="button"
                     >
                         <Trash2 size={16} />
                     </button>
@@ -325,36 +330,45 @@ function PlantCard({ goal, onComplete, onWater, onEdit, onDelete, currentUserId,
 
             {/* Plant emoji + stage */}
             <div className="text-center mb-3 relative">
-                <div className={`plant-stage-emoji ${goal.isCompleted ? 'tree-glow animate-bounce-gentle' : 'animate-sway'}`}>
-                    {goal.isCompleted ? '🌳' : stage.emoji}
+                <div className="mx-auto mb-2 flex h-20 w-20 items-center justify-center rounded-[1.6rem] bg-white/85 shadow-inner ring-1 ring-white/80">
+                    <div className={`plant-stage-emoji ${goal.isCompleted ? 'tree-glow animate-bounce-gentle' : 'animate-sway'}`}>
+                        {goal.isCompleted ? '🌳' : stage.emoji}
+                    </div>
                 </div>
-                <div className={`inline-block mt-1 text-xs font-semibold px-3 py-1 rounded-full bg-gradient-to-r ${stage.color} text-white`}>
-                    {goal.isCompleted ? 'Tree! 🎉' : stage.label}
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full bg-gradient-to-r ${stage.color} text-white shadow-sm`}>
+                        {goal.isCompleted ? 'Tree! 🎉' : stage.label}
+                    </span>
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${cat.color}`}>
+                        {React.createElement(cat.icon, { size: 11 })} {cat.label}
+                    </span>
                 </div>
             </div>
 
             {/* Plant info */}
-            <div className="mb-3">
-                <p className="font-bold text-gray-900 text-center text-sm leading-tight">{goal.goalName}</p>
+            <div className="mb-3 rounded-[1.35rem] bg-white/55 px-3.5 py-2.5 border border-white/80">
+                <p className="font-black text-gray-900 text-center text-[15px] leading-snug">{goal.goalName}</p>
                 <p className="text-xs text-center text-gray-500 mt-0.5">{goal.plantSpecies} {goal.plantEmoji}</p>
-                <span className={`mt-2 inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cat.color}`}>
-                    {React.createElement(cat.icon, { size: 10 })} {cat.label}
-                </span>
+                <div className="mt-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
+                    <span>{goal.currentCompletions} done</span>
+                    <span className="text-gray-300">•</span>
+                    <span>{Math.max(goal.requiredCompletions - goal.currentCompletions, 0)} to go</span>
+                </div>
                 {goal.goalOwnerType === 'therapist' && (
-                    <span className="ml-1 text-[10px] text-gray-400 font-medium">Therapist Goal</span>
+                    <p className="mt-1.5 text-center text-[11px] font-semibold text-gray-400">Therapist Goal</p>
                 )}
             </div>
 
             {/* Progress bar */}
-            <div className="mb-6 px-2">
-                <div className="flex justify-between items-end mb-2">
+            <div className="mb-5 px-1">
+                <div className="flex justify-between items-end mb-1.5">
                     <div className="flex flex-col">
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Progress</span>
                         <span className="text-xs font-bold text-gray-600">{goal.currentCompletions} <span className="text-gray-300">/</span> {goal.requiredCompletions}</span>
                     </div>
                     <span className="text-lg font-black text-emerald-600 leading-none">{progress}%</span>
                 </div>
-                <div className="h-4 bg-gray-100 rounded-full p-1 shadow-inner relative overflow-hidden">
+                <div className="h-3.5 bg-gray-100/90 rounded-full p-1 shadow-inner relative overflow-hidden ring-1 ring-black/5">
                     <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
@@ -371,19 +385,20 @@ function PlantCard({ goal, onComplete, onWater, onEdit, onDelete, currentUserId,
 
             {/* Action buttons */}
             {!goal.isCompleted && (
-                <div className="flex gap-3 mt-4">
+                <div className="flex gap-3 mt-3">
                     <motion.button
                         whileHover={!alreadyWatered ? { scale: 1.05 } : {}}
                         whileTap={!alreadyWatered ? { scale: 0.95 } : {}}
                         onClick={handleWater}
                         disabled={alreadyWatered || watering}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-md ${alreadyWatered
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-md ${alreadyWatered
                             ? 'bg-gray-100/50 text-gray-400 shadow-none border border-gray-200/50'
                             : 'bg-gradient-to-r from-sky-400 to-blue-500 text-white hover:shadow-sky-200/50 border border-sky-400/50'
                             }`}
+                        aria-label={alreadyWatered ? `Already watered ${goal.goalName} today` : `Water ${goal.goalName}`}
                     >
                         {alreadyWatered ? <RefreshCw size={14} /> : <Droplets size={14} className={watering ? "animate-spin" : ""} />}
-                        {alreadyWatered ? 'Watered' : watering ? '...' : 'Water'}
+                        {alreadyWatered ? 'Watered' : watering ? 'Watering…' : 'Water'}
                     </motion.button>
                     
                     <motion.button
@@ -391,16 +406,17 @@ function PlantCard({ goal, onComplete, onWater, onEdit, onDelete, currentUserId,
                         whileTap={{ scale: 0.95 }}
                         onClick={handleComplete}
                         disabled={completing}
-                        className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-emerald-400 to-green-500 text-white shadow-md hover:shadow-emerald-200/50 transition-all border border-emerald-400/50"
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-emerald-400 to-green-500 text-white shadow-md hover:shadow-emerald-200/50 transition-all border border-emerald-400/50"
+                        aria-label={`Log progress for ${goal.goalName}`}
                     >
                         <Check size={14} className={completing ? "animate-bounce" : ""} />
-                        {completing ? '...' : 'Log'}
+                        {completing ? 'Saving…' : 'Log'}
                     </motion.button>
                 </div>
             )}
 
             {goal.isCompleted && (
-                <div className="mt-3 text-center text-sm text-emerald-600 font-semibold bg-emerald-50 rounded-xl py-2">
+                <div className="mt-3 text-center text-sm text-emerald-700 font-semibold bg-emerald-50/90 rounded-2xl py-3 border border-emerald-200">
                     🌳 Moved to Forest!
                 </div>
             )}
@@ -436,7 +452,7 @@ function ForestTree({ goal, season, index }) {
                 y: yOffset - 10,
                 transition: { type: "spring", stiffness: 300 }
             }}
-            className="forest-tree relative flex flex-col items-center justify-end z-10 group min-w-[100px] cursor-pointer"
+            className="forest-tree relative flex flex-col items-center justify-end z-10 group min-w-[84px] sm:min-w-[100px] cursor-pointer"
         >
             {/* Tree Emoji */}
             <div className="relative">
@@ -445,10 +461,10 @@ function ForestTree({ goal, season, index }) {
                         <Star size={14} fill="currentColor" />
                     </div>
                 )}
-                <div className="text-6xl mb-1 group-hover:animate-tree-shake origin-bottom tree-glow">
+                <div className="text-5xl sm:text-6xl mb-1 group-hover:animate-tree-shake origin-bottom tree-glow">
                     🌳
                 </div>
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xl drop-shadow-md pointer-events-none">
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 text-lg sm:text-xl drop-shadow-md pointer-events-none">
                     {seasonLeaves[season]}
                 </div>
 
@@ -457,11 +473,11 @@ function ForestTree({ goal, season, index }) {
             </div>
 
             {/* Premium Glassmorphism Label */}
-            <div className="mt-3 bg-white/50 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-sm border border-white/60 text-center w-full min-w-[110px] transform translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-                <p className="text-[11px] font-black text-gray-800 leading-tight uppercase tracking-wider mb-1 line-clamp-2">
+            <div className="mt-2 sm:mt-3 bg-white/60 backdrop-blur-md px-2.5 sm:px-3 py-1.5 rounded-2xl shadow-sm border border-white/60 text-center w-full min-w-[88px] sm:min-w-[110px] transform translate-y-0 opacity-100 sm:translate-y-2 sm:opacity-0 sm:group-hover:opacity-100 sm:group-hover:translate-y-0 transition-all duration-300">
+                <p className="text-[10px] sm:text-[11px] font-black text-gray-800 leading-tight uppercase tracking-wider mb-1 line-clamp-2">
                     {goal.goalName}
                 </p>
-                <div className={`text-[9px] font-bold px-2 py-0.5 rounded-full inline-block ${cat.color}`}>
+                <div className={`text-[8px] sm:text-[9px] font-bold px-2 py-0.5 rounded-full inline-block ${cat.color}`}>
                     {cat.label}
                 </div>
             </div>
@@ -494,21 +510,23 @@ function EditGoalModal({ goal, onUpdated, onClose }) {
     };
 
     return (
-        <div className="celebration-overlay" onClick={onClose}>
-            <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+        <div className="celebration-overlay celebration-overlay--clear" onClick={onClose}>
+            <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="edit-goal-title">
                 <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                    <h2 id="edit-goal-title" className="text-xl font-black text-gray-900 flex items-center gap-2">
                         <Edit2 className="text-blue-500" size={24} /> Edit Your Goal
                     </h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600" type="button" aria-label="Close edit goal dialog"><X size={20} /></button>
                 </div>
 
                 <form onSubmit={submit} className="space-y-4">
-                    {error && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>}
+                    {error && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3" role="alert">{error}</div>}
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Goal Name 🌱</label>
+                        <label htmlFor="edit-goal-name" className="block text-sm font-bold text-gray-700 mb-1.5">Goal Name 🌱</label>
                         <input
+                            id="edit-goal-name"
+                            name="goalName"
                             type="text" required
                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 transition-colors"
                             value={form.goalName} onChange={e => setForm(f => ({ ...f, goalName: e.target.value }))}
@@ -516,8 +534,10 @@ function EditGoalModal({ goal, onUpdated, onClose }) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Target Activities (Min: {goal.currentCompletions})</label>
+                        <label htmlFor="edit-goal-required-completions" className="block text-sm font-bold text-gray-700 mb-1.5">Target Activities (Min: {goal.currentCompletions})</label>
                         <input
+                            id="edit-goal-required-completions"
+                            name="requiredCompletions"
                             type="number" min={goal.currentCompletions + 1} max="50"
                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
                             value={form.requiredCompletions}
@@ -526,8 +546,10 @@ function EditGoalModal({ goal, onUpdated, onClose }) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Reward Message 🎁</label>
+                        <label htmlFor="edit-goal-reward-message" className="block text-sm font-bold text-gray-700 mb-1.5">Reward Message 🎁</label>
                         <input
+                            id="edit-goal-reward-message"
+                            name="rewardMilestone"
                             type="text"
                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
                             value={form.rewardMilestone} onChange={e => setForm(f => ({ ...f, rewardMilestone: e.target.value }))}
@@ -538,7 +560,7 @@ function EditGoalModal({ goal, onUpdated, onClose }) {
                         type="submit" disabled={loading}
                         className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-black text-lg rounded-2xl hover:from-blue-600 hover:to-indigo-600 transition-all shadow-md disabled:opacity-60"
                     >
-                        {loading ? 'Updating...' : 'Save Changes'}
+                        {loading ? 'Updating…' : 'Save Changes'}
                     </button>
                 </form>
             </div>
@@ -570,30 +592,34 @@ function AddGoalModal({ patientId, onCreated, onClose }) {
 
     return (
         <div className="celebration-overlay" onClick={onClose}>
-            <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto no-scrollbar" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="add-goal-title">
                 <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                    <h2 id="add-goal-title" className="text-xl font-black text-gray-900 flex items-center gap-2">
                         <Sprout className="text-emerald-500" size={24} />
                         {user?.role === 'parent' ? 'Plant a Parent Goal' : 'Plant a Therapy Goal'}!
                     </h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600" type="button" aria-label="Close add goal dialog"><X size={20} /></button>
                 </div>
 
                 <form onSubmit={submit} className="space-y-4">
-                    {error && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>}
+                    {error && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3" role="alert">{error}</div>}
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Goal Name 🌱</label>
+                        <label htmlFor="add-goal-name" className="block text-sm font-bold text-gray-700 mb-1.5">Goal Name 🌱</label>
                         <input
-                            type="text" required placeholder="e.g. Practice eye contact for 2 minutes"
+                            id="add-goal-name"
+                            name="goalName"
+                            type="text" required placeholder="e.g. Practice eye contact for 2 minutes…"
                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400 transition-colors"
                             value={form.goalName} onChange={e => setForm(f => ({ ...f, goalName: e.target.value }))}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Skill Category 🏷️</label>
+                        <label htmlFor="add-goal-category" className="block text-sm font-bold text-gray-700 mb-1.5">Skill Category 🏷️</label>
                         <select
+                            id="add-goal-category"
+                            name="skillCategory"
                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400"
                             value={form.skillCategory} onChange={e => setForm(f => ({ ...f, skillCategory: e.target.value }))}
                         >
@@ -605,8 +631,10 @@ function AddGoalModal({ patientId, onCreated, onClose }) {
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-1.5">Difficulty ⭐</label>
+                            <label htmlFor="add-goal-difficulty" className="block text-sm font-bold text-gray-700 mb-1.5">Difficulty ⭐</label>
                             <select
+                                id="add-goal-difficulty"
+                                name="difficultyLevel"
                                 className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400"
                                 value={form.difficultyLevel} onChange={e => setForm(f => ({ ...f, difficultyLevel: e.target.value }))}
                             >
@@ -616,8 +644,10 @@ function AddGoalModal({ patientId, onCreated, onClose }) {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-1.5">Activities needed</label>
+                            <label htmlFor="add-goal-required-completions" className="block text-sm font-bold text-gray-700 mb-1.5">Activities needed</label>
                             <input
+                                id="add-goal-required-completions"
+                                name="requiredCompletions"
                                 type="number" min="1" max="50"
                                 className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400"
                                 value={form.requiredCompletions}
@@ -627,9 +657,11 @@ function AddGoalModal({ patientId, onCreated, onClose }) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Reward Message 🎁 (optional)</label>
+                        <label htmlFor="add-goal-reward-message" className="block text-sm font-bold text-gray-700 mb-1.5">Reward Message 🎁 (optional)</label>
                         <input
-                            type="text" placeholder="e.g. You're a communication superstar!"
+                            id="add-goal-reward-message"
+                            name="rewardMilestone"
+                            type="text" placeholder="e.g. You’re a communication superstar!"
                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400"
                             value={form.rewardMilestone} onChange={e => setForm(f => ({ ...f, rewardMilestone: e.target.value }))}
                         />
@@ -648,7 +680,7 @@ function AddGoalModal({ patientId, onCreated, onClose }) {
                         type="submit" disabled={loading}
                         className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-lg rounded-2xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md disabled:opacity-60"
                     >
-                        {loading ? '🌱 Planting...' : '🌱 Plant This Goal!'}
+                        {loading ? '🌱 Planting…' : '🌱 Plant This Goal!'}
                     </button>
                 </form>
             </div>
@@ -794,6 +826,8 @@ export default function SkillSprout() {
     const [celebration, setCelebration] = useState(null);
     const [confettiActive, setConfettiActive] = useState(false);
     const [xpPopup, setXPPopup] = useState(null);
+    const [actionMessage, setActionMessage] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState(null);
 
     const currentSeason = (() => {
         const m = new Date().getMonth();
@@ -814,6 +848,7 @@ export default function SkillSprout() {
             }
         } catch (err) {
             console.error('fetchGarden:', err);
+            setActionMessage({ type: 'error', text: err.response?.data?.error?.message || 'Unable to load the garden right now.' });
         } finally { setLoading(false); }
     }, [patientId]);
 
@@ -838,9 +873,10 @@ export default function SkillSprout() {
                 } else if (stageAdvanced) {
                     triggerCelebration({ type: 'stage', stage: newStage, xp: xpGained });
                 }
+                setActionMessage({ type: 'success', text: `Logged progress for ${goal.goalName}.` });
             }
         } catch (err) {
-            alert(err.response?.data?.error?.message || 'Error completing activity');
+            setActionMessage({ type: 'error', text: err.response?.data?.error?.message || 'Error completing activity.' });
         }
     };
 
@@ -853,28 +889,37 @@ export default function SkillSprout() {
                 setXP(x => x ? { ...x, totalXP, wateringStreak: streak } : x);
                 setXPPopup(bonusXP);
                 triggerCelebration({ type: 'watering', streak, xp: bonusXP });
+                setActionMessage({ type: 'success', text: `Watered your plant. ${streak}-day streak.` });
             }
         } catch (err) {
-            alert(err.response?.data?.error?.message || 'Error watering plant');
+            setActionMessage({ type: 'error', text: err.response?.data?.error?.message || 'Error watering plant.' });
         }
     };
 
     const handleGoalCreated = (newGoal) => {
         setGoals(gs => [newGoal, ...gs]);
         triggerCelebration({ type: 'stage', stage: 0, xp: 0 });
+        setActionMessage({ type: 'success', text: `${newGoal.goalName} was added to the garden.` });
     };
 
     const handleGoalUpdated = (updatedGoal) => {
         setGoals(gs => gs.map(g => g._id === updatedGoal._id ? updatedGoal : g));
+        setActionMessage({ type: 'success', text: `${updatedGoal.goalName} was updated.` });
     };
 
     const handleDeleteGoal = async (goalId) => {
-        if (!window.confirm('Are you sure you want to remove this goal? This cannot be undone.')) return;
+        setConfirmDelete(goalId);
+    };
+
+    const confirmDeleteGoal = async () => {
+        if (!confirmDelete) return;
         try {
-            await api.delete(`/skillsprout/parent-goals/${goalId}`);
-            setGoals(gs => gs.filter(g => g._id !== goalId));
+            await api.delete(`/skillsprout/parent-goals/${confirmDelete}`);
+            setGoals(gs => gs.filter(g => g._id !== confirmDelete));
+            setConfirmDelete(null);
+            setActionMessage({ type: 'success', text: 'Goal removed from the garden.' });
         } catch (err) {
-            alert(err.response?.data?.error?.message || 'Error deleting goal');
+            setActionMessage({ type: 'error', text: err.response?.data?.error?.message || 'Error deleting goal.' });
         }
     };
 
@@ -900,7 +945,6 @@ export default function SkillSprout() {
     return (
         <div className={`min-h-screen bg-gradient-to-br ${seasonCfg.bg} -m-4 lg:-m-8 p-4 lg:p-8 relative overflow-hidden transition-colors duration-1000`}>
             {/* Seasonal Atmosphere */}
-            <GardenParticles season={seasonCfg.name} />
             <div className="garden-fog" />
 
             <Confetti active={confettiActive} />
@@ -910,47 +954,88 @@ export default function SkillSprout() {
 
             {/* ── Header ── */}
             <div className="mb-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg animate-pulse-glow">
-                                <Sprout className="text-white" size={26} />
+                <div className="rounded-[2rem] border border-white/70 bg-white/55 p-5 shadow-[0_12px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="max-w-xl">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg animate-pulse-glow">
+                                    <Sprout className="text-white" size={26} />
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl font-black text-gray-900">SkillSprout</h1>
+                                    <p className="text-sm font-medium text-gray-600">Daily skill practice with clearer progress, streaks, and wins.</p>
+                                </div>
                             </div>
-                            <div>
-                                <h1 className="text-3xl font-black text-gray-900">SkillSprout</h1>
-                                <p className="text-sm text-gray-600">Your magical therapy garden 🌿</p>
+                            <div className="inline-flex items-center gap-2 rounded-2xl border border-white bg-white/70 px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm">
+                                <span>{seasonCfg.label}</span>
+                                <span className="text-gray-300">•</span>
+                                <span>{activeGoals.length} active goals</span>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                        {/* XP badge */}
-                        <div className="flex items-center gap-2 bg-yellow-400 text-yellow-900 px-4 py-2 rounded-2xl font-black shadow-sm">
-                            <Zap size={16} /> {xp?.totalXP || 0} XP · Lv.{xp?.level || 1}
+                        <div className="flex flex-col gap-3 lg:items-end">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <div className="min-w-[150px] rounded-2xl border border-amber-200/70 bg-gradient-to-br from-yellow-100 to-amber-50 px-4 py-3 shadow-sm">
+                                    <div className="flex items-center gap-2 text-yellow-800">
+                                        <Zap size={16} />
+                                        <span className="text-xs font-black uppercase tracking-wide">XP & Level</span>
+                                    </div>
+                                    <p className="mt-2 text-xl font-black text-gray-900">{xp?.totalXP || 0} XP</p>
+                                    <p className="text-xs font-semibold text-gray-600">Level {xp?.level || 1}</p>
+                                </div>
+                                <div className="min-w-[150px] rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-100 to-cyan-50 px-4 py-3 shadow-sm">
+                                    <div className="flex items-center gap-2 text-sky-800">
+                                        <Droplets size={16} />
+                                        <span className="text-xs font-black uppercase tracking-wide">Watering</span>
+                                    </div>
+                                    <p className="mt-2 text-xl font-black text-gray-900">{xp?.wateringStreak || 0} days</p>
+                                    <p className="text-xs font-semibold text-gray-600">Current streak</p>
+                                </div>
+                                <div className="min-w-[150px] rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-100 to-green-50 px-4 py-3 shadow-sm">
+                                    <div className="flex items-center gap-2 text-emerald-800">
+                                        <Sprout size={16} />
+                                        <span className="text-xs font-black uppercase tracking-wide">Forest</span>
+                                    </div>
+                                    <p className="mt-2 text-xl font-black text-gray-900">{completedGoals.length} trees</p>
+                                    <p className="text-xs font-semibold text-gray-600">Completed goals</p>
+                                </div>
+                            </div>
+                            {canAddGoals && (
+                                <button
+                                    onClick={() => setShowAddModal(true)}
+                                    className="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-5 py-3 rounded-2xl font-bold shadow-md hover:from-emerald-600 hover:to-teal-600 transition-all"
+                                >
+                                    <Plus size={18} /> Add New Goal
+                                </button>
+                            )}
                         </div>
-                        {/* Streak badge */}
-                        <div className="flex items-center gap-2 bg-sky-400 text-white px-4 py-2 rounded-2xl font-bold shadow-sm">
-                            <Droplets size={16} /> {xp?.wateringStreak || 0}-day streak
-                        </div>
-                        {/* Trees badge */}
-                        <div className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-2xl font-bold shadow-sm">
-                            <Sprout size={16} /> {completedGoals.length} trees
-                        </div>
-                        {/* Season */}
-                        <div className="bg-white/70 backdrop-blur-sm px-3 py-2 rounded-2xl text-sm font-semibold text-gray-700 border border-white">
-                            {seasonCfg.label}
-                        </div>
-                        {/* Add goal (therapist) */}
-                        {canAddGoals && (
-                            <button
-                                onClick={() => setShowAddModal(true)}
-                                className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-5 py-2.5 rounded-2xl font-bold shadow-md hover:from-emerald-600 hover:to-teal-600 transition-all"
-                            >
-                                <Plus size={18} /> New Goal
-                            </button>
-                        )}
                     </div>
                 </div>
+
+                {actionMessage && (
+                    <div
+                        className={`mt-4 rounded-2xl px-4 py-3 text-sm shadow-sm ${actionMessage.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-white/80 text-emerald-800 border border-emerald-200'}`}
+                        role={actionMessage.type === 'error' ? 'alert' : 'status'}
+                        aria-live="polite"
+                    >
+                        {actionMessage.text}
+                    </div>
+                )}
+
+                {confirmDelete && (
+                    <div className="mt-4 rounded-2xl border border-red-200 bg-white/90 px-4 py-4 shadow-sm">
+                        <p className="text-sm font-semibold text-gray-900">Remove this parent goal from the garden?</p>
+                        <p className="mt-1 text-sm text-gray-600">This action hides the goal and cannot be undone from this screen.</p>
+                        <div className="mt-3 flex gap-3">
+                            <button type="button" onClick={confirmDeleteGoal} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700">
+                                Delete Goal
+                            </button>
+                            <button type="button" onClick={() => setConfirmDelete(null)} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* View tabs and Filters */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-5">
@@ -1018,18 +1103,32 @@ export default function SkillSprout() {
                     {view === 'garden' && (
                         <div>
                             {activeGoals.length === 0 ? (
-                                <div className="text-center py-20">
+                                <div className="mx-auto max-w-2xl rounded-[2rem] border border-white/70 bg-white/60 px-8 py-16 text-center shadow-[0_12px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl">
                                     <motion.div 
                                         animate={{ y: [0, -20, 0] }}
                                         transition={{ duration: 3, repeat: Infinity }}
                                         className="text-8xl mb-4"
                                     >🌱</motion.div>
                                     <h3 className="text-2xl font-black text-gray-700 mb-2">Your garden is waiting!</h3>
-                                    <p className="text-gray-500 mb-6">
+                                    <p className="mx-auto max-w-md text-gray-500 mb-6">
                                         {user?.role === 'parent'
-                                            ? 'Plant a goal seed to start growing your child\'s skills'
-                                            : 'Ask your therapist to plant your first goal seed'}
+                                            ? 'Start with one small, measurable goal and build momentum with daily practice.'
+                                            : 'Ask your therapist to plant your first goal seed.'}
                                     </p>
+                                    <div className="mb-6 grid gap-3 text-left sm:grid-cols-3">
+                                        <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                                            <p className="text-xs font-black uppercase tracking-wide text-emerald-700">1. Plant</p>
+                                            <p className="mt-1 text-sm font-medium text-gray-600">Create a goal with a clear target and reward.</p>
+                                        </div>
+                                        <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                                            <p className="text-xs font-black uppercase tracking-wide text-sky-700">2. Practice</p>
+                                            <p className="mt-1 text-sm font-medium text-gray-600">Log small wins and keep the streak alive.</p>
+                                        </div>
+                                        <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                                            <p className="text-xs font-black uppercase tracking-wide text-amber-700">3. Grow</p>
+                                            <p className="mt-1 text-sm font-medium text-gray-600">Watch goals turn into trees in the forest.</p>
+                                        </div>
+                                    </div>
                                     {canAddGoals && (
                                         <motion.button
                                             whileHover={{ scale: 1.05 }}
@@ -1090,25 +1189,25 @@ export default function SkillSprout() {
 
                     {/* ── Forest View ── */}
                     {view === 'forest' && (
-                        <div className={`rounded-[3rem] bg-gradient-to-b ${seasonCfg.sky} p-8 min-h-[60vh] border-4 border-white shadow-2xl relative overflow-hidden`}>
+                        <div className={`rounded-[2.2rem] sm:rounded-[3rem] bg-gradient-to-b ${seasonCfg.sky} p-4 sm:p-6 lg:p-8 min-h-[42vh] sm:min-h-[56vh] border-2 sm:border-4 border-white shadow-2xl relative overflow-hidden`}>
                             {/* Forest Atmosphere - Light Rays and Distant Canopy */}
                             <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
                                 {/* Diagonal Sunbeams */}
                                 <div className="absolute -top-[20%] -left-[10%] w-[150%] h-[150%] bg-gradient-to-tr from-white/0 via-white/10 to-transparent rotate-45 transform origin-top-left animate-sunbeam" />
-                                <div className="absolute -top-[10%] left-[20%] w-[100%] h-[150%] bg-gradient-to-tr from-white/0 via-white/5 to-transparent rotate-45 transform origin-top-left animate-sunbeam delay-1000" />
+                                <div className="absolute -top-[10%] left-[20%] hidden sm:block w-[100%] h-[150%] bg-gradient-to-tr from-white/0 via-white/5 to-transparent rotate-45 transform origin-top-left animate-sunbeam delay-1000" />
                                 
                                 {/* Background Decorative Trees */}
-                                {Array.from({ length: 24 }).map((_, i) => {
+                                {Array.from({ length: 12 }).map((_, i) => {
                                     const isPine = i % 3 === 0;
-                                    const scale = 0.4 + Math.random() * 0.4; // Small background trees
+                                    const scale = 0.28 + Math.random() * 0.28;
                                     const left = Math.random() * 100;
-                                    const bottom = 20 + Math.random() * 30; // Placed higher up on the "hills"
-                                    const opacity = 0.2 + Math.random() * 0.3;
+                                    const bottom = 28 + Math.random() * 22;
+                                    const opacity = 0.12 + Math.random() * 0.18;
                                     
                                     return (
                                         <div 
                                             key={`bg-tree-${i}`}
-                                            className="absolute"
+                                            className="absolute hidden sm:block"
                                             style={{
                                                 left: `${left}%`,
                                                 bottom: `${bottom}%`,
@@ -1130,24 +1229,45 @@ export default function SkillSprout() {
                                 <div className="absolute -bottom-[5%] left-[10%] w-[120%] h-[35%] bg-emerald-800/20 rounded-[100%_100%_0_0] blur-sm transform rotate-[3deg]" />
                             </div>
 
-                            <h2 className="text-3xl font-black text-gray-800 mb-10 flex items-center gap-3 relative z-10 drop-shadow-sm">
-                                <Leaf className="text-emerald-600 drop-shadow-md" size={32} /> Your Achievement Forest
-                            </h2>
+                            <div className="relative z-10 mb-6 sm:mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                                <div>
+                                    <h2 className="text-2xl sm:text-3xl font-black text-gray-800 flex items-center gap-3 drop-shadow-sm">
+                                        <Leaf className="text-emerald-600 drop-shadow-md" size={28} /> Your Achievement Forest
+                                    </h2>
+                                    <p className="mt-2 max-w-xl text-sm sm:text-base font-medium text-gray-600">
+                                        Every completed goal becomes a tree here. Keep growing the forest one repeat at a time.
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                                    <div className="rounded-2xl bg-white/65 px-3 py-3 text-center shadow-sm backdrop-blur-sm border border-white/80">
+                                        <p className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-emerald-700">Trees</p>
+                                        <p className="mt-1 text-lg sm:text-2xl font-black text-gray-900">{completedGoals.length}</p>
+                                    </div>
+                                    <div className="rounded-2xl bg-white/65 px-3 py-3 text-center shadow-sm backdrop-blur-sm border border-white/80">
+                                        <p className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-amber-700">Milestones</p>
+                                        <p className="mt-1 text-lg sm:text-2xl font-black text-gray-900">{xp?.forestMilestones?.length || 0}</p>
+                                    </div>
+                                    <div className="rounded-2xl bg-white/65 px-3 py-3 text-center shadow-sm backdrop-blur-sm border border-white/80">
+                                        <p className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-sky-700">Level</p>
+                                        <p className="mt-1 text-lg sm:text-2xl font-black text-gray-900">{xp?.level || 1}</p>
+                                    </div>
+                                </div>
+                            </div>
                             
                             {completedGoals.length === 0 ? (
-                                <div className="text-center py-24 relative z-10">
-                                    <div className="text-8xl mb-6 animate-bounce-gentle">🌳</div>
-                                    <p className="text-xl text-gray-600 font-bold drop-shadow-sm">Complete goals to grow your forest!</p>
-                                    <p className="text-gray-500 mt-2 font-medium">Each completed goal becomes a lasting tree here.</p>
+                                <div className="text-center py-16 sm:py-24 relative z-10 rounded-[2rem] bg-white/45 backdrop-blur-sm border border-white/70">
+                                    <div className="text-7xl sm:text-8xl mb-4 sm:mb-6 animate-bounce-gentle">🌳</div>
+                                    <p className="text-lg sm:text-xl text-gray-600 font-bold drop-shadow-sm">Complete goals to grow your forest!</p>
+                                    <p className="text-sm sm:text-base text-gray-500 mt-2 font-medium px-6">Each finished goal becomes a lasting tree here.</p>
                                 </div>
                             ) : (
                                 <div className="relative z-10 w-full">
                                     {/* Forest Ground/Stage area */}
-                                    <div className="relative pt-12 pb-32 px-4 rounded-[3rem] overflow-hidden">
+                                    <div className="relative pt-6 sm:pt-10 pb-24 sm:pb-32 px-2 sm:px-4 rounded-[2rem] sm:rounded-[3rem] overflow-hidden bg-white/20 border border-white/40">
                                         
                                         {/* Main Trees */}
                                         <motion.div 
-                                            className="flex flex-wrap gap-x-10 gap-y-16 justify-center max-w-5xl mx-auto items-end relative z-20"
+                                            className="forest-tree-grid relative z-20"
                                             variants={{
                                                 hidden: { opacity: 0 },
                                                 visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -1161,28 +1281,28 @@ export default function SkillSprout() {
                                         </motion.div>
                                         
                                         {/* Stylized Curved Ground (Foreground Hill) */}
-                                        <div className="absolute bottom-0 left-[-10%] w-[120%] h-56 bg-gradient-to-b from-[#8B4513] via-[#65320d] to-[#4A2509] rounded-[100%_100%_0_0] shadow-[inset_0_20px_40px_rgba(0,0,0,0.4)] z-10" />
+                                        <div className="absolute bottom-0 left-[-10%] w-[120%] h-40 sm:h-56 bg-gradient-to-b from-[#8B4513] via-[#65320d] to-[#4A2509] rounded-[100%_100%_0_0] shadow-[inset_0_20px_40px_rgba(0,0,0,0.4)] z-10" />
                                         {/* Sub-layer to ground for depth */}
-                                        <div className="absolute bottom-[-40px] left-[-20%] w-[140%] h-40 bg-[#3a1d07] rounded-[100%_100%_0_0] z-10 opacity-90 blur-md" />
+                                        <div className="absolute bottom-[-28px] sm:bottom-[-40px] left-[-20%] w-[140%] h-24 sm:h-40 bg-[#3a1d07] rounded-[100%_100%_0_0] z-10 opacity-90 blur-md" />
                                     </div>
                                     
                                     {/* Milestone banners */}
                                     {xp?.forestMilestones?.length > 0 && (
-                                        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                                        <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
                                             {xp.forestMilestones.map((m, i) => (
                                                 <motion.div 
                                                     key={i}
                                                     initial={{ opacity: 0, y: 20, scale: 0.9 }}
                                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                                     transition={{ delay: i * 0.1 + 0.3, type: "spring" }}
-                                                    className="bg-white/60 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white"
+                                                    className="bg-white/60 backdrop-blur-xl rounded-[1.6rem] sm:rounded-[2rem] p-4 sm:p-5 flex items-center gap-4 sm:gap-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white"
                                                 >
-                                                    <div className="w-14 h-14 bg-amber-100 rounded-[1.25rem] flex items-center justify-center text-amber-500 shadow-sm border border-white">
-                                                        <Trophy size={28} />
+                                                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-amber-100 rounded-[1rem] sm:rounded-[1.25rem] flex items-center justify-center text-amber-500 shadow-sm border border-white flex-shrink-0">
+                                                        <Trophy size={24} />
                                                     </div>
                                                     <div>
                                                         <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none mb-2">Milestone Reached</p>
-                                                        <span className="font-bold text-gray-800 text-lg leading-tight block">{m.milestone}</span>
+                                                        <span className="font-bold text-gray-800 text-base sm:text-lg leading-tight block">{m.milestone}</span>
                                                     </div>
                                                 </motion.div>
                                             ))}

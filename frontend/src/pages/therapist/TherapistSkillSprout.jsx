@@ -40,6 +40,8 @@ export default function TherapistSkillSprout() {
     const [searchResults, setSearchResults] = useState([]);
     const [searchLoading, setSearchLoading] = useState(false);
     const [showResults, setShowResults] = useState(false);
+    const [actionMessage, setActionMessage] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState(null);
 
     const searchRef = useRef(null);
     const searchTimeoutRef = useRef(null);
@@ -110,7 +112,7 @@ export default function TherapistSkillSprout() {
     };
 
     const fetchPatientData = async (id) => {
-        setLoading(true); setError('');
+        setLoading(true); setError(''); setActionMessage(null);
         try {
             const [gardenRes, analyticsRes] = await Promise.all([
                 api.get(`/skillsprout/garden/${id}`),
@@ -140,9 +142,7 @@ export default function TherapistSkillSprout() {
             await api.post('/skillsprout/goals', { ...form, patientId: searchedId });
             setAddSuccess(`✅ ${form.goalName} planted successfully as ${PLANT_MAP[form.skillCategory]}!`);
             setForm({ goalName: '', skillCategory: 'communication', difficultyLevel: 'easy', requiredCompletions: 10, rewardMilestone: '', description: '' });
-            // Refresh garden
-            const res = await api.get(`/skillsprout/garden/${searchedId}`);
-            setGardenData(res.data.data);
+            await fetchPatientData(searchedId);
         } catch (err) {
             setAddError(err.response?.data?.error?.message || 'Failed to create goal');
         } finally { setAddLoading(false); }
@@ -151,35 +151,41 @@ export default function TherapistSkillSprout() {
     const handleComplete = async goalId => {
         try {
             await api.post(`/skillsprout/goals/${goalId}/complete`, {});
-            const res = await api.get(`/skillsprout/garden/${searchedId}`);
-            setGardenData(res.data.data);
+            await fetchPatientData(searchedId);
+            setActionMessage({ type: 'success', text: 'Activity logged successfully.' });
         } catch (err) {
-            alert(err.response?.data?.error?.message || 'Error');
+            setActionMessage({ type: 'error', text: err.response?.data?.error?.message || 'Failed to log the activity.' });
         }
     };
 
     const handleDeleteGoal = async (goalId, goalName) => {
-        if (!window.confirm(`Are you sure you want to remove "${goalName}" from the garden?`)) return;
+        setConfirmDelete({ goalId, goalName });
+    };
 
+    const confirmDeleteGoal = async () => {
+        if (!confirmDelete) return;
         try {
-            await api.delete(`/skillsprout/goals/${goalId}`);
-            const res = await api.get(`/skillsprout/garden/${searchedId}`);
-            setGardenData(res.data.data);
+            await api.delete(`/skillsprout/goals/${confirmDelete.goalId}`);
+            setConfirmDelete(null);
+            await fetchPatientData(searchedId);
+            setActionMessage({ type: 'success', text: 'Goal removed from the garden.' });
         } catch (err) {
-            alert(err.response?.data?.error?.message || 'Error deleting goal');
+            setActionMessage({ type: 'error', text: err.response?.data?.error?.message || 'Failed to delete the goal.' });
         }
     };
 
     return (
         <div className="space-y-6 max-w-5xl">
             {/* Header */}
-            <div className="flex items-center gap-3">
-                <div className="w-11 h-11 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl flex items-center justify-center shadow-md">
-                    <Sprout className="text-white" size={24} />
-                </div>
-                <div>
-                    <h1 className="text-2xl font-black text-gray-900">SkillSprout Manager</h1>
-                    <p className="text-sm text-gray-500">Create & manage therapy goals for children</p>
+            <div className="rounded-[2rem] border border-gray-100 bg-white p-5 shadow-sm">
+                <div className="flex items-start gap-3">
+                    <div className="w-11 h-11 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl flex items-center justify-center shadow-md">
+                        <Sprout className="text-white" size={24} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black text-gray-900">SkillSprout Manager</h1>
+                        <p className="text-sm text-gray-500">Search a patient, review current goals, and add the next skill target with less friction.</p>
+                    </div>
                 </div>
             </div>
 
@@ -188,20 +194,29 @@ export default function TherapistSkillSprout() {
                 <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <User size={18} className="text-emerald-500" /> Search Patient Garden
                 </h3>
+                <p className="mb-4 text-sm text-gray-500">Search by special ID or child name to open the live garden and analytics view.</p>
+                <label htmlFor="skillsprout-patient-search" className="sr-only">Search patient by special ID or child name</label>
                 <div className="flex gap-3 relative" ref={searchRef}>
                     <div className="flex-1 relative">
                         <input
+                            id="skillsprout-patient-search"
                             type="text"
-                            placeholder="Enter Patient Special ID or Child Name..."
+                            name="patientSearch"
+                            autoComplete="off"
+                            placeholder="Enter Patient Special ID or Child Name…"
                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400 transition-colors pr-10"
                             value={patientIdInput}
                             onChange={handleSearchChange}
                             onKeyDown={e => e.key === 'Enter' && searchPatient()}
+                            aria-expanded={showResults}
+                            aria-controls="skillsprout-search-results"
                         />
                         {patientIdInput && (
                             <button
                                 onClick={() => { setPatientIdInput(''); setSearchResults([]); setShowResults(false); }}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                aria-label="Clear patient search"
+                                type="button"
                             >
                                 <X size={16} />
                             </button>
@@ -209,13 +224,14 @@ export default function TherapistSkillSprout() {
 
                         {/* Search Results Dropdown */}
                         {showResults && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden max-h-60 overflow-y-auto">
+                            <div id="skillsprout-search-results" className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden max-h-60 overflow-y-auto">
                                 {searchResults.length > 0 ? (
                                     searchResults.map(p => (
                                         <button
                                             key={p.specialId}
                                             onClick={() => selectPatient(p)}
                                             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 transition-colors text-left border-b border-gray-50 last:border-0"
+                                            type="button"
                                         >
                                             <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
                                                 <User size={16} />
@@ -236,11 +252,21 @@ export default function TherapistSkillSprout() {
                         onClick={searchPatient}
                         disabled={loading}
                         className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-3 rounded-xl font-bold hover:from-emerald-600 hover:to-teal-600 transition-all shadow-sm disabled:opacity-60 h-[46px]"
+                        type="button"
                     >
-                        {loading || searchLoading ? '...' : <><Search size={16} /> Search</>}
+                        {loading || searchLoading ? 'Searching…' : <><Search size={16} aria-hidden="true" /> Search</>}
                     </button>
                 </div>
-                {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                {error && <p className="text-red-500 text-sm mt-2" role="alert">{error}</p>}
+                {actionMessage && (
+                    <div
+                        className={`mt-3 rounded-xl px-4 py-3 text-sm ${actionMessage.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}
+                        role={actionMessage.type === 'error' ? 'alert' : 'status'}
+                        aria-live="polite"
+                    >
+                        {actionMessage.text}
+                    </div>
+                )}
             </div>
 
             {/* Patient found — tabs */}
@@ -255,7 +281,7 @@ export default function TherapistSkillSprout() {
                                 { label: 'Trees Grown', value: analytics.xp?.treesGrown || 0, icon: Leaf, col: 'text-green-600 bg-green-50' },
                                 { label: 'Total XP', value: analytics.xp?.totalXP || 0, icon: Zap, col: 'text-amber-600 bg-amber-50' },
                             ].map(s => (
-                                <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center shadow-sm">
+                                <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center shadow-sm transition-transform hover:-translate-y-0.5">
                                     <div className={`w-9 h-9 ${s.col} rounded-xl flex items-center justify-center mx-auto mb-2`}>
                                         <s.icon size={18} />
                                     </div>
@@ -267,7 +293,7 @@ export default function TherapistSkillSprout() {
                     )}
 
                     {/* Tabs */}
-                    <div className="flex gap-2 bg-gray-100 p-1 rounded-2xl w-fit">
+                    <div className="flex gap-2 bg-gray-100 p-1 rounded-2xl w-fit shadow-inner">
                         {[
                             { id: 'garden', label: '🌿 Garden' },
                             { id: 'analytics', label: '📊 Analytics' },
@@ -285,11 +311,28 @@ export default function TherapistSkillSprout() {
 
                     {/* Garden Tab */}
                     {activeTab === 'garden' && (
-                        <div className="bg-gradient-to-b from-sky-50 to-emerald-50 rounded-2xl p-5 border border-emerald-100">
+                        <div className="bg-gradient-to-b from-sky-50 to-emerald-50 rounded-2xl p-5 border border-emerald-100 shadow-sm">
+                            {confirmDelete && (
+                                <div className="mb-4 rounded-2xl border border-red-200 bg-white px-4 py-4 shadow-sm">
+                                    <p className="text-sm font-semibold text-gray-900">Remove “{confirmDelete.goalName}” from this garden?</p>
+                                    <p className="mt-1 text-sm text-gray-600">This hides the goal from the active garden view.</p>
+                                    <div className="mt-3 flex gap-3">
+                                        <button type="button" onClick={confirmDeleteGoal} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700">
+                                            Delete Goal
+                                        </button>
+                                        <button type="button" onClick={() => setConfirmDelete(null)} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                                <h3 className="font-bold text-gray-800">
-                                    Patient ID: <span className="text-emerald-600">{searchedId}</span> — {gardenData.goals?.length || 0} plants
-                                </h3>
+                                <div>
+                                    <h3 className="font-bold text-gray-800">
+                                        Patient ID: <span className="text-emerald-600">{searchedId}</span>
+                                    </h3>
+                                    <p className="text-sm text-gray-500">{gardenData.goals?.length || 0} plants across parent and therapist goals</p>
+                                </div>
 
                                 <div className="flex gap-2 bg-white/60 p-1 rounded-xl border border-emerald-100 shadow-sm">
                                     {[
@@ -312,9 +355,10 @@ export default function TherapistSkillSprout() {
                             </div>
 
                             {gardenData.goals?.filter(g => goalFilter === 'all' || g.goalOwnerType === goalFilter).length === 0 ? (
-                                <div className="text-center py-12">
+                                <div className="rounded-[1.75rem] border border-white/80 bg-white/70 py-12 text-center shadow-sm">
                                     <div className="text-6xl mb-3">🌱</div>
-                                    <p className="text-gray-500">No goals yet. Plant the first one!</p>
+                                    <h4 className="text-lg font-black text-gray-800">No goals in this view yet</h4>
+                                    <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">Create the first goal or switch filters if this patient already has goals from another owner type.</p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -325,7 +369,8 @@ export default function TherapistSkillSprout() {
                                             const cat = CATEGORY_CONFIG[goal.skillCategory] || CATEGORY_CONFIG.cognitive;
                                             const isParent = goal.goalOwnerType === 'parent';
                                             return (
-                                                <div key={goal._id} className={`bg-white rounded-2xl border-2 ${goal.isCompleted ? 'border-emerald-300' : isParent ? 'border-amber-200' : 'border-gray-100'} p-4 shadow-sm relative overflow-hidden`}>
+                                                <div key={goal._id} className={`bg-white rounded-[1.6rem] border-2 ${goal.isCompleted ? 'border-emerald-300' : isParent ? 'border-amber-200' : 'border-gray-100'} p-4 shadow-sm relative overflow-hidden transition-transform hover:-translate-y-1`}>
+                                                    <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-sky-400 opacity-80" />
                                                     <div className="absolute top-2 right-2 flex items-center gap-2">
                                                         {isParent && (
                                                             <div className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-200 shadow-sm">
@@ -336,15 +381,28 @@ export default function TherapistSkillSprout() {
                                                             onClick={(e) => { e.stopPropagation(); handleDeleteGoal(goal._id, goal.goalName); }}
                                                             className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                                             title="Delete Goal"
+                                                            aria-label={`Delete goal ${goal.goalName}`}
+                                                            type="button"
                                                         >
                                                             <Trash2 size={14} />
                                                         </button>
                                                     </div>
-                                                    <div className="text-center text-4xl mb-2">{goal.isCompleted ? '🌳' : GROWTH_STAGES[goal.growthStage]?.split(' ')[0]}</div>
-                                                    <p className="font-bold text-sm text-gray-900 text-center">{goal.goalName}</p>
-                                                    <p className="text-xs text-center text-gray-500 mt-0.5">{goal.plantSpecies} {goal.plantEmoji}</p>
-                                                    <span className={`mt-2 inline-block text-xs px-2 py-0.5 rounded-full font-medium ${cat.color}`}>{cat.label}</span>
-                                                    <div className="mt-3">
+                                                    <div className="mb-2.5 flex justify-center">
+                                                        <div className="flex h-16 w-16 items-center justify-center rounded-[1.2rem] bg-emerald-50 ring-1 ring-emerald-100">
+                                                            <div className="text-center text-5xl leading-none">{goal.isCompleted ? '🌳' : GROWTH_STAGES[goal.growthStage]?.split(' ')[0]}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="rounded-[1.2rem] bg-slate-50/80 px-3 py-2.5 border border-slate-100">
+                                                        <p className="font-black text-sm text-gray-900 text-center">{goal.goalName}</p>
+                                                        <p className="text-xs text-center text-gray-500 mt-0.5">{goal.plantSpecies} {goal.plantEmoji}</p>
+                                                        <div className="mt-2 flex items-center justify-center gap-2 flex-wrap">
+                                                            <span className={`inline-block text-xs px-2.5 py-1 rounded-full font-medium ${cat.color}`}>{cat.label}</span>
+                                                            <span className="inline-block rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-gray-500 ring-1 ring-slate-200">
+                                                                {goal.isCompleted ? 'Completed' : GROWTH_STAGES[goal.growthStage]}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-2.5">
                                                         <div className="flex justify-between text-xs text-gray-500 mb-1">
                                                             <span>{goal.currentCompletions}/{goal.requiredCompletions}</span>
                                                             <span className="font-semibold">{progress}%</span>
@@ -357,6 +415,7 @@ export default function TherapistSkillSprout() {
                                                         <button
                                                             onClick={() => handleComplete(goal._id)}
                                                             className="mt-3 w-full py-2 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl hover:bg-emerald-100 transition-all border border-emerald-200"
+                                                            type="button"
                                                         >
                                                             ✓ Mark Activity Done
                                                         </button>
@@ -413,13 +472,15 @@ export default function TherapistSkillSprout() {
                                 <Sprout className="text-emerald-500" size={20} /> Plant a New Goal for <span className="text-emerald-600 ml-1">{searchedId}</span>
                             </h3>
                             <form onSubmit={handleAddGoal} className="space-y-4">
-                                {addError && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3">{addError}</div>}
-                                {addSuccess && <div className="bg-emerald-50 text-emerald-700 text-sm rounded-xl px-4 py-3 font-semibold">{addSuccess}</div>}
+                                {addError && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3" role="alert">{addError}</div>}
+                                {addSuccess && <div className="bg-emerald-50 text-emerald-700 text-sm rounded-xl px-4 py-3 font-semibold" role="status" aria-live="polite">{addSuccess}</div>}
 
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Goal Name 🌱</label>
+                                    <label htmlFor="therapist-goal-name" className="block text-sm font-bold text-gray-700 mb-1.5">Goal Name 🌱</label>
                                     <input
-                                        required type="text" placeholder="e.g. Practice eye contact for 2 minutes"
+                                        id="therapist-goal-name"
+                                        name="goalName"
+                                        required type="text" placeholder="e.g. Practice eye contact for 2 minutes…"
                                         className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400"
                                         value={form.goalName} onChange={e => setForm(f => ({ ...f, goalName: e.target.value }))}
                                     />
@@ -427,8 +488,10 @@ export default function TherapistSkillSprout() {
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Skill Category</label>
+                                        <label htmlFor="therapist-skill-category" className="block text-sm font-bold text-gray-700 mb-1.5">Skill Category</label>
                                         <select
+                                            id="therapist-skill-category"
+                                            name="skillCategory"
                                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400"
                                             value={form.skillCategory} onChange={e => setForm(f => ({ ...f, skillCategory: e.target.value }))}
                                         >
@@ -438,8 +501,10 @@ export default function TherapistSkillSprout() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Difficulty</label>
+                                        <label htmlFor="therapist-difficulty" className="block text-sm font-bold text-gray-700 mb-1.5">Difficulty</label>
                                         <select
+                                            id="therapist-difficulty"
+                                            name="difficultyLevel"
                                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400"
                                             value={form.difficultyLevel} onChange={e => setForm(f => ({ ...f, difficultyLevel: e.target.value }))}
                                         >
@@ -452,8 +517,10 @@ export default function TherapistSkillSprout() {
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Activities Needed</label>
+                                        <label htmlFor="therapist-required-completions" className="block text-sm font-bold text-gray-700 mb-1.5">Activities Needed</label>
                                         <input
+                                            id="therapist-required-completions"
+                                            name="requiredCompletions"
                                             type="number" min="1" max="50"
                                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400"
                                             value={form.requiredCompletions}
@@ -461,9 +528,11 @@ export default function TherapistSkillSprout() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Reward Message 🎁</label>
+                                        <label htmlFor="therapist-reward-message" className="block text-sm font-bold text-gray-700 mb-1.5">Reward Message 🎁</label>
                                         <input
-                                            type="text" placeholder="You're amazing!"
+                                            id="therapist-reward-message"
+                                            name="rewardMilestone"
+                                            type="text" placeholder="You’re amazing!"
                                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400"
                                             value={form.rewardMilestone} onChange={e => setForm(f => ({ ...f, rewardMilestone: e.target.value }))}
                                         />
@@ -484,7 +553,7 @@ export default function TherapistSkillSprout() {
                                     type="submit" disabled={addLoading}
                                     className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-lg rounded-2xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md disabled:opacity-60"
                                 >
-                                    {addLoading ? '🌱 Planting...' : '🌱 Plant This Goal!'}
+                                    {addLoading ? '🌱 Planting…' : '🌱 Plant This Goal!'}
                                 </button>
                             </form>
                         </div>

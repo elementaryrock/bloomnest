@@ -1,6 +1,7 @@
 const SkillGoal = require('../models/SkillGoal');
 const GrowthLog = require('../models/GrowthLog');
 const ChildXP = require('../models/ChildXP');
+const Patient = require('../models/Patient');
 
 // ─────────────────────────────────────────────────────────────
 // Helper: get or create the XP record for a patient
@@ -11,6 +12,45 @@ async function getOrCreateXP(patientId) {
     return xp;
 }
 
+async function getActivePatient(patientId) {
+    return Patient.findOne({ specialId: patientId, isActive: true });
+}
+
+async function ensurePatientAccess(req, patientId) {
+    const patient = await getActivePatient(patientId);
+    if (!patient) {
+        const err = new Error('Patient not found');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    if (req.user.role === 'parent' && req.user.specialId !== patientId) {
+        const err = new Error('Access denied');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    return patient;
+}
+
+async function ensureGoalAccess(req, goal) {
+    if (!goal) {
+        const err = new Error('Goal not found');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    await ensurePatientAccess(req, goal.patientId);
+    return goal;
+}
+
+function sendControllerError(res, err, fallback = 'Server error') {
+    return res.status(err.statusCode || 500).json({
+        success: false,
+        error: { message: err.message || fallback }
+    });
+}
+
 // ─────────────────────────────────────────────────────────────
 // GET /api/skillsprout/goals/:patientId
 // Returns all active goals (garden view) for a patient
@@ -18,11 +58,7 @@ async function getOrCreateXP(patientId) {
 exports.getGardenByPatient = async (req, res) => {
     try {
         const { patientId } = req.params;
-
-        // Parents can only see their own child's data
-        if (req.user.role === 'parent' && req.user.specialId !== patientId) {
-            return res.status(403).json({ success: false, error: { message: 'Access denied' } });
-        }
+        await ensurePatientAccess(req, patientId);
 
         const goals = await SkillGoal.find({ patientId, isActive: true })
             .sort({ isCompleted: 1, createdAt: -1 });
@@ -32,7 +68,7 @@ exports.getGardenByPatient = async (req, res) => {
         return res.json({ success: true, data: { goals, xp } });
     } catch (err) {
         console.error('getGardenByPatient error:', err);
-        return res.status(500).json({ success: false, error: { message: 'Server error' } });
+        return sendControllerError(res, err);
     }
 };
 
@@ -43,10 +79,7 @@ exports.getGardenByPatient = async (req, res) => {
 exports.getForestByPatient = async (req, res) => {
     try {
         const { patientId } = req.params;
-
-        if (req.user.role === 'parent' && req.user.specialId !== patientId) {
-            return res.status(403).json({ success: false, error: { message: 'Access denied' } });
-        }
+        await ensurePatientAccess(req, patientId);
 
         const trees = await SkillGoal.find({ patientId, isCompleted: true, isActive: true })
             .sort({ completedAt: -1 });
@@ -54,7 +87,7 @@ exports.getForestByPatient = async (req, res) => {
         return res.json({ success: true, data: trees });
     } catch (err) {
         console.error('getForestByPatient error:', err);
-        return res.status(500).json({ success: false, error: { message: 'Server error' } });
+        return sendControllerError(res, err);
     }
 };
 
@@ -77,6 +110,8 @@ exports.createGoal = async (req, res) => {
             });
         }
 
+        await ensurePatientAccess(req, patientId);
+
         const goal = await SkillGoal.create({
             patientId,
             createdBy: req.user.userId,
@@ -97,7 +132,7 @@ exports.createGoal = async (req, res) => {
         return res.status(201).json({ success: true, data: goal });
     } catch (err) {
         console.error('createGoal error:', err);
-        return res.status(500).json({ success: false, error: { message: err.message } });
+        return sendControllerError(res, err);
     }
 };
 
@@ -110,15 +145,9 @@ exports.completeActivity = async (req, res) => {
         const { goalId } = req.params;
         const { note } = req.body;
 
-        const goal = await SkillGoal.findById(goalId);
-        if (!goal) return res.status(404).json({ success: false, error: { message: 'Goal not found' } });
+        const goal = await ensureGoalAccess(req, await SkillGoal.findById(goalId));
         if (goal.isCompleted) {
             return res.status(400).json({ success: false, error: { message: 'Goal already completed' } });
-        }
-
-        // Check parent access
-        if (req.user.role === 'parent' && req.user.specialId !== goal.patientId) {
-            return res.status(403).json({ success: false, error: { message: 'Access denied' } });
         }
 
         const stageBefore = goal.growthStage;
@@ -170,7 +199,7 @@ exports.completeActivity = async (req, res) => {
         });
     } catch (err) {
         console.error('completeActivity error:', err);
-        return res.status(500).json({ success: false, error: { message: err.message } });
+        return sendControllerError(res, err);
     }
 };
 
@@ -181,10 +210,15 @@ exports.completeActivity = async (req, res) => {
 exports.waterPlant = async (req, res) => {
     try {
         const { goalId } = req.params;
-        const patientId = req.user.specialId || req.body.patientId;
+        const goal = await ensureGoalAccess(req, await SkillGoal.findById(goalId));
+        const requestedPatientId = req.user.role === 'parent' ? req.user.specialId : req.body.patientId;
 
-        const goal = await SkillGoal.findById(goalId);
-        if (!goal) return res.status(404).json({ success: false, error: { message: 'Goal not found' } });
+        if (requestedPatientId && requestedPatientId !== goal.patientId) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'Patient context does not match this goal' }
+            });
+        }
 
         // Prevent double-watering in same day
         const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -234,7 +268,7 @@ exports.waterPlant = async (req, res) => {
         });
     } catch (err) {
         console.error('waterPlant error:', err);
-        return res.status(500).json({ success: false, error: { message: err.message } });
+        return sendControllerError(res, err);
     }
 };
 
@@ -246,6 +280,7 @@ exports.getGrowthLogs = async (req, res) => {
     try {
         const { patientId } = req.params;
         const limit = parseInt(req.query.limit) || 20;
+        await ensurePatientAccess(req, patientId);
 
         const logs = await GrowthLog.find({ patientId })
             .populate('goalId', 'goalName plantSpecies plantEmoji skillCategory')
@@ -255,7 +290,7 @@ exports.getGrowthLogs = async (req, res) => {
         return res.json({ success: true, data: logs });
     } catch (err) {
         console.error('getGrowthLogs error:', err);
-        return res.status(500).json({ success: false, error: { message: err.message } });
+        return sendControllerError(res, err);
     }
 };
 
@@ -266,6 +301,7 @@ exports.getGrowthLogs = async (req, res) => {
 exports.getAnalytics = async (req, res) => {
     try {
         const { patientId } = req.params;
+        await ensurePatientAccess(req, patientId);
 
         const [goals, xp, recentLogs] = await Promise.all([
             SkillGoal.find({ patientId, isActive: true }),
@@ -303,7 +339,7 @@ exports.getAnalytics = async (req, res) => {
         });
     } catch (err) {
         console.error('getAnalytics error:', err);
-        return res.status(500).json({ success: false, error: { message: err.message } });
+        return sendControllerError(res, err);
     }
 };
 
@@ -314,10 +350,18 @@ exports.getAnalytics = async (req, res) => {
 exports.deleteGoal = async (req, res) => {
     try {
         const { goalId } = req.params;
-        await SkillGoal.findByIdAndUpdate(goalId, { isActive: false });
+        if (req.user.role === 'parent') {
+            return res.status(403).json({
+                success: false,
+                error: { message: 'Parents cannot delete staff-managed goals from this route' }
+            });
+        }
+
+        const goal = await ensureGoalAccess(req, await SkillGoal.findById(goalId));
+        await SkillGoal.findByIdAndUpdate(goal._id, { isActive: false });
         return res.json({ success: true, message: 'Goal removed from garden' });
     } catch (err) {
-        return res.status(500).json({ success: false, error: { message: err.message } });
+        return sendControllerError(res, err);
     }
 };
 
@@ -330,8 +374,7 @@ exports.updateParentGoal = async (req, res) => {
         const { goalId } = req.params;
         const { goalName, description, requiredCompletions, rewardMilestone } = req.body;
 
-        const goal = await SkillGoal.findById(goalId);
-        if (!goal) return res.status(404).json({ success: false, error: { message: 'Goal not found' } });
+        const goal = await ensureGoalAccess(req, await SkillGoal.findById(goalId));
 
         // Only allow editing parent-owned goals
         if (goal.goalOwnerType !== 'parent') {
@@ -356,7 +399,7 @@ exports.updateParentGoal = async (req, res) => {
         return res.json({ success: true, data: goal });
     } catch (err) {
         console.error('updateParentGoal error:', err);
-        return res.status(500).json({ success: false, error: { message: err.message } });
+        return sendControllerError(res, err);
     }
 };
 
@@ -368,8 +411,7 @@ exports.deleteParentGoal = async (req, res) => {
     try {
         const { goalId } = req.params;
 
-        const goal = await SkillGoal.findById(goalId);
-        if (!goal) return res.status(404).json({ success: false, error: { message: 'Goal not found' } });
+        const goal = await ensureGoalAccess(req, await SkillGoal.findById(goalId));
 
         // Guard: only parent-owned goals may be deleted via this route
         if (goal.goalOwnerType !== 'parent') {
@@ -385,6 +427,6 @@ exports.deleteParentGoal = async (req, res) => {
         return res.json({ success: true, message: 'Your goal has been removed 🌱' });
     } catch (err) {
         console.error('deleteParentGoal error:', err);
-        return res.status(500).json({ success: false, error: { message: err.message } });
+        return sendControllerError(res, err);
     }
 };

@@ -130,10 +130,15 @@
   box-shadow: 0 20px 40px rgba(0,0,0,0.12);
 }
 
+.plant-stage-emoji {
+  font-size: 3.4rem;
+  line-height: 1;
+}
+
 /* ── Water button ── */
 .water-btn {
   background: linear-gradient(135deg, #38bdf8, #0ea5e9);
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 .water-btn:hover {
   background: linear-gradient(135deg, #0ea5e9, #0284c7);
@@ -157,6 +162,30 @@
   transform: scale(1.1) translateY(-4px);
 }
 
+.forest-tree-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem 1rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  align-items: end;
+  justify-items: center;
+}
+
+@media (min-width: 640px) {
+  .forest-tree-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .forest-tree-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4rem 2.5rem;
+  }
+}
+
 /* ── Celebration overlay ── */
 .celebration-overlay {
   position: fixed;
@@ -167,6 +196,11 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
+}
+
+.celebration-overlay--clear {
+  background: transparent;
+  backdrop-filter: none;
 }
 
 /* ── Leaf float ── */
@@ -230,6 +264,15 @@
     border-radius: 10px;
 }
 
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
 /* ── Atmosphere Effects ── */
 @keyframes fogMove {
     0% { transform: translateX(-10%); }
@@ -279,4 +322,28 @@
 
 .animate-sunbeam {
     animation: sunbeam 8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .garden-fog,
+  .animate-sway,
+  .animate-bounce-gentle,
+  .animate-pulse-glow,
+  .animate-tree-shake,
+  .animate-xp-float,
+  .animate-star-burst,
+  .animate-sunbeam,
+  .confetti-particle,
+  .shimmer-effect::after {
+    animation: none !important;
+  }
 }
