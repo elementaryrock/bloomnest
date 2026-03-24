@@ -4,14 +4,13 @@
  */
 
 const pollinations = require('./pollinationsProvider');
-const pixazo = require('./pixazoProvider');
 const cloudflare = require('./cloudflareProvider');
 
 /**
  * Get available providers.
  */
 function getEnabledProviders() {
-    return [pixazo, pollinations, cloudflare];
+    return [pollinations, cloudflare];
 }
 
 /**
