@@ -96,6 +96,27 @@ const CATEGORY_CONFIG = {
     border: "border-sky-200",
     plant: "Chatter Cherry 🍒",
   },
+  sign_language: {
+    icon: Heart,
+    label: "Sign Language / ASL",
+    color: "bg-fuchsia-100 text-fuchsia-700",
+    border: "border-fuchsia-200",
+    plant: "Signal Sunflower 🌻",
+  },
+  auditory: {
+    icon: Activity, // Using Activity/Waves as a proxy for sound/waves
+    label: "Auditory Training",
+    color: "bg-teal-100 text-teal-700",
+    border: "border-teal-200",
+    plant: "Listening Lily 🪷",
+  },
+  articulation: {
+    icon: MessageCircle,
+    label: "Speech / Articulation",
+    color: "bg-orange-100 text-orange-700",
+    border: "border-orange-200",
+    plant: "Vocal Vine 🌿",
+  },
   cognitive: {
     icon: Puzzle,
     label: "Cognitive",

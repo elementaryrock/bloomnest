@@ -19,6 +19,8 @@ import {
 
 const CATEGORY_CONFIG = {
   communication: { label: "Communication", color: "bg-sky-100 text-sky-700" },
+  sign_language: { label: "Sign Language / ASL", color: "bg-fuchsia-100 text-fuchsia-700" },
+  auditory: { label: "Auditory Training", color: "bg-teal-100 text-teal-700" },
   cognitive: { label: "Cognitive", color: "bg-violet-100 text-violet-700" },
   motor: { label: "Motor Skills", color: "bg-amber-100 text-amber-700" },
   social: { label: "Social", color: "bg-rose-100 text-rose-700" },
@@ -31,6 +33,8 @@ const CATEGORY_CONFIG = {
 
 const PLANT_MAP = {
   communication: "Chatter Cherry 🍒",
+  sign_language: "Signal Sunflower 🌻",
+  auditory: "Listening Lily 🪷",
   cognitive: "Think Thistle 🌺",
   motor: "Mighty Maple 🍁",
   social: "Kindness Clover 🍀",
