@@ -86,7 +86,9 @@ function buildPagePrompt(childName, scenario, comfortObject, pageNumber, totalPa
         prompt += `The child has their favorite comfort object/hero "${comfortObject}" with them for support. `;
     }
 
-    prompt += `Style: Bright colors, soft rounded shapes, child-friendly cartoon art style. `;
+    prompt += `Style: Breathtakingly colorful and fascinating modern 3D cartoon storybook art style. `;
+    prompt += `IMPORTANT: The image MUST be fully colored with extremely bright, dazzling, eye-catching, and vibrant colors that children love. `;
+    prompt += `NEGATIVE PROMPT: DO NOT generate black and white, grayscale, monochrome, or dull images. Avoid sepia tones. `;
     prompt += `The child should look happy, brave, and confident. `;
     prompt += `Do NOT include any text or words in the image.`;
 
