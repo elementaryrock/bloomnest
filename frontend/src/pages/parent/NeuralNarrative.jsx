@@ -44,8 +44,9 @@ const NeuralNarrative = () => {
     };
 
     const openFromHistory = (narrative) => {
+        const aiTitle = narrative.pages?.[0]?.storyTitle;
         const storyWithImages = {
-            title: `${narrative.childName}'s Story`,
+            title: aiTitle || `${narrative.childName}'s Story`,
             pages: narrative.pages.map(page => ({
                 narrativeText: page.caption,
                 imageUrl: page.imageUrl
@@ -82,8 +83,10 @@ const NeuralNarrative = () => {
 
             if (response.data.success) {
                 const narrativeData = response.data.data;
+                // Use AI-generated title from the first page, with fallback
+                const aiTitle = narrativeData.pages?.[0]?.storyTitle;
                 const storyWithImages = {
-                    title: `${childContext.trim()}'s Big Adventure`,
+                    title: aiTitle || `${childContext.trim()}'s Story`,
                     pages: narrativeData.pages.map(page => ({
                         narrativeText: page.caption,
                         imageUrl: page.imageUrl
@@ -249,6 +252,15 @@ const NeuralNarrative = () => {
                             Read
                         </button>
                     </div>
+                </div>
+
+                {/* Story Title */}
+                <div className="text-center mb-8">
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight-premium flex items-center justify-center gap-3">
+                        <Sparkles size={22} className="text-blue-500" />
+                        {story.title}
+                        <Sparkles size={22} className="text-blue-500" />
+                    </h2>
                 </div>
 
                 {storyLayout === 'grid' ? (
