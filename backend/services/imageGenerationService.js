@@ -86,11 +86,12 @@ function buildPagePrompt(childName, scenario, comfortObject, pageNumber, totalPa
         prompt += `The child has their favorite comfort object/hero "${comfortObject}" with them for support. `;
     }
 
-    prompt += `Style: Breathtakingly colorful and fascinating modern 3D cartoon storybook art style. `;
-    prompt += `IMPORTANT: The image MUST be fully colored with extremely bright, dazzling, eye-catching, and vibrant colors that children love. `;
-    prompt += `NEGATIVE PROMPT: DO NOT generate black and white, grayscale, monochrome, or dull images. Avoid sepia tones. `;
-    prompt += `The child should look happy, brave, and confident. `;
-    prompt += `Do NOT include any text or words in the image.`;
+    prompt += `Style: Breathtakingly colorful, warm, and delightful modern cartoon storybook art with rich saturated colors. Use warm peachy, coral, blue, green, and pink tones. `;
+    prompt += `CRITICAL: The image MUST feature extremely vibrant, bright, dazzling colors with warm lighting. Rich color palette with warm browns, peachy oranges, sky blues, and warm yellows. `;
+    prompt += `IMPORTANT: Fully render with rich, saturated, eye-catching, and vivid colors that children adore. Include cozy home elements and warm atmospheric details. `;
+    prompt += `NEGATIVE PROMPT: ABSOLUTELY NO black and white, grayscale, monochrome, dull, muted, or pale images. Avoid sepia tones and washed-out colors. `;
+    prompt += `The child should look happy, brave, and confident with warm, friendly facial expressions. `;
+    prompt += `Do NOT include any text or words in the image. Focus on emotional warmth and visual richness.`;
 
     return prompt;
 }

@@ -62,7 +62,7 @@ const ParentLogin = () => {
     return (
         <MosaicLoginLayout
             tagline="Therapy Unit"
-            taglineHighlight="Booking System"
+            taglineHighlight="Support System"
             taglineDescription="Bloomnest — streamlined therapy session management for parents, therapists, and staff."
         >
             {/* Right panel logo icon */}

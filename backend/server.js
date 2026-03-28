@@ -29,7 +29,7 @@ app.use(enforceHttps); // Redirect HTTP to HTTPS in production
 app.use(helmet()); // Security headers
 app.use(securityHeaders); // Additional security headers
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5174',
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' })); // Limit request body size

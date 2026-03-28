@@ -15,7 +15,7 @@ async function testGeneration() {
     console.log('- Imagen Configured:', !!process.env.GEMINI_API_KEY);
     console.log('-------------------------------------------');
 
-    const prompt = "A cheerful child sitting at a dentist's office, smiling bravely. Cartoon style, bright colors.";
+    const prompt = "A vibrant, colorful cartoon illustration of a happy child at home playing and learning. Bright, warm colors with cozy family setting. Cheerful, friendly art style with warm lighting and playful details.";
 
     try {
         console.log('\n--- SINGLE IMAGE TEST ---');
