@@ -39,6 +39,10 @@ const narrativeSchema = new mongoose.Schema({
         enum: ['generating', 'completed', 'failed'],
         default: 'generating'
     },
+    isPinned: {
+        type: Boolean,
+        default: false
+    },
     createdAt: {
         type: Date,
         default: Date.now

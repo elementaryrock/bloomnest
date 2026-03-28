@@ -4,7 +4,9 @@ const authenticate = require('../middleware/auth');
 const {
     generateNarrative,
     getNarrativeHistory,
-    getNarrativeById
+    getNarrativeById,
+    togglePinNarrative,
+    deleteNarrative
 } = require('../controllers/narrativeController');
 
 // All routes require authentication
@@ -18,5 +20,11 @@ router.get('/history', getNarrativeHistory);
 
 // GET /api/narrative/:id - Get a specific narrative
 router.get('/:id', getNarrativeById);
+
+// PUT /api/narrative/:id/pin - Toggle pin status
+router.put('/:id/pin', togglePinNarrative);
+
+// DELETE /api/narrative/:id - Delete a specific narrative
+router.delete('/:id', deleteNarrative);
 
 module.exports = router;

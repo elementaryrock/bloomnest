@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
     Sparkles, Loader2, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Star,
     ArrowLeft, BookText, LayoutGrid, ImageIcon, Wand2, AlertCircle, History,
-    User, Heart, Lightbulb, PenTool, Image as LucideImage
+    User, Heart, Lightbulb, PenTool, Image as LucideImage, Pin, Trash2
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -56,6 +56,40 @@ const NeuralNarrative = () => {
         setCurrentPage(0);
         setStoryLayout('grid');
         setShowHistory(false);
+    };
+
+    const togglePin = async (e, id) => {
+        e.stopPropagation();
+        try {
+            const response = await api.put(`/narrative/${id}/pin`);
+            if (response.data.success) {
+                setHistory(prev => {
+                    const updated = prev.map(item => item._id === id ? { ...item, isPinned: !item.isPinned } : item);
+                    return updated.sort((a, b) => {
+                        if (a.isPinned === b.isPinned) {
+                            return new Date(b.createdAt) - new Date(a.createdAt);
+                        }
+                        return a.isPinned ? -1 : 1;
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('Pin error:', error);
+        }
+    };
+
+    const deleteNarrative = async (e, id) => {
+        e.stopPropagation();
+        if (window.confirm("Are you sure you want to permanently delete this story?")) {
+            try {
+                const response = await api.delete(`/narrative/${id}`);
+                if (response.data.success) {
+                    setHistory(prev => prev.filter(item => item._id !== id));
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+            }
+        }
     };
 
     const handleGenerate = async () => {
@@ -174,6 +208,22 @@ const NeuralNarrative = () => {
                                             <BookOpen size={32} />
                                         </div>
                                     )}
+                                    <div className="absolute top-2 right-2 flex flex-col gap-2 z-10">
+                                        <button 
+                                            onClick={(e) => togglePin(e, item._id)}
+                                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-premium shadow-sm border ${item.isPinned ? 'bg-amber-100 border-amber-200 text-amber-500' : 'bg-white/80 border-slate-200 text-slate-400 opacity-0 group-hover:opacity-100 hover:text-amber-500 hover:bg-white'}`}
+                                            title={item.isPinned ? "Unpin story" : "Pin story"}
+                                        >
+                                            <Pin size={16} fill={item.isPinned ? "currentColor" : "none"} />
+                                        </button>
+                                        <button 
+                                            onClick={(e) => deleteNarrative(e, item._id)}
+                                            className="w-8 h-8 rounded-full bg-white/80 border border-slate-200 flex items-center justify-center text-slate-400 opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-premium shadow-sm"
+                                            title="Delete story"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-premium flex items-end p-4">
                                         <span className="text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                                             Open Story <ChevronRight size={14} />

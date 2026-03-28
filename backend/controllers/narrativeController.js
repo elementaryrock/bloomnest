@@ -93,9 +93,16 @@ const generateNarrative = async (req, res) => {
  */
 const getNarrativeHistory = async (req, res) => {
     try {
-        const narratives = await Narrative.find({ userId: req.user.userId })
+        // Fetch pinned narratives first
+        const pinned = await Narrative.find({ userId: req.user.userId, isPinned: true })
+            .sort({ createdAt: -1 });
+
+        // Fetch up to 20 unpinned narratives
+        const unpinned = await Narrative.find({ userId: req.user.userId, isPinned: { $ne: true } })
             .sort({ createdAt: -1 })
             .limit(20);
+
+        const narratives = [...pinned, ...unpinned];
 
         return res.status(200).json({
             success: true,
@@ -141,8 +148,69 @@ const getNarrativeById = async (req, res) => {
     }
 };
 
+/**
+ * PUT /api/narrative/:id/pin
+ * Toggle the pinned status of a narrative
+ */
+const togglePinNarrative = async (req, res) => {
+    try {
+        const narrative = await Narrative.findOne({ _id: req.params.id, userId: req.user.userId });
+        
+        if (!narrative) {
+            return res.status(404).json({
+                success: false,
+                error: { message: 'Narrative not found' }
+            });
+        }
+
+        narrative.isPinned = !narrative.isPinned;
+        await narrative.save();
+
+        return res.status(200).json({
+            success: true,
+            data: narrative
+        });
+    } catch (error) {
+        console.error('[NeuralNarrative] Toggle pin error:', error);
+        return res.status(500).json({
+            success: false,
+            error: { message: error.message || 'Failed to pin narrative' }
+        });
+    }
+};
+
+/**
+ * DELETE /api/narrative/:id
+ * Hard delete a narrative from the database
+ */
+const deleteNarrative = async (req, res) => {
+    try {
+        const narrative = await Narrative.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
+        
+        if (!narrative) {
+            return res.status(404).json({
+                success: false,
+                error: { message: 'Narrative not found' }
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Narrative deleted successfully'
+        });
+    } catch (error) {
+        console.error('[NeuralNarrative] Delete narrative error:', error);
+        return res.status(500).json({
+            success: false,
+            error: { message: error.message || 'Failed to delete narrative' }
+        });
+    }
+};
+
 module.exports = {
     generateNarrative,
     getNarrativeHistory,
-    getNarrativeById
+    getNarrativeById,
+    togglePinNarrative,
+    deleteNarrative
 };
