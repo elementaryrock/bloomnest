@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import "./skillsprout.css";
@@ -219,8 +220,8 @@ function Confetti({ active }) {
     "#f472b6",
   ];
   const shapes = ["●", "★", "■", "◆", "▲"];
-  if (!active) return null;
-  return (
+  if (!active || typeof document === 'undefined') return null;
+  return createPortal(
     <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
       {Array.from({ length: 60 }).map((_, i) => (
         <div
@@ -238,13 +239,15 @@ function Confetti({ active }) {
           {shapes[i % shapes.length]}
         </div>
       ))}
-    </div>
+    </div>,
+    document.body
   );
 }
 
 // ─── XP Float Popup ──────────────────────────────────────────
 function XPPopup({ xp, onDone }) {
-  return (
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <motion.div
       initial={{ y: 0, opacity: 0, scale: 0.5 }}
       animate={{ y: -100, opacity: 1, scale: 1.2 }}
@@ -255,7 +258,8 @@ function XPPopup({ xp, onDone }) {
       <div className="text-4xl font-black text-yellow-500 drop-shadow-xl flex items-center gap-2">
         <Zap size={32} className="text-yellow-400 fill-yellow-400" />+{xp} XP!
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }
 
@@ -286,7 +290,9 @@ function CelebrationModal({ event, onClose }) {
   };
   const cfg = messages[event.type] || messages.stage;
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -367,7 +373,8 @@ function CelebrationModal({ event, onClose }) {
           </motion.button>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 
