@@ -417,11 +417,6 @@ const ParentChatroom = () => {
                             onSubmit={handleSendMessage} 
                             className="bg-white rounded-[2rem] shadow-[0_12px_40px_rgb(0,0,0,0.12)] border border-gray-100 p-2 pl-3 flex items-center gap-2 pointer-events-auto transition-transform focus-within:scale-[1.01] focus-within:shadow-[0_16px_50px_rgb(0,0,0,0.15)]"
                         >
-                            {/* Left Icons */}
-                            <button type="button" className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-900 flex-shrink-0 transition-colors">
-                                <Plus size={18} strokeWidth={2} />
-                            </button>
-
                             {/* Input Field */}
                             <input
                                 type="text"

@@ -24,6 +24,7 @@ import {
   Calendar,
   Clock,
   ClipboardList,
+  Users,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
@@ -357,78 +358,62 @@ const ParentLayout = ({ children }) => {
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-hover border border-slate-100 z-50 overflow-hidden animate-fadeIn">
                     <div className="flex items-center justify-between p-4 border-b border-slate-100">
                       <h3 className="font-bold text-slate-900">
-                        Notifications
+                        Upcoming Sessions
                       </h3>
-                      <button className="text-xs font-semibold text-blue-600 hover:text-blue-800">
-                        Mark all read
+                      <button
+                        onClick={() => {
+                          setNotificationsOpen(false);
+                          navigate("/parent/history");
+                        }}
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-800 focus:outline-none"
+                      >
+                        View calendar
                       </button>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
-                      {[
-                        {
-                          id: 1,
-                          title: "Session Reminder",
-                          desc: "Speech Therapy with Dr. Sarah in 2 hours",
-                          time: "2h ago",
-                          type: "alert",
-                          unread: true,
-                        },
-                        {
-                          id: 2,
-                          title: "New Assessment",
-                          desc: "Monthly progress report is ready to view",
-                          time: "1d ago",
-                          type: "doc",
-                          unread: true,
-                        },
-                        {
-                          id: 3,
-                          title: "Booking Confirmed",
-                          desc: "Occupational Therapy on Thursday, 10 AM",
-                          time: "2d ago",
-                          type: "success",
-                          unread: false,
-                        },
-                      ].map((n) => (
-                        <div
-                          key={n.id}
-                          className={`p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer flex gap-3 ${n.unread ? "bg-blue-50/30" : ""}`}
-                        >
+                      {sessionData.filter(s => s.type === "upcoming").length > 0 ? (
+                        sessionData.filter(s => s.type === "upcoming").map((n) => (
                           <div
-                            className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${n.type === "alert" ? "bg-amber-100 text-amber-600" : n.type === "doc" ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"}`}
+                            key={n.id}
+                            onClick={() => {
+                              setNotificationsOpen(false);
+                              navigate("/parent/book");
+                            }}
+                            className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer flex gap-3 text-left"
                           >
-                            {n.type === "alert" && (
-                              <AlertCircle size={14} strokeWidth={2.5} />
-                            )}
-                            {n.type === "doc" && (
-                              <FileText size={14} strokeWidth={2.5} />
-                            )}
-                            {n.type === "success" && (
-                              <CheckCircle size={14} strokeWidth={2.5} />
-                            )}
+                            <div className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-blue-100 text-blue-600">
+                              <Calendar size={14} strokeWidth={2.5} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-slate-900">
+                                {n.title}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                                Session with {n.therapist}
+                              </p>
+                              <p className="text-[10px] font-bold uppercase text-slate-400 mt-2">
+                                {new Date(n.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} • {n.time}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p
-                              className={`text-sm ${n.unread ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}
-                            >
-                              {n.title}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
-                              {n.desc}
-                            </p>
-                            <p className="text-[10px] font-bold uppercase text-slate-400 mt-2">
-                              {n.time}
-                            </p>
-                          </div>
-                          {n.unread && (
-                            <div className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-1.5 flex-shrink-0"></div>
-                          )}
+                        ))
+                      ) : (
+                        <div className="p-8 text-center">
+                          <p className="text-sm text-slate-500">
+                            No upcoming sessions
+                          </p>
                         </div>
-                      ))}
+                      )}
                     </div>
-                    <div className="p-3 text-center border-t border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer bg-slate-50">
+                    <div 
+                      onClick={() => {
+                        setNotificationsOpen(false);
+                        navigate("/parent/book");
+                      }}
+                      className="p-3 text-center border-t border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer bg-slate-50"
+                    >
                       <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        View All Archive
+                        Manage Bookings
                       </span>
                     </div>
                   </div>
@@ -466,9 +451,9 @@ const ParentLayout = ({ children }) => {
                         path: "/parent/contact-support",
                       },
                       {
-                        icon: ExternalLink,
-                        label: "Bloomnest Community",
-                        path: "#",
+                        icon: Users,
+                        label: "Parent Lounge",
+                        path: "/parent/chatroom",
                       },
                     ].map((item, idx) => (
                       <button
