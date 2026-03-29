@@ -219,23 +219,25 @@ const ParentLayout = ({ children }) => {
 
           {/* Meta/Profile Cluster */}
           <div className="p-4 mt-auto">
-            <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center gap-3 hover:border-slate-300 transition-premium cursor-pointer group mb-2">
-              <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm text-blue-600 font-bold text-sm ring-1 ring-slate-200 group-hover:ring-blue-100 transition-premium">
-                {user?.childName?.charAt(0) || "P"}
+            <Link to="/parent/profile" className="block focus:outline-none">
+              <div className="bg-slate-50 hover:bg-white rounded-xl p-3 border border-slate-100 flex items-center gap-3 hover:border-blue-200 hover:shadow-sm transition-premium cursor-pointer group mb-2">
+                <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm text-blue-600 font-bold text-sm ring-1 ring-slate-200 group-hover:ring-blue-200 group-hover:bg-blue-50 transition-premium">
+                  {user?.childName?.charAt(0) || "P"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-slate-900 text-sm truncate group-hover:text-blue-700 transition-colors">
+                    {user?.childName || "Parent Account"}
+                  </p>
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider truncate group-hover:text-blue-400 transition-colors">
+                    {user?.specialId || "MEC-Guest"}
+                  </p>
+                </div>
+                <ChevronDown
+                  size={14}
+                  className="text-slate-400 group-hover:text-blue-500 transition-colors"
+                />
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-bold text-slate-900 text-sm truncate">
-                  {user?.childName || "Parent Account"}
-                </p>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider truncate">
-                  {user?.specialId || "MEC-Guest"}
-                </p>
-              </div>
-              <ChevronDown
-                size={14}
-                className="text-slate-400 group-hover:text-slate-600"
-              />
-            </div>
+            </Link>
 
             <button
               onClick={handleLogout}
