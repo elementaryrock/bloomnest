@@ -312,16 +312,16 @@ const ParentChatroom = () => {
 
     // --- Main Render ---
     return (
-        <div className="flex flex-col h-[calc(100vh-120px)] max-h-[900px] bg-white rounded-[2rem] shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden relative">
+        <div className="flex flex-col h-[calc(100vh-90px)] md:h-[calc(100vh-120px)] max-h-[900px] bg-white rounded-2xl md:rounded-[2rem] shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden relative">
             
             {/* Minimalist Top Nav */}
-            <div className="px-6 py-4 flex items-center justify-between border-b border-gray-50 bg-white/80 backdrop-blur-md z-10 absolute top-0 inset-x-0">
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            <div className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between border-b border-gray-50 bg-white/80 backdrop-blur-md z-10 absolute top-0 inset-x-0">
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 md:pb-0">
                     {ROOMS.map(room => (
                         <button
                             key={room.id}
                             onClick={() => handleSwitchRoom(room.id)}
-                            className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
+                            className={`px-3 md:px-4 py-1.5 whitespace-nowrap rounded-full text-xs font-semibold tracking-wide transition-all ${
                                 activeRoom === room.id
                                     ? 'bg-black text-white'
                                     : 'text-gray-500 hover:bg-gray-100'
@@ -345,12 +345,12 @@ const ParentChatroom = () => {
             </div>
 
             {/* Content Area */}
-            <div className="flex flex-1 overflow-hidden pt-[68px]">
+            <div className="flex flex-1 overflow-hidden pt-[60px] md:pt-[68px]">
                 {/* Main Chat/Orb Area */}
                 <div className={`flex-1 flex flex-col min-w-0 bg-white relative ${showMatches ? 'hidden lg:flex' : 'flex'}`}>
                     
                     {/* Centered Area (Messages or Orb) */}
-                    <div className="flex-1 overflow-y-auto px-6 lg:px-12 pt-6 pb-32 flex flex-col justify-end relative">
+                    <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-12 pt-4 md:pt-6 pb-24 md:pb-32 flex flex-col justify-end relative">
                         {isLoading ? (
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <Loader2 className="w-8 h-8 animate-spin text-gray-200" />
@@ -378,7 +378,7 @@ const ParentChatroom = () => {
 
                                     return (
                                         <div key={msg._id || index} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 fade-in duration-300`}>
-                                            <div className={`flex max-w-[80%] ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end gap-2.5`}>
+                                            <div className={`flex max-w-[90%] md:max-w-[80%] ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end gap-2.5`}>
                                                 
                                                 <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                                                     <div className="flex items-center gap-2 mb-1 px-1">
@@ -412,10 +412,10 @@ const ParentChatroom = () => {
                     </div>
 
                     {/* Floating Sleek Input Pill */}
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[800px] px-4 pointer-events-none">
+                    <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[800px] px-3 md:px-4 pointer-events-none">
                         <form 
                             onSubmit={handleSendMessage} 
-                            className="bg-white rounded-[2rem] shadow-[0_12px_40px_rgb(0,0,0,0.12)] border border-gray-100 p-2 pl-3 flex items-center gap-2 pointer-events-auto transition-transform focus-within:scale-[1.01] focus-within:shadow-[0_16px_50px_rgb(0,0,0,0.15)]"
+                            className="bg-white rounded-full md:rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.12)] md:shadow-[0_12px_40px_rgb(0,0,0,0.12)] border border-gray-100 p-1.5 md:p-2 pl-3 md:pl-3 flex items-center gap-2 pointer-events-auto transition-transform focus-within:scale-[1.01] focus-within:shadow-[0_12px_40px_rgb(0,0,0,0.15)] md:focus-within:shadow-[0_16px_50px_rgb(0,0,0,0.15)]"
                         >
                             {/* Input Field */}
                             <input

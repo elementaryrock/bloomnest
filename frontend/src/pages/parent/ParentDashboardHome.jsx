@@ -33,14 +33,14 @@ const getTherapyConfig = (type) => therapyConfig[type] || therapyConfig['Psychol
 // --- PREMIUM COMPONENTS ---
 
 // 1. Primary Stat Card (60-30-10 Rule implementation)
-const MetricCard = ({ label, value, trend, isAccent = false }) => (
-    <div className={`relative p-6 rounded-2xl bg-white border ${isAccent ? 'border-amber-200 hover:shadow-accent' : 'border-slate-200 hover:shadow-hover'} transition-premium`}>
+const MetricCard = ({ label, value, trend, isAccent = false, className = '' }) => (
+    <div className={`relative p-5 md:p-6 rounded-2xl bg-white border ${isAccent ? 'border-amber-200 hover:shadow-accent' : 'border-slate-200 hover:shadow-hover'} transition-premium ${className}`}>
         {/* Gestalt: Proximity & Similarity. Label and Value group perfectly. */}
-        <p className={`text-[11px] font-bold uppercase tracking-micro mb-4 ${isAccent ? 'text-amber-700' : 'text-slate-400'}`}>
+        <p className={`text-[11px] font-bold uppercase tracking-micro mb-3 md:mb-4 ${isAccent ? 'text-amber-700' : 'text-slate-400'}`}>
             {label}
         </p>
         <div className="flex items-end justify-between">
-            <h3 className="text-4xl font-extrabold text-slate-900 tracking-tight-premium leading-none">{value}</h3>
+            <h3 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight-premium leading-none">{value}</h3>
             {trend && (
                 <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md ${isAccent ? 'bg-amber-100 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
                     {trend.isPositive ? <TrendingUp size={14} strokeWidth={2.5} /> : <ArrowUpRight size={14} strokeWidth={2.5} />}
@@ -58,10 +58,10 @@ const ClinicalIdentityCard = ({ patient }) => {
     const navigate = useNavigate();
 
     return (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-soft flex flex-col md:flex-row gap-8 items-center md:items-start group hover:border-slate-300 transition-premium">
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 md:p-8 shadow-soft flex flex-col md:flex-row gap-5 md:gap-8 items-center md:items-start group hover:border-slate-300 transition-premium">
             {/* Avatar - High definition with perfect ring spacing */}
             <div className="flex-shrink-0 relative">
-                <div className="w-24 h-24 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-3xl font-extrabold ring-4 ring-white shadow-soft group-hover:shadow-hover transition-premium overflow-hidden">
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-3xl font-extrabold ring-4 ring-white shadow-soft group-hover:shadow-hover transition-premium overflow-hidden">
                     {patient?.photoUrl ? (
                         <img src={getPhotoUrl(patient.photoUrl)} alt={patient.childName} className="w-full h-full object-cover" />
                     ) : (
@@ -69,31 +69,31 @@ const ClinicalIdentityCard = ({ patient }) => {
                     )}
                 </div>
                 {/* Online/Active status indicator */}
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full"></div>
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 md:w-6 md:h-6 bg-emerald-500 border-[3px] md:border-4 border-white rounded-full"></div>
             </div>
 
             {/* Metadata Matrix - Grid system for readability */}
             <div className="flex-1 w-full text-center md:text-left">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 mb-5 md:mb-6">
                     <div>
-                        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight-premium text-balance">{patient?.childName || 'Child Identity'}</h2>
-                        <p className="text-sm font-semibold text-slate-500 mt-1">ID: {patient?.specialId || 'MEC-XXXXXX'}</p>
+                        <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight-premium text-balance">{patient?.childName || 'Child Identity'}</h2>
+                        <p className="text-xs md:text-sm font-semibold text-slate-500 mt-1">ID: {patient?.specialId || 'MEC-XXXXXX'}</p>
                     </div>
                     <button
                         onClick={() => navigate('/parent/profile')}
-                        className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-premium">
+                        className="text-xs md:text-sm font-bold w-full md:w-auto text-blue-600 bg-blue-50 px-4 py-2.5 md:py-2 rounded-xl md:rounded-lg hover:bg-blue-100 transition-premium">
                         View Full Profile
                     </button>
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     {[
                         { l: 'Age', v: `${patient?.age || '-'} yrs` },
                         { l: 'Gender', v: patient?.gender || '-' },
                         { l: 'Primary Diagnosis', v: patient?.diagnosis?.join(', ') || 'Evaluating' },
                         { l: 'Severity Index', v: patient?.severity || 'Pending' }
                     ].map((item, idx) => (
-                        <div key={idx} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                        <div key={idx} className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex flex-col items-center md:items-start text-center md:text-left">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-micro">{item.l}</p>
                             <p className="font-bold text-slate-900 text-sm mt-1">{item.v}</p>
                         </div>
@@ -254,18 +254,18 @@ const ParentDashboardHome = () => {
     }
 
     return (
-        <div className="space-y-8 pb-10">
+        <div className="space-y-6 md:space-y-8 pb-10">
             {/* Header Module - Clear Typography Hierarchy */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 md:gap-6">
                 <div>
-                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{currentDate}</p>
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight-premium">
+                    <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest mb-1 md:mb-2">{currentDate}</p>
+                    <h1 className="text-2xl md:text-4xl font-extrabold text-slate-900 tracking-tight-premium">
                         Welcome back,<br /><span className="text-blue-600">{patient?.childName ? `${patient.childName}'s Guardian` : 'Guardian'}</span>
                     </h1>
                 </div>
                 <button
                     onClick={() => navigate('/parent/book')}
-                    className="group inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-blue-600 hover:shadow-hover transition-premium"
+                    className="group w-full md:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-blue-600 hover:shadow-hover transition-premium"
                 >
                     <Plus size={18} strokeWidth={2.5} className="group-hover:rotate-90 transition-transform duration-300" />
                     New Appointment
@@ -273,20 +273,23 @@ const ParentDashboardHome = () => {
             </div>
 
             {/* Metrics Matrix */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:pb-0 snap-x md:grid md:grid-cols-3 gap-4 md:gap-6" style={{ scrollbarWidth: 'none' }}>
                 <MetricCard
+                    className="min-w-[85vw] md:min-w-0 snap-center"
                     label="Upcoming Appointments"
                     value={stats.upcoming}
                     trend={{ value: stats.upcoming > 0 ? 'Scheduled' : 'None', isPositive: true }}
                 />
                 {/* Visual Anchor / Accent Card (Nanao Banana conceptual application) */}
                 <MetricCard
+                    className="min-w-[85vw] md:min-w-0 snap-center"
                     label="Pending Documentation"
                     value={stats.pendingDocuments}
                     trend={{ value: stats.pendingDocuments > 0 ? 'Needs Review' : 'Up to date', isPositive: stats.pendingDocuments === 0 }}
                     isAccent={true}
                 />
                 <MetricCard
+                    className="min-w-[85vw] md:min-w-0 snap-center"
                     label="Completed Sessions"
                     value={stats.completedSessions}
                     trend={{ value: stats.completedSessions > 0 ? 'Recorded' : 'No history', isPositive: true }}
@@ -297,13 +300,13 @@ const ParentDashboardHome = () => {
             <ClinicalIdentityCard patient={patient} />
 
             {/* Dual Pane Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
 
                 {/* Left Pane - Schedule (Dominant 60%) */}
-                <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-8 shadow-soft">
-                    <div className="flex items-center justify-between mb-6">
+                <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 md:p-8 shadow-soft">
+                    <div className="flex flex-wrap items-center justify-between mb-5 md:mb-6 gap-2">
                         <h3 className="text-lg font-extrabold text-slate-900 tracking-tight-premium">Upcoming Sessions</h3>
-                        <button onClick={() => navigate('/parent/history')} className="text-xs font-bold text-blue-600 uppercase tracking-wider hover:text-blue-800 transition-colors">
+                        <button onClick={() => navigate('/parent/history')} className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-wider hover:text-blue-800 transition-colors">
                             View Archives
                         </button>
                     </div>
@@ -330,13 +333,13 @@ const ParentDashboardHome = () => {
                     </div>
 
                     {/* Direct Messages Inbox */}
-                    <div className="mt-8 flex items-center justify-between mb-4">
+                    <div className="mt-8 flex flex-wrap items-center justify-between mb-4 gap-2">
                         <h3 className="text-lg font-extrabold text-slate-900 tracking-tight-premium flex items-center gap-2">
-                            <MessageCircle className="text-blue-600" size={20} strokeWidth={2.5} />
+                            <MessageCircle className="text-blue-600" size={18} strokeWidth={2.5} />
                             Recent Messages
                         </h3>
                         {inbox.length > 0 && (
-                            <button onClick={() => navigate('/parent/chatroom')} className="text-xs font-bold text-blue-600 uppercase tracking-wider hover:text-blue-800 transition-colors">
+                            <button onClick={() => navigate('/parent/chatroom')} className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-wider hover:text-blue-800 transition-colors">
                             Parents Lounge
                         </button>
                         )}
@@ -385,8 +388,8 @@ const ParentDashboardHome = () => {
                 {/* Right Pane - Utilities (Secondary 30%) */}
                 <div className="lg:col-span-5 space-y-6">
                     {/* Action Hub */}
-                    <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-soft">
-                        <h3 className="text-lg font-extrabold text-slate-900 tracking-tight-premium mb-6">Quick Actions</h3>
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 md:p-8 shadow-soft">
+                        <h3 className="text-lg font-extrabold text-slate-900 tracking-tight-premium mb-5 md:mb-6">Quick Actions</h3>
 
                         <div className="space-y-3">
                             {[
@@ -399,14 +402,14 @@ const ParentDashboardHome = () => {
                                     <button
                                         key={idx}
                                         onClick={() => navigate(action.route)}
-                                        className="w-full flex items-center p-4 rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-soft transition-premium group text-left bg-white"
+                                        className="w-full flex items-center p-3 md:p-4 rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-soft transition-premium group text-left bg-white"
                                     >
-                                        <div className={`w-12 h-12 rounded-xl flex flex-shrink-0 items-center justify-center ${action.bg} ${action.color} group-hover:scale-110 transition-transform duration-300 ease-out`}>
+                                        <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex flex-shrink-0 items-center justify-center ${action.bg} ${action.color} group-hover:scale-110 transition-transform duration-300 ease-out`}>
                                             <IconComponent size={20} strokeWidth={2.5} />
                                         </div>
-                                        <div className="ml-4 flex-1">
+                                        <div className="ml-3 md:ml-4 flex-1">
                                             <h4 className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors">{action.title}</h4>
-                                            <p className="text-xs font-semibold text-slate-400 mt-0.5">{action.desc}</p>
+                                            <p className="text-[11px] md:text-xs font-semibold text-slate-400 mt-0.5">{action.desc}</p>
                                         </div>
                                     </button>
                                 )
@@ -415,18 +418,18 @@ const ParentDashboardHome = () => {
                     </div>
 
                     {/* Notification/AI banner */}
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 shadow-soft text-white relative overflow-hidden group hover:shadow-hover transition-premium cursor-pointer" onClick={() => navigate('/parent/neural-narrative')}>
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 md:p-6 shadow-soft text-white relative overflow-hidden group hover:shadow-hover transition-premium cursor-pointer" onClick={() => navigate('/parent/neural-narrative')}>
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-150 group-hover:-rotate-12 transition-all duration-700">
                             <Brain size={120} />
                         </div>
                         <div className="relative z-10">
-                            <div className="flex items-center gap-2 text-blue-100 mb-3">
+                            <div className="flex items-center gap-2 text-blue-100 mb-2 md:mb-3">
                                 <Sparkles size={16} className="animate-pulse" />
-                                <span className="text-xs font-bold uppercase tracking-widest">AI Insights Ready</span>
+                                <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">AI Insights Ready</span>
                             </div>
-                            <h3 className="text-xl font-extrabold tracking-tight-premium mb-2 text-balance leading-tight">NeuralNarrative™ Analysis Complete</h3>
-                            <p className="text-sm font-medium text-blue-100 opacity-90 mb-4 max-w-64">Review the latest AI-generated progress report for {patient?.childName || 'your child'}.</p>
-                            <span className="inline-flex items-center font-bold text-xs uppercase tracking-wider bg-white/20 px-3 py-1.5 rounded-lg hover:bg-white/30 transition-colors">
+                            <h3 className="text-lg md:text-xl font-extrabold tracking-tight-premium mb-2 text-balance leading-tight">NeuralNarrative™ Analysis Complete</h3>
+                            <p className="text-xs md:text-sm font-medium text-blue-100 opacity-90 mb-4 max-w-64">Review the latest AI-generated progress report for {patient?.childName || 'your child'}.</p>
+                            <span className="inline-flex items-center font-bold text-[10px] md:text-xs uppercase tracking-wider bg-white/20 px-3 py-1.5 rounded-lg hover:bg-white/30 transition-colors">
                                 View Report &rarr;
                             </span>
                         </div>
