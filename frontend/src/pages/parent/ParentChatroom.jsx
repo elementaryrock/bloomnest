@@ -44,9 +44,12 @@ const ParentChatroom = () => {
     const [loadingMatches, setLoadingMatches] = useState(false);
     
     // DM State
-    const [dmRecipient, setDmRecipient] = useState(null);
-    const [dmMessage, setDmMessage] = useState('');
-    const [sendingDm, setSendingDm] = useState(false);
+    const [showInbox, setShowInbox] = useState(false);
+    const [inbox, setInbox] = useState([]);
+    const [loadingInbox, setLoadingInbox] = useState(false);
+    const [activeDM, setActiveDM] = useState(null);
+    const [dmMessages, setDmMessages] = useState([]);
+    const [loadingDM, setLoadingDM] = useState(false);
 
     const messagesEndRef = useRef(null);
     const socketRef = useRef(null);
@@ -55,6 +58,39 @@ const ParentChatroom = () => {
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const fetchInbox = async () => {
+        setLoadingInbox(true);
+        try {
+            const response = await api.get('/chat/dm/inbox');
+            if (response.data.success) {
+                setInbox(response.data.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch inbox:', error);
+        } finally {
+            setLoadingInbox(false);
+        }
+    };
+
+    const handleOpenDM = async (partnerId, partnerName, partnerChildName) => {
+        setActiveDM({ id: partnerId, name: partnerName, childName: partnerChildName });
+        setActiveRoom(null);
+        setShowMatches(false);
+        setShowInbox(false);
+        setDmMessages([]);
+        setLoadingDM(true);
+        try {
+            const response = await api.get(`/chat/dm/conversation/${partnerId}`);
+            if (response.data.success) {
+                setDmMessages(response.data.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch DM conversation:', error);
+        } finally {
+            setLoadingDM(false);
+        }
     };
 
     // Fetch messages for current room
@@ -88,6 +124,11 @@ const ParentChatroom = () => {
         }
     };
 
+    const activeDMRef = useRef(activeDM);
+    useEffect(() => { activeDMRef.current = activeDM; }, [activeDM]);
+    const activeRoomRef = useRef(activeRoom);
+    useEffect(() => { activeRoomRef.current = activeRoom; }, [activeRoom]);
+
     // Initialize socket
     useEffect(() => {
         const socketInstance = io(
@@ -100,13 +141,25 @@ const ParentChatroom = () => {
 
         socketInstance.on('connect', () => {
             console.log('Connected to socket server');
-            socketInstance.emit('join_room', activeRoom);
+            const uid = user?.id || user?._id;
+            if (uid) socketInstance.emit('join_own_room', uid);
+            if (activeRoomRef.current) socketInstance.emit('join_room', activeRoomRef.current);
         });
 
         socketInstance.on('receive_message', (message) => {
-            if (message.room === activeRoom) {
+            if (message.room === activeRoomRef.current) {
                 setMessages(prev => [...prev, message]);
             }
+        });
+
+        socketInstance.on('receive_direct_message', (dm) => {
+            const uid = user?.id || user?._id;
+            const partnerId = dm.sender._id === uid ? dm.receiver._id : dm.sender._id;
+            
+            if (activeDMRef.current?.id === partnerId) {
+                setDmMessages(prev => [...prev, dm]);
+            }
+            fetchInbox();
         });
 
         return () => {
@@ -116,59 +169,113 @@ const ParentChatroom = () => {
 
     // Switch rooms
     useEffect(() => {
-        fetchMessages(activeRoom);
+        if (activeRoom) {
+            fetchMessages(activeRoom);
 
-        if (socketRef.current?.connected) {
-            // Leave all rooms, join new one
-            ROOMS.forEach(r => socketRef.current.emit('leave_room', r.id));
-            socketRef.current.emit('join_room', activeRoom);
+            if (socketRef.current?.connected) {
+                // Leave all rooms, join new one
+                ROOMS.forEach(r => socketRef.current.emit('leave_room', r.id));
+                socketRef.current.emit('join_room', activeRoom);
+            }
         }
     }, [activeRoom]);
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, dmMessages]);
 
     const handleSendMessage = (e) => {
         e.preventDefault();
         if (!newMessage.trim() || !socketRef.current) return;
 
-        socketRef.current.emit('send_message', {
-            sender: user.id || user._id,
-            content: newMessage,
-            senderName: user.name || user.parentName || 'Parent',
-            childName: user.childName || 'Child',
-            room: activeRoom
-        });
+        if (activeDM) {
+            socketRef.current.emit('send_direct_message', {
+                senderId: user.id || user._id,
+                receiverId: activeDM.id,
+                content: newMessage,
+            });
+        } else {
+            socketRef.current.emit('send_message', {
+                sender: user.id || user._id,
+                content: newMessage,
+                senderName: user.name || user.parentName || 'Parent',
+                childName: user.childName || 'Child',
+                room: activeRoom
+            });
+        }
         setNewMessage('');
     };
 
     const handleSwitchRoom = (roomId) => {
         setActiveRoom(roomId);
+        setActiveDM(null);
         setShowMatches(false);
+        setShowInbox(false);
     };
 
-    const handleSendDM = async (e) => {
-        e.preventDefault();
-        if (!dmMessage.trim() || !dmRecipient) return;
+    const renderInboxPanel = () => (
+        <div className="h-full flex flex-col bg-[#fafafa]">
+            <div className="px-5 py-6 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                    <h3 className="font-semibold text-gray-900 text-sm tracking-tight flex items-center gap-2">
+                        <MessageSquare size={16} className="text-blue-500" />
+                        Direct Messages
+                    </h3>
+                    <p className="text-[11px] text-gray-400 font-medium mt-1">Your personal conversations</p>
+                </div>
+                <button
+                    onClick={() => setShowInbox(false)}
+                    className="p-2 text-gray-400 hover:text-gray-900 bg-white shadow-sm border border-gray-100 rounded-full transition-all"
+                >
+                    <X size={14} strokeWidth={2.5}/>
+                </button>
+            </div>
 
-        setSendingDm(true);
-        try {
-            const res = await api.post('/chat/dm/send', {
-                receiverId: dmRecipient._id,
-                content: dmMessage
-            });
-            if (res.data.success) {
-                setDmRecipient(null);
-                setDmMessage('');
-                alert('Message sent successfully! You can view replies in your Dashboard.');
-            }
-        } catch (err) {
-            alert('Failed to send message. Please try again.');
-        } finally {
-            setSendingDm(false);
-        }
-    };
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {loadingInbox ? (
+                    <div className="flex justify-center py-10">
+                        <Loader2 className="animate-spin text-gray-300" size={24} />
+                    </div>
+                ) : !inbox || inbox.length === 0 ? (
+                    <div className="text-center py-10 text-gray-400">
+                        <MessageSquare size={32} strokeWidth={1.5} className="mx-auto mb-3 opacity-30" />
+                        <p className="text-sm font-medium">No messages yet</p>
+                        <p className="text-[11px] mt-1 opacity-70">Check out Matches to find other parents!</p>
+                    </div>
+                ) : (
+                    inbox.map((chat) => (
+                        <div
+                            key={chat.partnerId}
+                            onClick={() => handleOpenDM(chat.partnerId, chat.partnerName, chat.partnerChildName)}
+                            className="bg-white rounded-xl p-4 border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer flex items-center gap-3"
+                        >
+                            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600 font-bold text-sm">
+                                {chat.partnerName?.charAt(0)?.toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-baseline mb-1">
+                                    <p className="font-semibold text-gray-900 text-sm truncate tracking-tight">
+                                        {chat.partnerName}
+                                    </p>
+                                    <span className="text-[10px] text-gray-400 w-12 text-right">
+                                        {new Date(chat.lastMessageAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric'})}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-gray-500 truncate pr-2">
+                                    {chat.isLastFromMe ? 'You: ' : ''}{chat.lastMessage}
+                                </p>
+                            </div>
+                            {chat.unreadCount > 0 && (
+                                <div className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    {chat.unreadCount}
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
 
     // --- Render: Matches Panel (Sleek Aesthetic) ---
     const renderMatchesPanel = () => (
@@ -251,7 +358,7 @@ const ParentChatroom = () => {
                                 {/* Actions */}
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={() => setDmRecipient(match)}
+                                        onClick={() => handleOpenDM(match._id, match.parentName, match.childName)}
                                         className="flex-1 bg-gray-900 hover:bg-black text-white font-medium py-1.5 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5"
                                     >
                                         <MessageSquare size={12} />
@@ -277,36 +384,6 @@ const ParentChatroom = () => {
                 )}
             </div>
 
-            {/* DM Input Pill */}
-            {dmRecipient && (
-                <div className="absolute inset-x-0 bottom-4 px-4 z-20">
-                    <form onSubmit={handleSendDM} className="bg-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.1)] border border-gray-200 p-1.5 pl-4 flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-400 whitespace-nowrap hidden sm:block">To {dmRecipient.parentName.split(' ')[0]}</span>
-                        <input
-                            type="text"
-                            value={dmMessage}
-                            onChange={(e) => setDmMessage(e.target.value)}
-                            placeholder="Say hello..."
-                            className="flex-1 min-w-0 bg-transparent text-sm focus:outline-none placeholder:text-gray-400 text-gray-800"
-                            autoFocus
-                        />
-                        <button
-                            type="submit"
-                            disabled={!dmMessage.trim() || sendingDm}
-                            className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center disabled:opacity-30 transition-all flex-shrink-0 hover:scale-105 active:scale-95"
-                        >
-                            {sendingDm ? <Loader2 size={14} className="animate-spin" /> : <ArrowUp size={16} strokeWidth={3} />}
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => setDmRecipient(null)} 
-                            className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 transition-all flex-shrink-0"
-                        >
-                            <X size={14} strokeWidth={2.5}/>
-                        </button>
-                    </form>
-                </div>
-            )}
         </div>
     );
 
@@ -331,31 +408,44 @@ const ParentChatroom = () => {
                         </button>
                     ))}
                 </div>
-                <button
-                    onClick={() => { setShowMatches(!showMatches); if (!matches) fetchMatches(); }}
-                    className={`ml-4 w-9 h-9 flex items-center justify-center rounded-full transition-all border ${
-                        showMatches
-                            ? 'bg-black text-white border-black'
-                            : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300 hover:text-gray-600'
-                    }`}
-                    title="Match Settings"
-                >
-                    <Users size={16} strokeWidth={2}/>
-                </button>
+                <div className="flex items-center gap-2 py-1 pl-4 border-l border-gray-100 ml-2">
+                    <button
+                        onClick={() => { setShowInbox(!showInbox); setShowMatches(false); if (!inbox.length) fetchInbox(); }}
+                        className={`w-9 h-9 flex items-center justify-center rounded-full transition-all border ${
+                            showInbox
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                                : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300 hover:text-blue-600'
+                        }`}
+                        title="Direct Messages"
+                    >
+                        <MessageSquare size={16} strokeWidth={2} />
+                    </button>
+                    <button
+                        onClick={() => { setShowMatches(!showMatches); setShowInbox(false); if (!matches) fetchMatches(); }}
+                        className={`w-9 h-9 flex items-center justify-center rounded-full transition-all border ${
+                            showMatches
+                                ? 'bg-black text-white border-black shadow-md'
+                                : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300 hover:text-gray-900'
+                        }`}
+                        title="Match Settings"
+                    >
+                        <Users size={16} strokeWidth={2}/>
+                    </button>
+                </div>
             </div>
 
             {/* Content Area */}
             <div className="flex flex-1 overflow-hidden pt-[68px]">
                 {/* Main Chat/Orb Area */}
-                <div className={`flex-1 flex flex-col min-w-0 bg-white relative ${showMatches ? 'hidden lg:flex' : 'flex'}`}>
+                <div className={`flex-1 flex flex-col min-w-0 bg-white relative ${(showMatches || showInbox) ? 'hidden lg:flex' : 'flex'}`}>
                     
                     {/* Centered Area (Messages or Orb) */}
                     <div className="flex-1 overflow-y-auto px-6 lg:px-12 pt-6 pb-32 flex flex-col justify-end relative">
-                        {isLoading ? (
+                        {(!activeDM && isLoading) || (activeDM && loadingDM) ? (
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <Loader2 className="w-8 h-8 animate-spin text-gray-200" />
                             </div>
-                        ) : messages.length === 0 ? (
+                        ) : (!activeDM && messages.length === 0) ? (
                             /* Chatroom Empty State */
                             <div className="absolute inset-0 flex flex-col items-center justify-center p-8 animate-in fade-in duration-700">
                                 <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4 border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
@@ -368,12 +458,26 @@ const ParentChatroom = () => {
                                     {activeRoomData?.desc || 'Be the first to start the conversation!'}
                                 </p>
                             </div>
+                        ) : (activeDM && dmMessages.length === 0) ? (
+                            /* DM Empty State */
+                            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 animate-in fade-in duration-700">
+                                <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mb-4 border border-blue-100 text-blue-600 text-2xl font-bold">
+                                    {activeDM.name?.charAt(0)?.toUpperCase()}
+                                </div>
+                                <h1 className="text-gray-800 text-[16px] max-w-[340px] text-center font-semibold tracking-tight">
+                                    Private Chat with {activeDM.name}
+                                </h1>
+                                <p className="text-gray-400 text-[13px] text-center mt-1">
+                                    Start the conversation!
+                                </p>
+                            </div>
                         ) : (
                             /* Messages List */
                             <div className="space-y-6 w-full max-w-3xl mx-auto flex flex-col justify-end min-h-full">
-                                {messages.map((msg, index) => {
+                                {(activeDM ? dmMessages : messages).map((msg, index) => {
                                     const userId = user.id || user._id;
-                                    const isMe = msg.sender?._id === userId || msg.sender === userId;
+                                    const senderIdObj = msg.sender?._id || msg.sender;
+                                    const isMe = senderIdObj === userId;
                                     const parentName = msg.sender?.parentName || msg.senderName || 'Parent';
 
                                     return (
@@ -427,7 +531,7 @@ const ParentChatroom = () => {
                                 type="text"
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder={`Message #${activeRoomData?.label || 'general'}...`}
+                                placeholder={activeDM ? `Message ${activeDM.name.split(' ')[0]}...` : `Message #${activeRoomData?.label || 'general'}...`}
                                 className="flex-1 min-w-0 bg-transparent text-[14px] font-medium tracking-tight focus:outline-none placeholder:text-gray-400 text-gray-800 px-3 py-2"
                             />
 
@@ -443,10 +547,15 @@ const ParentChatroom = () => {
                     </div>
                 </div>
 
-                {/* Matches Sidebar */}
+                {/* Right Sidebars */}
                 {showMatches && (
                     <div className="w-full lg:w-[320px] border-l border-gray-100 flex-shrink-0 relative">
                         {renderMatchesPanel()}
+                    </div>
+                )}
+                {showInbox && (
+                    <div className="w-full lg:w-[320px] border-l border-gray-100 flex-shrink-0 relative z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.03)] border-gray-100 bg-[#fafafa]">
+                        {renderInboxPanel()}
                     </div>
                 )}
             </div>
