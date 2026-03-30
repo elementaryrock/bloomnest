@@ -728,7 +728,8 @@ function EditGoalModal({ goal, onUpdated, onClose }) {
     }
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -846,7 +847,8 @@ function EditGoalModal({ goal, onUpdated, onClose }) {
           </button>
         </form>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }
 
@@ -884,7 +886,8 @@ function AddGoalModal({ patientId, onCreated, onClose }) {
     }
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -1068,7 +1071,8 @@ function AddGoalModal({ patientId, onCreated, onClose }) {
           </div>
         </form>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }
 

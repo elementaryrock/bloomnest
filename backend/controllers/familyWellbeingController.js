@@ -724,244 +724,289 @@ const generateProgressPDF = async (req, res) => {
     );
     doc.pipe(res);
 
-    const purple = "#7c3aed";
-    const gray = "#6b7280";
-    const darkGray = "#1f2937";
+    // Define Premium Theme Colors
+    const primaryOcean = "#1e3a8a";   // Deep Ocean Blue
+    const secondaryTeal = "#0f766e";  // Soft Emerald/Teal
+    const accentAmber = "#b45309";    // Warm tone
+    const surfaceSlate = "#f8fafc";   // Light background
+    const borderSlate = "#e2e8f0";    // Light borders
+    const textMain = "#334155";       // Text primary
+    const textMuted = "#64748b";      // Text secondary
+    const white = "#ffffff";
+    const highlightBlue = "#eff6ff";
+    const accentBorderBlue = "#bfdbfe";
 
-    // ── Header ──
-    doc.rect(0, 0, doc.page.width, 100).fill(purple);
-    doc
-      .fill("#ffffff")
-      .fontSize(24)
-      .font("Helvetica-Bold")
-      .text("Therapy Ripple", 50, 30);
-    doc
-      .fontSize(11)
-      .font("Helvetica")
-      .text("Family Wellbeing Progress Report", 50, 60);
-    doc
-      .fontSize(9)
-      .text(
-        `Generated: ${formatDateInAppTimezone(new Date(), { year: "numeric", month: "long", day: "numeric" })} (${APP_TIMEZONE})  |  ID: ${specialId}`,
-        50,
-        78,
-      );
+    // ── Document Setup & Background ──
+    const pageWidth = doc.page.width;
+    const margin = 50;
+    
+    // Very subtle off-white background for the page
+    doc.rect(0, 0, pageWidth, doc.page.height).fill("#fafafa");
 
-    doc.fill(darkGray);
+    // ── Header Banner ──
+    // Top gradient-like solid block
+    doc.rect(0, 0, pageWidth, 110).fill(primaryOcean);
+    
+    // Aesthetic bottom stripe on header
+    doc.rect(0, 110, pageWidth, 4).fill(secondaryTeal);
 
-    // ── Summary Stats ──
-    const statsY = 120;
-    doc.fontSize(14).font("Helvetica-Bold").text("Summary", 50, statsY);
-    doc
-      .moveTo(50, statsY + 18)
-      .lineTo(545, statsY + 18)
-      .strokeColor("#e5e7eb")
-      .stroke();
+    // Header Content
+    doc.fill(white)
+       .fontSize(28)
+       .font("Helvetica-Bold")
+       .text("Therapy Ripple", 50, 35);
+       
+    doc.fontSize(12)
+       .font("Helvetica")
+       .fillOpacity(0.9)
+       .text("Family Wellbeing Clinical Report", 50, 68);
+
+    doc.fontSize(9)
+       .fillOpacity(0.7)
+       .text(
+         `Generated: ${formatDateInAppTimezone(new Date(), { year: "numeric", month: "long", day: "numeric" })}  |  Patient ID: ${specialId}`,
+         50,
+         84
+       );
+    
+    doc.fillOpacity(1); // Reset opacity
+    doc.fill(textMain);
+
+    // ── Summary Stats Section ──
+    let currentY = 150;
+    doc.fontSize(16).font("Helvetica-Bold").fill(textMain).text("Clinical Overview", margin, currentY);
+    currentY += 24;
 
     const statBoxes = [
-      { label: "Total Logs", value: String(totalLogs) },
-      { label: "Sessions", value: String(totalSessions) },
-      { label: "Avg Stress", value: String(avgStress) },
+      { label: "Total Clinical Logs", value: String(totalLogs), color: secondaryTeal },
+      { label: "Therapy Sessions", value: String(totalSessions), color: primaryOcean },
+      { label: "Avg Stress Level", value: String(avgStress), color: accentAmber },
       {
-        label: "Best Week",
+        label: "Best Performing Week",
         value: bestWeek
           ? formatDateInAppTimezone(bestWeek.weekStart, {
               month: "short",
               day: "numeric",
             })
           : "N/A",
+        color: secondaryTeal
       },
     ];
-    const boxW = 120;
+
+    const boxW = 118;
     statBoxes.forEach((box, i) => {
-      const x = 50 + i * (boxW + 5);
-      doc
-        .roundedRect(x, statsY + 26, boxW, 50, 6)
-        .fillAndStroke("#f9fafb", "#e5e7eb");
-      doc
-        .fill(purple)
-        .fontSize(18)
-        .font("Helvetica-Bold")
-        .text(box.value, x, statsY + 32, { width: boxW, align: "center" });
-      doc
-        .fill(gray)
-        .fontSize(8)
-        .font("Helvetica")
-        .text(box.label, x, statsY + 56, { width: boxW, align: "center" });
+      const x = margin + i * (boxW + 6);
+      
+      // Box Base
+      doc.roundedRect(x, currentY, boxW, 55, 8)
+         .fillAndStroke(white, borderSlate);
+      
+      // Top color accent pip
+      doc.roundedRect(x + 10, currentY + 12, 4, 16, 2).fill(box.color);
+
+      doc.fill(textMain)
+         .fontSize(18)
+         .font("Helvetica-Bold")
+         .text(box.value, x + 20, currentY + 14, { width: boxW - 24, align: "left" });
+         
+      doc.fill(textMuted)
+         .fontSize(8)
+         .font("Helvetica")
+         .text(box.label, x + 10, currentY + 38, { width: boxW - 20, align: "left" });
     });
 
-    // ── Ripple Scores ──
-    const ripY = statsY + 100;
-    doc
-      .fill(darkGray)
-      .fontSize(14)
-      .font("Helvetica-Bold")
-      .text("Ripple Scores (Last 4 Weeks)", 50, ripY);
-    doc
-      .moveTo(50, ripY + 18)
-      .lineTo(545, ripY + 18)
-      .strokeColor("#e5e7eb")
-      .stroke();
+    currentY += 85;
+
+    // ── Ripple Scores Section ──
+    doc.fontSize(16).font("Helvetica-Bold").fill(textMain).text("Progress Tracking (Last 4 Weeks)", margin, currentY);
+    currentY += 24;
 
     const scoreItems = [
       {
         label: "Child Progress",
         value: rippleScores.child !== null ? `${rippleScores.child}%` : "N/A",
-        color: "#8b5cf6",
+        color: "#8b5cf6", // Soft violet
       },
       {
         label: "Parent Wellbeing",
-        value: `${rippleScores.parent}%`,
-        color: "#3b82f6",
+        value: rippleScores.parent !== null ? `${rippleScores.parent}%` : "N/A",
+        color: "#3b82f6", // Soft blue
       },
       {
-        label: "Siblings",
-        value:
-          rippleScores.siblings !== null ? `${rippleScores.siblings}%` : "N/A",
-        color: "#10b981",
+        label: "Sibling Outlook",
+        value: rippleScores.siblings !== null ? `${rippleScores.siblings}%` : "N/A",
+        color: "#10b981", // Emerald
       },
       {
-        label: "Overall",
-        value:
-          rippleScores.overall !== null ? `${rippleScores.overall}%` : "N/A",
-        color: purple,
+        label: "Overall Index",
+        value: rippleScores.overall !== null ? `${rippleScores.overall}%` : "N/A",
+        color: primaryOcean,
       },
     ];
+
     scoreItems.forEach((item, i) => {
-      const x = 50 + i * (boxW + 5);
-      doc
-        .roundedRect(x, ripY + 26, boxW, 50, 6)
-        .fillAndStroke("#f9fafb", "#e5e7eb");
-      doc
-        .fill(item.color)
-        .fontSize(18)
-        .font("Helvetica-Bold")
-        .text(item.value, x, ripY + 32, { width: boxW, align: "center" });
-      doc
-        .fill(gray)
-        .fontSize(8)
-        .font("Helvetica")
-        .text(item.label, x, ripY + 56, { width: boxW, align: "center" });
+      const x = margin + i * (boxW + 6);
+      
+      doc.roundedRect(x, currentY, boxW, 55, 8).fillAndStroke(white, borderSlate);
+      
+      doc.fill(item.color)
+         .fontSize(22)
+         .font("Helvetica-Bold")
+         .text(item.value, x, currentY + 12, { width: boxW, align: "center" });
+         
+      doc.fill(textMuted)
+         .fontSize(8)
+         .font("Helvetica-Bold")
+         .text(item.label.toUpperCase(), x, currentY + 38, { width: boxW, align: "center", tracking: 0.5 });
     });
 
-    // ── Pattern Insight ──
-    const insightY = ripY + 100;
-    doc
-      .fill(darkGray)
-      .fontSize(14)
-      .font("Helvetica-Bold")
-      .text("Pattern Insight", 50, insightY);
-    doc
-      .moveTo(50, insightY + 18)
-      .lineTo(545, insightY + 18)
-      .strokeColor("#e5e7eb")
-      .stroke();
+    currentY += 90;
 
-    doc
-      .roundedRect(50, insightY + 26, 495, 50, 6)
-      .fillAndStroke("#f5f3ff", "#ddd6fe");
+    // ── Pattern Insight Section ──
+    doc.fontSize(16).font("Helvetica-Bold").fill(textMain).text("Clinical Pattern Insight", margin, currentY);
+    currentY += 20;
+
     const trendLabel =
       {
-        positive: "Positive Ripple",
-        moderate: "Moderate Ripple",
-        neutral: "Neutral",
-        inverse: "Variable",
-        insufficient_data: "Need More Data",
+        positive: "Positive Correlation",
+        moderate: "Moderate Correlation",
+        neutral: "Neutral Baseline",
+        inverse: "Variable Dynamics",
+        insufficient_data: "Awaiting Data",
       }[trend] || "N/A";
-    doc
-      .fill(purple)
-      .fontSize(10)
-      .font("Helvetica-Bold")
-      .text(
-        `Trend: ${trendLabel}${correlationValue !== null ? `  (r = ${correlationValue})` : ""}  •  ${confidence.label}`,
-        60,
-        insightY + 32,
-      );
-    doc
-      .fill(gray)
-      .fontSize(9)
-      .font("Helvetica")
-      .text(insight, 60, insightY + 48, { width: 475 });
 
-    // ── Stress History Table ──
-    const tableY = insightY + 100;
-    doc
-      .fill(darkGray)
-      .fontSize(14)
-      .font("Helvetica-Bold")
-      .text("Stress History", 50, tableY);
-    doc
-      .moveTo(50, tableY + 18)
-      .lineTo(545, tableY + 18)
-      .strokeColor("#e5e7eb")
-      .stroke();
+    doc.roundedRect(margin, currentY, pageWidth - margin * 2, 60, 6)
+       .fillAndStroke(highlightBlue, accentBorderBlue);
+       
+    // Left Accent Border
+    doc.roundedRect(margin, currentY, 5, 60, 0).fill(primaryOcean);
+       
+    doc.fill(primaryOcean)
+       .fontSize(11)
+       .font("Helvetica-Bold")
+       .text(
+         `Analysis: ${trendLabel}${correlationValue !== null ? `  (r = ${correlationValue})` : ""}  •  ${confidence.label}`,
+         margin + 16,
+         currentY + 14
+       );
+       
+    doc.fill(textMain)
+       .fontSize(10)
+       .font("Helvetica")
+       .text(insight, margin + 16, currentY + 32, { width: pageWidth - margin * 2 - 32, lineGap: 2 });
+       
+    currentY += 95;
 
-    // Table header
+    // ── Stress History Data Table ──
+    doc.fontSize(16).font("Helvetica-Bold").fill(textMain).text("Historical Tracking Log", margin, currentY);
+    currentY += 24;
+
     const cols = [
-      { label: "Week", x: 50, w: 80 },
-      { label: "Stress", x: 130, w: 70 },
-      { label: "Siblings", x: 200, w: 160 },
-      { label: "Notes", x: 360, w: 185 },
+      { label: "WEEK START", x: margin, w: 70 },
+      { label: "STRESS", x: 120, w: 70 },
+      { label: "SIBLING OBSERVATIONS", x: 190, w: 160 },
+      { label: "CLINICAL NOTES", x: 350, w: pageWidth - 350 - margin },
     ];
-    let rowY = tableY + 28;
-    doc.rect(50, rowY - 4, 495, 18).fill("#f3f4f6");
-    doc.fill(darkGray).fontSize(8).font("Helvetica-Bold");
-    cols.forEach((c) => doc.text(c.label, c.x + 4, rowY, { width: c.w - 8 }));
-    rowY += 20;
+    
+    // Table Header
+    doc.rect(margin, currentY, pageWidth - margin * 2, 22).fill(surfaceSlate);
+    doc.strokeColor(borderSlate).lineWidth(1).moveTo(margin, currentY).lineTo(pageWidth - margin, currentY).stroke();
+    doc.moveTo(margin, currentY + 22).lineTo(pageWidth - margin, currentY + 22).stroke();
+    
+    doc.fill(textMuted).fontSize(8).font("Helvetica-Bold");
+    cols.forEach((c) => doc.text(c.label, c.x + 8, currentY + 7, { width: c.w - 16, tracking: 0.5 }));
+    
+    currentY += 22;
 
-    // Table rows (limit to 20 for page space)
-    const entriesToShow = wellbeingEntries.slice(0, 20);
-    doc.font("Helvetica").fontSize(8).fill(gray);
+    const entriesToShow = wellbeingEntries.slice(0, 15);
+    doc.font("Helvetica").fontSize(9);
 
     entriesToShow.forEach((entry, idx) => {
-      if (rowY > doc.page.height - 60) {
+      if (currentY > doc.page.height - 80) {
         doc.addPage();
-        rowY = 50;
+        doc.rect(0, 0, pageWidth, doc.page.height).fill("#fafafa");
+        currentY = margin;
       }
 
+      const rowHeight = 36;
       if (idx % 2 === 0) {
-        doc.rect(50, rowY - 4, 495, 18).fill("#fafafa");
-        doc.fill(gray);
+        doc.rect(margin, currentY, pageWidth - margin * 2, rowHeight).fill(white);
+      } else {
+        doc.rect(margin, currentY, pageWidth - margin * 2, rowHeight).fill(surfaceSlate);
       }
-
+      
+      // Right/Left subtle borders
+      doc.strokeColor(borderSlate).lineWidth(0.5);
+      doc.moveTo(margin, currentY).lineTo(margin, currentY + rowHeight).stroke();
+      doc.moveTo(pageWidth - margin, currentY).lineTo(pageWidth - margin, currentY + rowHeight).stroke();
+      
       const weekLabel = formatDateInAppTimezone(entry.weekStart, {
         month: "short",
         day: "numeric",
-        year: "2-digit",
+        year: "numeric",
       });
-      const stressLabel =
-        STRESS_LABELS[entry.stressLevel - 1] || String(entry.stressLevel);
-      const siblingsText =
-        (entry.siblingEntries || [])
+      const stressLabel = STRESS_LABELS[entry.stressLevel - 1] || String(entry.stressLevel);
+      
+      const siblingsText = (entry.siblingEntries || [])
           .map((s) => `${s.name}: ${FEELING_LABELS[s.feeling] || s.feeling}`)
           .join(", ") || "—";
+          
       const noteText = entry.notes
-        ? entry.notes.length > 60
-          ? entry.notes.substring(0, 57) + "..."
+        ? entry.notes.length > 55
+          ? entry.notes.substring(0, 52) + "..."
           : entry.notes
         : "—";
 
-      doc.text(weekLabel, cols[0].x + 4, rowY, { width: cols[0].w - 8 });
-      doc.text(stressLabel, cols[1].x + 4, rowY, { width: cols[1].w - 8 });
-      doc.text(siblingsText, cols[2].x + 4, rowY, { width: cols[2].w - 8 });
-      doc.text(noteText, cols[3].x + 4, rowY, { width: cols[3].w - 8 });
-      rowY += 20;
+      doc.fill(textMain);
+      // Week bolded slightly
+      doc.font("Helvetica-Bold").text(weekLabel, cols[0].x + 8, currentY + 12, { width: cols[0].w - 16 });
+      
+      // Color-code stress dots conceptually (just text color for now)
+      let stressColor = textMain;
+      if(entry.stressLevel >= 4) stressColor = "#dc2626";
+      else if(entry.stressLevel <= 2) stressColor = secondaryTeal;
+      
+      doc.font("Helvetica-Bold").fill(stressColor).text(stressLabel, cols[1].x + 8, currentY + 12, { width: cols[1].w - 16 });
+      
+      doc.font("Helvetica").fill(textMuted);
+      doc.text(siblingsText, cols[2].x + 8, currentY + 12, { width: cols[2].w - 16 });
+      doc.text(noteText,     cols[3].x + 8, currentY + 12, { width: cols[3].w - 16 });
+      
+      currentY += rowHeight;
     });
+    
+    // Bottom border for table
+    doc.strokeColor(borderSlate).lineWidth(1).moveTo(margin, currentY).lineTo(pageWidth - margin, currentY).stroke();
 
-    // ── Footer ──
+    // ── Footer Pages ──
     const pages = doc.bufferedPageRange();
     for (let i = 0; i < pages.count; i++) {
-      doc.switchToPage(i);
-      doc
-        .fill("#9ca3af")
-        .fontSize(7)
-        .font("Helvetica")
-        .text(
-          `Therapy Ripple Progress Report  •  Page ${i + 1} of ${pages.count}`,
-          50,
-          doc.page.height - 30,
-          { width: 495, align: "center" },
-        );
+        doc.switchToPage(i);
+        
+        // Separator line
+        doc.strokeColor(borderSlate).lineWidth(0.5)
+           .moveTo(margin, doc.page.height - margin + 10)
+           .lineTo(pageWidth - margin, doc.page.height - margin + 10).stroke();
+           
+        doc.fill(textMuted)
+           .fontSize(8)
+           .font("Helvetica-Bold")
+           .text(
+             "BLOOMNEST CLINICAL ENGINE",
+             margin,
+             doc.page.height - margin + 20,
+             { align: "left", tracking: 1 }
+           );
+           
+        doc.fill(textMuted)
+           .fontSize(8)
+           .font("Helvetica")
+           .text(
+             `Page ${i + 1} of ${pages.count}`,
+             margin,
+             doc.page.height - margin + 20,
+             { width: pageWidth - margin * 2, align: "right" }
+           );
     }
 
     doc.end();
