@@ -191,6 +191,14 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Join a private room for the user to receive DMs
+  socket.on('join_own_room', (userId) => {
+    if (userId) {
+      socket.join(`user_${userId}`);
+      console.log(`User ${socket.id} joined private room user_${userId}`);
+    }
+  });
+
   // Leave a specific therapy-based room
   socket.on('leave_room', (room) => {
     socket.leave(`lounge_${room}`);
@@ -231,6 +239,36 @@ io.on('connection', (socket) => {
       }
     } catch (error) {
       console.error('Socket message error:', error);
+    }
+  });
+
+  socket.on('send_direct_message', async (data) => {
+    try {
+      // data: { senderId, receiverId, content }
+      const DirectMessage = require('./models/DirectMessage');
+      
+      if (!data.senderId || !data.receiverId || !data.content) return;
+
+      const newDm = new DirectMessage({
+        sender: data.senderId,
+        receiver: data.receiverId,
+        content: data.content
+      });
+      await newDm.save();
+
+      // Populate sender and receiver like the API does
+      const populatedDm = await DirectMessage.findById(newDm._id)
+        .populate('sender', 'parentName childName photoUrl')
+        .populate('receiver', 'parentName childName photoUrl');
+
+      // Emit to receiver's private room
+      io.to(`user_${data.receiverId}`).emit('receive_direct_message', populatedDm);
+      
+      // Emit back to sender's private room so their UI updates
+      io.to(`user_${data.senderId}`).emit('receive_direct_message', populatedDm);
+      
+    } catch (error) {
+      console.error('Socket direct message error:', error);
     }
   });
 
