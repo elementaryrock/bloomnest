@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { createPortal } from "react-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import "./skillsprout.css";
@@ -220,8 +219,8 @@ function Confetti({ active }) {
     "#f472b6",
   ];
   const shapes = ["●", "★", "■", "◆", "▲"];
-  if (!active || typeof document === 'undefined') return null;
-  return createPortal(
+  if (!active) return null;
+  return (
     <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
       {Array.from({ length: 60 }).map((_, i) => (
         <div
@@ -239,15 +238,13 @@ function Confetti({ active }) {
           {shapes[i % shapes.length]}
         </div>
       ))}
-    </div>,
-    document.body
+    </div>
   );
 }
 
 // ─── XP Float Popup ──────────────────────────────────────────
 function XPPopup({ xp, onDone }) {
-  if (typeof document === 'undefined') return null;
-  return createPortal(
+  return (
     <motion.div
       initial={{ y: 0, opacity: 0, scale: 0.5 }}
       animate={{ y: -100, opacity: 1, scale: 1.2 }}
@@ -258,8 +255,7 @@ function XPPopup({ xp, onDone }) {
       <div className="text-4xl font-black text-yellow-500 drop-shadow-xl flex items-center gap-2">
         <Zap size={32} className="text-yellow-400 fill-yellow-400" />+{xp} XP!
       </div>
-    </motion.div>,
-    document.body
+    </motion.div>
   );
 }
 
@@ -290,9 +286,7 @@ function CelebrationModal({ event, onClose }) {
   };
   const cfg = messages[event.type] || messages.stage;
 
-  if (typeof document === 'undefined') return null;
-
-  return createPortal(
+  return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -373,8 +367,7 @@ function CelebrationModal({ event, onClose }) {
           </motion.button>
         </motion.div>
       </motion.div>
-    </AnimatePresence>,
-    document.body
+    </AnimatePresence>
   );
 }
 
@@ -728,8 +721,7 @@ function EditGoalModal({ goal, onUpdated, onClose }) {
     }
   };
 
-  if (typeof document === 'undefined') return null;
-  return createPortal(
+  return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -847,8 +839,7 @@ function EditGoalModal({ goal, onUpdated, onClose }) {
           </button>
         </form>
       </motion.div>
-    </motion.div>,
-    document.body
+    </motion.div>
   );
 }
 
@@ -886,8 +877,7 @@ function AddGoalModal({ patientId, onCreated, onClose }) {
     }
   };
 
-  if (typeof document === 'undefined') return null;
-  return createPortal(
+  return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -1071,8 +1061,7 @@ function AddGoalModal({ patientId, onCreated, onClose }) {
           </div>
         </form>
       </motion.div>
-    </motion.div>,
-    document.body
+    </motion.div>
   );
 }
 
