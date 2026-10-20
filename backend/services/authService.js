@@ -9,6 +9,14 @@ class AuthService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
+  // Returns the set of specialIds that are allowed to bypass OTP
+  getBypassIds() {
+    const raw = process.env.OTP_BYPASS_SPECIAL_IDS || '';
+    return new Set(
+      raw.split(',').map(id => id.trim()).filter(Boolean)
+    );
+  }
+
   // Send OTP to parent
   async sendOTP(specialId, phoneNumber) {
     // Validate patient exists and is active
@@ -19,6 +27,16 @@ class AuthService {
     });
     if (!patient) {
       throw new Error('Invalid Special ID or phone number');
+    }
+
+    // --- OTP Bypass: skip SMS for whitelisted users ---
+    if (this.getBypassIds().has(specialId)) {
+      console.log(`[OTP] Bypass active for ${specialId} — skipping OTP send`);
+      return {
+        success: true,
+        message: 'OTP not required for this account',
+        bypass: true
+      };
     }
 
     // Generate OTP
@@ -48,6 +66,42 @@ class AuthService {
 
   // Verify OTP
   async verifyOTP(specialId, otpInput) {
+    // --- OTP Bypass: auto-approve for whitelisted users ---
+    if (this.getBypassIds().has(specialId)) {
+      console.log(`[OTP] Bypass active for ${specialId} — skipping OTP verification`);
+
+      const patient = await Patient.findOne({ specialId, isActive: true });
+      if (!patient) {
+        throw new Error('Patient not found');
+      }
+
+      const token = jwt.sign(
+        {
+          userId: patient._id,
+          specialId: patient.specialId,
+          role: 'parent'
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      );
+
+      patient.lastLogin = new Date();
+      await patient.save();
+
+      return {
+        success: true,
+        token,
+        user: {
+          id: patient._id,
+          specialId: patient.specialId,
+          childName: patient.childName,
+          parentName: patient.parentName,
+          name: patient.parentName,
+          role: 'parent'
+        }
+      };
+    }
+
     // Find valid OTP
     const otpRecord = await OTP.findOne({
       specialId,
